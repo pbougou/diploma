@@ -1,6 +1,6 @@
 module Lexer
-( names,
-  operators,
+( -- names,
+  -- operators,
   identifier,
   symbol,
   reserved,
@@ -18,8 +18,8 @@ import Text.Parsec
 import qualified Text.Parsec.Token as Token
 import Text.Parsec.Language
 
-names     = words "fun if then else let in"
-operators = words "+ - * / % ="
+--names     = words "fun if then else let in"
+--operators = words "+ - * / % ="
 
 lexer =
   Token.makeTokenParser emptyDef

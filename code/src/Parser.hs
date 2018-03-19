@@ -1,14 +1,16 @@
 module Parser(
   parseExpr,
-  parseProgram
+  parseProgram,
+  program
  ) where
 
 import Grammar
 import Lexer
 
-import Text.Parsec.Expr hiding (Empty)
+import Text.Parsec.Expr
 import Text.Parsec
 import Text.Parsec.String
+
 import Control.Applicative ( (<$>), (<*>), (<*), (*>) )
 import Control.Monad
 
@@ -72,11 +74,14 @@ expr = callExpr
 
 program = sequenceOfFns
 
---parseExpr :: String -> Either ParseError Expr
+--parseExpr :: String -> IO Expr
 parseExpr s =
   case parse (expr <* eof) "" s of
     Right e  -> return e
-    Left err -> print err >> fail "parse error"
+    Left err -> fail "parse error"
 
-parseProgram :: String -> Either ParseError Program
-parseProgram = parse (program <* eof) ""
+--parseProgram :: String -> IO Program
+parseProgram prog = case parse (program <* eof) "" prog of
+                      Right e  -> return e
+                      Left err -> fail "parse error"
+

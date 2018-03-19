@@ -5,12 +5,11 @@ module Grammar(
     Type(..)
   ) where
 
-data Type   = CBV | CBN | Lazy deriving Show
+data Type   = CBV | CBN | Lazy
 type Formal = (String, Type)
 
-data Program = Fun String [Formal] Expr
+data Program = Fun String [(String,Type)] Expr
              | Seq [Program]
---    deriving Show
 
 data Expr =
     Call String [Expr]
@@ -22,5 +21,4 @@ data Expr =
   | EDiv Expr Expr
   | EMod Expr Expr
   | Eif Expr Expr Expr
---    deriving Num
 
