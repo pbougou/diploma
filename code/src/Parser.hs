@@ -41,7 +41,8 @@ ifExpr =
 callExpr = do
   reserved "call"
   (x : xs) <- sepBy1 expr whitespace
-  case x of (EVar y)  -> return $ Call y xs
+  case x of (EVar y)  -> if head y /= '#' && head y /= '!' then return $ Call y xs
+                         else fail "call: function name starts with a letter"
             otherwise -> error "Function call"
 
 
@@ -50,7 +51,8 @@ functionDef = reserved "fun" *> do
     reservedOp "="
     e <- expr
     case ids of []       -> error "Function must have a name"
-                (x : xs) -> return $ Fun x (getFormals xs) e
+                (x : xs) -> if head x /= '#' && head x /= '!' then return $ Fun x (getFormals xs) e
+                            else fail "function name starts with a letter"
   where
     getFormals l = map (\x -> (case head x of
                                   '#'  -> (tail x, CBN)
@@ -83,5 +85,5 @@ parseExpr s =
 --parseProgram :: String -> IO Program
 parseProgram prog = case parse (program <* eof) "" prog of
                       Right e  -> return e
-                      Left err -> fail "parse error"
+                      Left err -> print err >> fail "parse error"
 
