@@ -1,4 +1,4 @@
-module Parser(
+module Parser (
   parseExpr,
   parseProgram,
   program
@@ -80,7 +80,7 @@ program = sequenceOfFns
 parseExpr s =
   case parse (expr <* eof) "" s of
     Right e  -> return e
-    Left err -> fail "parse error"
+--    Left err -> return
 
 --parseProgram :: String -> IO Program
 parseProgram prog = case parse (program <* eof) "" prog of
