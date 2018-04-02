@@ -11,6 +11,7 @@ import Text.Parsec.Expr
 import Text.Parsec
 import Text.Parsec.String
 
+import Data.Functor
 import Control.Applicative ( (<$>), (<*>), (<*), (*>) )
 import Control.Monad
 
@@ -18,7 +19,7 @@ eint = EInt <$> integer
 
 evar = EVar <$> identifier
 
-binaryOp ch fun assoc = Infix (reservedOp ch *> return (\x y -> fun x y)) assoc
+binaryOp ch fun = Infix $ reservedOp ch $> fun
 opAssoc = [
             [
               binaryOp "*" EMul AssocLeft,
@@ -34,16 +35,15 @@ opExpr = buildExpressionParser opAssoc term
 
 ifExpr =
   reserved "if" *> (
-    (\x y z -> Eif x y z) <$>
-      expr <*> (reserved "then" *> expr) <*> (reserved "else" *> expr)
-  )
+    Eif <$>
+      expr <*> (reserved "then" *> expr) <*> (reserved "else" *> expr))
 
 callExpr = do
   reserved "call"
   (x : xs) <- sepBy1 expr whitespace
   case x of (EVar y)  -> if head y /= '#' && head y /= '!' then return $ Call y xs
                          else fail "call: function name starts with a letter"
-            otherwise -> error "Function call"
+            _ -> error "Function call"
 
 
 functionDef = reserved "fun" *> do
@@ -54,11 +54,12 @@ functionDef = reserved "fun" *> do
                 (x : xs) -> if head x /= '#' && head x /= '!' then return $ Fun x (getFormals xs) e
                             else fail "function name starts with a letter"
   where
-    getFormals l = map (\x -> (case head x of
-                                  '#'  -> (tail x, CBN)
-                                  '!'  -> (tail x, CBV)
-                                  otherwise -> (x, Lazy)
-                              )) l
+    getFormals = 
+      map (
+        \x -> (case head x of
+                  '#'  -> (tail x, CBN)
+                  '!'  -> (tail x, CBV)
+                  _    -> (x, Lazy)))
 
 sequenceOfFns = do
   l <- sepBy1 functionDef semi

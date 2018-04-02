@@ -32,9 +32,9 @@ instance Show Program where
   showsPrec p (Fun x l e) = ("fun " ++) . (x ++) . (" " ++) . (l' ++) .
                             ("=\n    " ++) . showsPrec 0 e
      where l' = showFormals l
-           showFormals f =
+           showFormals =
              foldr (\x y -> let ch = case snd x of { CBV  -> "!"; CBN  -> "#"; Lazy -> "" }
-             in ch ++ fst x ++ " " ++ y) "" f
+             in ch ++ fst x ++ " " ++ y) ""
   showsPrec p (Seq l) = showList l
 
 instance Show Type where

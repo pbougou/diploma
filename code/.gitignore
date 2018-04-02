@@ -4,3 +4,4 @@ code.cabal
 out/
 *.iml
 .idea/
+.vscode/

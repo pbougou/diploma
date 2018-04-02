@@ -1,0 +1,4 @@
+fun g = 42;
+fun h = 17;
+fun main = 25 + (if call g then call h else 96)
+

@@ -1,7 +1,7 @@
 module Grammar(
     Expr (..),
     Program(..),
-    Formal(..),
+    Formal,
     Type(..)
   ) where
 
