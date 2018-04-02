@@ -3,4 +3,4 @@
         * stack build
         * stack exec code-exe < filename
         
-## Example syntax in [example.l](./example.l)
+## Example syntax in [examples](./examples)
