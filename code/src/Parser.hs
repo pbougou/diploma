@@ -20,7 +20,12 @@ eint = EInt <$> integer
 evar = EVar <$> identifier
 
 binaryOp ch fun = Infix $ reservedOp ch $> fun
+unaryOp ch fun = Prefix $ reservedOp ch $> fun
 opAssoc = [
+            [
+              unaryOp "+" EUnPlus,
+              unaryOp "-" EUnMinus
+            ],
             [
               binaryOp "*" EMul AssocLeft,
               binaryOp "/" EDiv AssocLeft,
@@ -31,7 +36,7 @@ opAssoc = [
               binaryOp "-" ESub AssocLeft
             ]
           ]
-opExpr = buildExpressionParser opAssoc term
+opExpr = buildExpressionParser opAssoc term 
 
 ifExpr =
   reserved "if" *> (

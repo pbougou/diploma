@@ -15,6 +15,8 @@ data Expr =
     Call String [Expr]
   | EVar String
   | EInt Integer
+  | EUnPlus Expr
+  | EUnMinus Expr
   | EAdd Expr Expr
   | ESub Expr Expr
   | EMul Expr Expr

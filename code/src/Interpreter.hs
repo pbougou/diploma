@@ -1,12 +1,13 @@
 module Interpreter (
   StackFrameArg(..),
+  StackFrame,
   ArithmeticException(..),
   eval,
   evalFrameArg,
   functionMap,
-  run,
-  call
+  run
 ) where
+
 import Debug.Trace
 
 import Data.Maybe
@@ -36,13 +37,13 @@ instance Show ArithmeticException where
 -- result of eval can be either arithmetic exception or a value(integer)
 type EvalMonad = Either ArithmeticException
 
-run :: Program -> IO ()
+run :: Program -> Integer
 run ast =
   let functionsMap = functionMap ast Map.empty
       -- handle result of eval
-      result :: EvalMonad Integer -> IO ()
-      result (Right n)        = print n
-      result (Left exception) = putStrLn $ "Exception: " ++ show exception
+      result :: EvalMonad Integer -> Integer
+      result (Right n)        = n
+      result (Left exception) = error $ show exception
   in case ast of
         Fun x formals expr ->
           case x of
@@ -51,7 +52,10 @@ run ast =
         Seq functions ->
           case Map.lookup "main" functionsMap of
             Nothing              -> error "main not found"
-            Just (actuals, expr) -> result $ eval expr functionsMap [("main", [])]
+            Just (actuals, expr) -> 
+              case actuals of
+                [] -> result $ eval expr functionsMap [("main", [])]
+                _  -> error "main takes no arguments"
 
 
 
@@ -66,8 +70,9 @@ eval
       -> [StackFrame]
       -- output: it can be a value(integer) or an exception 
       -> EvalMonad Integer
-eval e fm st | trace ("eval " ++ show e ++ " " ++ show st) False = undefined
+eval e fm st | trace ("eval " ++ " " ++ show st) False = undefined
 eval e fm st =
+  -- trace ("eval " ++ " " ++ show st ++ " " ++ show e) $
   case e of
     EVar var -> do
       let ar = head st -- assume stack is not empty during evaluation
@@ -78,6 +83,10 @@ eval e fm st =
                   fromMaybe (error "variable not in formals") (elemIndex var justVars)
       evalFrameArg i stfr fm st
     EInt n -> return n
+    EUnPlus e -> eval e fm st
+    EUnMinus e -> do
+      v <- eval e fm st
+      return $ -v
     EAdd l r -> do
       vl <- eval l fm st
       vr <- eval r fm st
@@ -105,29 +114,30 @@ eval e fm st =
       if vc /= 0 then eval l fm st
                  else eval r fm st
     Call fName actuals -> do
-      let 
+      let
+          -- transforms actuals to arguments(CBV, CBN, Lazy) in stack frame
+          call :: [Expr] -> [Formal] -> [StackFrame] -> [StackFrameArg]
+          call []                 []                 _  = []
+          call (actual : actuals) (formal : formals) st =
+            case snd formal of
+              CBV -> StrictArg {
+                val = case eval actual fm st of
+                  Right res -> res
+                  Left exception -> error $ "Error: " ++ show exception }
+              CBN          -> ByNameArg { expr = actual }
+              Grammar.Lazy -> LazyArg { expr = actual, isEvaluated = False, cachedVal = Nothing }
+            : call actuals formals st
+
           (formals, fexpr) = 
             case Map.lookup fName fm of
               Nothing -> error $ "Call function: " ++ fName ++ " does not exist"
               Just (f, e) -> (f, e)
-          stackFrame = call actuals formals fm st
+          stackFrame = call actuals formals st
       eval fexpr fm ((fName, stackFrame) : st)
 
+-- mutate :: TailCallInformation -> StackFrame -> StackFrame
 
--- transforms actuals to arguments(CBV, CBN, Lazy) in stack frame
-call :: [Expr] -> [Formal] -> Map String ([Formal], Expr)-> [StackFrame] -> [StackFrameArg]
-call []                 []                 _  _ = []
-call (actual : actuals) (formal : formals) functions st =
-  case snd formal of
-      CBV -> StrictArg {
-        val = case eval actual functions st of
-                Right res -> res
-                Left exception -> error $ "Error: " ++ show exception
-      }
-      CBN          -> ByNameArg { expr = actual }
-      Grammar.Lazy -> LazyArg { expr = actual, isEvaluated = False, cachedVal = Nothing }
-  : call actuals formals functions st
-
+-- st -> (mutate (head st)) ++ (tail st)
 
 evalFrameArg 
   -- position of variable in function' s formal parameters

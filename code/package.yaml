@@ -40,6 +40,7 @@ dependencies:
 - hlint
 - monad-journal
 - optparse-applicative
+- hspec >= 2.2 
 
 
 library:
@@ -48,6 +49,7 @@ library:
   exposed-modules:
   - Grammar
   - Interpreter
+  - StateInterpreter
   - Lexer
   - Parser
   - PPrint
