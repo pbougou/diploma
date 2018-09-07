@@ -160,10 +160,6 @@ evalFrameArg i frame functionsMap st = evalArg i (frame !! i)
         LazyArg e b v ->
           if b then return $ fromJust v
                else eval e functionsMap $ tail st
-                  -- let first : rest = st
-                  -- eval e functionsMap $ tail st
-                  -- eval e functionsMap ((fst first, frame & Lens.element i .~ LazyArg e True v') : rest)
-
 
 
 -- construct dictionary(map) where 

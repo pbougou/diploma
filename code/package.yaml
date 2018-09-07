@@ -50,6 +50,7 @@ library:
   - Grammar
   - Interpreter
   - StateInterpreter
+  - TailCalls
   - Lexer
   - Parser
   - PPrint

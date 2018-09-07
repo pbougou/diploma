@@ -1,6 +1,7 @@
 module StateInterpreter (
   run,
-  eval
+  eval,
+  replaceNth
 ) where
 
 import Grammar
@@ -34,11 +35,11 @@ run ast =
                 Nothing              -> error "main not found"
                 Just (actuals, expr) -> evalState (eval expr functions) [("main", [])]
 
-eval :: Expr -- expression to be evaluated
-    ->  FunctionsMap --
-    ->  State CallStack Integer --
-eval e funs = 
-  trace ("eval " ++ " " ++ " " ++ show e) $
+eval :: Expr                    -- expression to be evaluated
+    ->  FunctionsMap            -- dictionary (function name, (formals, body))
+    ->  State CallStack Integer -- execution stack, evaluation result
+eval e funs =
+--   trace ("eval " ++ " " ++ show e) $
   case e of
     EInt n -> return n
     EUnPlus e -> eval e funs
@@ -93,9 +94,11 @@ eval e funs =
         
         -- Add frame to stack
         st' <- get
-        put ((funName, stackFrame) : st')
+        let newSt = (funName, stackFrame) : st' 
+        put newSt
 
         eval funBody funs
+        -- trace ("call:  " ++ show newSt) eval funBody funs
     EVar var -> do
         st'' <- get
         let ar = head st''
@@ -118,7 +121,9 @@ eval e funs =
         case s of
             Just s' -> put s'
             Nothing -> put byNameSt
+        
         return v
+        -- trace ("var lookup: " ++ show byNameSt) $ return v
 
 
 
