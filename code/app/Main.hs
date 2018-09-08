@@ -15,9 +15,13 @@ main :: IO ()
 main = do
   s <- getContents
   p <- parseProgram s -- :: IO Program
+  let ap                    = spotTCs p
+      (result, stack, framesNum) = run p 
   print p
-  print $ annotateP p
-  print $ run p
+  print result
+  print stack
+  print framesNum
+  -- print $ "Result is: " ++ show result ++ ", StackFrames used: " ++ show framesNum 
 
 
 

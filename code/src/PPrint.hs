@@ -9,6 +9,9 @@ instance Show Expr where
   showList (l : ls) = showsPrec 1 l . (" " ++) . showList ls
   showsPrec p (Call x l) =
       ("call " ++) . (x ++) . (" " ++) .showsPrec 0 l
+
+  showsPrec p (TailCall x l) =
+      ("TC-call " ++) . (x ++) . (" " ++) .showsPrec 0 l
   showsPrec p (Eif x y z) =
     showParen (p > 0) $
         ("if " ++) . showsPrec 0 x .

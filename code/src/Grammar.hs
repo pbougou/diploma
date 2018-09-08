@@ -13,7 +13,8 @@ type Program = [FDef]
 data FDef    = Fun String [(String,Type)] Expr
 
 data Expr =
-    Call String [Expr]
+    TailCall String [Expr] 
+  | Call String [Expr]
   | EVar String
   | EInt Integer
   | EUnPlus Expr
