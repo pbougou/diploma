@@ -122,7 +122,7 @@ eval e funs =
                     ByNameArg e   -> (evalState (eval e funs) (tail st'', n), Nothing)
                     LazyArg e b val -> 
                         if b then (fromJust val, Nothing)
-                             else let (v', (newSt, n)) = runState (eval e funs) (tail st'', n)
+                             else let (v', (newSt, n')) = runState (eval e funs) (tail st'', n)
                                       stArgs'     = replaceNth i (LazyArg e True (Just v')) stArgs
                                   in  (v', Just ((funName, stArgs') : newSt, n))
         byNameSt <- get
