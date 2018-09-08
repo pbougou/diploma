@@ -1,22 +1,33 @@
 module StateInterpreter (
+  StackFrameArg(..),
+  StackFrame(..),
+  FunctionsMap(..),
+  CallStack(..),
   run,
   eval,
-  replaceNth
+  replaceNth,
+  functionMap
 ) where
 
 import Grammar
-import Interpreter (functionMap, StackFrame, StackFrameArg(..)) 
+import PPrint
 
 import Debug.Trace
 
 import Data.Maybe
 import Data.List
-import Data.Map.Strict
+import Data.Map.Strict hiding(foldr)
 import qualified Data.Map.Strict as Map
 
 import Control.Monad.State
 
 import System.IO.Unsafe
+
+type StackFrame = (String, [StackFrameArg])
+data StackFrameArg = StrictArg { val :: Integer }
+                   | ByNameArg { expr :: Expr }
+                   | LazyArg   { expr :: Expr, isEvaluated :: Bool, cachedVal :: Maybe Integer }
+  deriving Show
 
 type FunctionsMap = Map.Map String ([Formal], Expr)
 type CallStack = [StackFrame]
@@ -25,21 +36,15 @@ type CallStack = [StackFrame]
 run :: Program -> Integer
 run ast = 
     let functions = functionMap ast Map.empty
-    in case ast of
-        Fun x formals expr ->
-            case x of
-                "main" -> evalState (eval expr functions) [("main", [])]
-                _      -> error "main not found"
-        Seq f ->
-            case Map.lookup "main" functions of
-                Nothing              -> error "main not found"
-                Just (actuals, expr) -> evalState (eval expr functions) [("main", [])]
+    in  case Map.lookup "main" functions of
+            Nothing              -> error "main not found"
+            Just (actuals, expr) -> evalState (eval expr functions) [("main", [])]
 
 eval :: Expr                    -- expression to be evaluated
     ->  FunctionsMap            -- dictionary (function name, (formals, body))
     ->  State CallStack Integer -- execution stack, evaluation result
 eval e funs =
---   trace ("eval " ++ " " ++ show e) $
+--   trace ("eval " ++ " " ++ " " ++ show e) $
   case e of
     EInt n -> return n
     EUnPlus e -> eval e funs
@@ -125,6 +130,21 @@ eval e funs =
         return v
         -- trace ("var lookup: " ++ show byNameSt) $ return v
 
+-- construct dictionary(map) where 
+  -- K: function name, 
+  -- V: (formal parameters, expression)
+functionMap
+  -- + program from parsing
+  :: Program
+  -- + map K V where K: function name, V: (formals, expr)
+     -> Map.Map String ([(String, Type)], Expr)
+  -- - map K V where K: function name, V: (formals, expr)
+     -> Map.Map String ([(String, Type)], Expr)
+functionMap program _map =
+    foldr (\(Fun x y z) w ->
+            case Map.lookup x _map of
+              Nothing -> Map.insert x (y, z) w
+              Just s  -> error $ "redeclaration of function " ++ show s) _map program
 
 
 replaceNth :: Int -> a -> [a] -> [a]

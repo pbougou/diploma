@@ -26,7 +26,7 @@ instance Show Expr where
   showsPrec p (EDiv x y) = showsPrec 1 x . (" / " ++) . showsPrec 1 y
   showsPrec p (EMod x y) = showsPrec 1 x . (" % " ++) . showsPrec 1 y
 
-instance Show Program where
+instance Show FDef where
   showList [] = ("" ++)
   showList (l : ls) = showsPrec 0 l .(";\n" ++) .showList ls
   showsPrec p (Fun x l e) = ("fun " ++) . (x ++) . (" " ++) . (l' ++) .
@@ -35,7 +35,6 @@ instance Show Program where
            showFormals =
              foldr (\x y -> let ch = case snd x of { CBV  -> "!"; CBN  -> "#"; Lazy -> "" }
              in ch ++ fst x ++ " " ++ y) ""
-  showsPrec p (Seq l) = showList l
 
 instance Show Type where
   showsPrec p t = case t of CBV  -> ("! " ++)

@@ -66,9 +66,7 @@ functionDef = reserved "fun" *> do
                   '!'  -> (tail x, CBV)
                   _    -> (x, Lazy)))
 
-sequenceOfFns = do
-  l <- sepBy1 functionDef semi
-  return $ Seq l
+sequenceOfFns = sepBy1 functionDef semi
 
 term = eint
    <|> evar
@@ -82,13 +80,13 @@ expr = callExpr
 
 program = sequenceOfFns
 
---parseExpr :: String -> IO Expr
+parseExpr :: String -> IO Expr
 parseExpr s =
   case parse (expr <* eof) "" s of
     Right e  -> return e
---    Left err -> return
+    Left err -> error $ "parsing expression " ++ show err
 
---parseProgram :: String -> IO Program
+parseProgram :: String -> IO Program
 parseProgram prog = case parse (program <* eof) "" prog of
                       Right e  -> return e
                       Left err -> print err >> fail "parse error"

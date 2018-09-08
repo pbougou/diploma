@@ -1,6 +1,7 @@
 module Grammar(
     Expr (..),
     Program(..),
+    FDef(..),
     Formal,
     Type(..)
   ) where
@@ -8,8 +9,8 @@ module Grammar(
 data Type   = CBV | CBN | Lazy
 type Formal = (String, Type)
 
-data Program = Fun String [(String,Type)] Expr
-             | Seq [Program]
+type Program = [FDef]
+data FDef    = Fun String [(String,Type)] Expr
 
 data Expr =
     Call String [Expr]

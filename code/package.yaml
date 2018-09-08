@@ -48,7 +48,6 @@ library:
   - src/
   exposed-modules:
   - Grammar
-  - Interpreter
   - StateInterpreter
   - TailCalls
   - Lexer

@@ -1,14 +1,17 @@
--- annotate: Add annotation to AST nodes 
--- for tail call positions
+{-
+--  annotate: Add annotation to AST nodes 
+--  for tail call positions
+--}
 module TailCalls (
-    A(..),
+    AP(..),        -- annotated program 
+    A(..),         -- annotated expression 
     annotateP, 
 ) where
 
 import Grammar
-import PPrint 
-import Interpreter(functionMap)
-import StateInterpreter(replaceNth)
+import PPrint
+
+import StateInterpreter(replaceNth, functionMap)
 
 import Data.Maybe(fromJust)
 
@@ -24,7 +27,7 @@ data AP = AFun String [(String,Type)] A
 data A =
     ACall AP [A]          -- function call
   | TCCall AP [A]         -- tail call to function
-  | TRCCall String [Expr] -- tail reursive call?
+  | TRCCall String [Expr] -- tail recursive call?
   | AVar String
   | AInt Integer
   | AUnPlus A
@@ -43,7 +46,7 @@ annotateP :: Program -> AP
 annotateP p = 
     let funsMap = functionMap p Map.empty
         visited = L.map (\s -> (s, False)) $ Map.keys funsMap
-        
+
         -- annotate expr
         annotate :: [(String, Bool)] -> Bool -> Expr -> A
         annotate vis b expr = 
@@ -66,16 +69,12 @@ annotateP p =
                 EMod e1 e2     -> AMod (annotate vis b e1) (annotate vis b e2)
                 Eif c e1 e2    -> AIf (annotate vis False c) (annotate vis b e1) (annotate vis b e2) 
 
-        annotateF :: Program -> [(String, Bool)] -> AP
+        annotateF :: FDef -> [(String, Bool)] -> AP
         annotateF (Fun n formals body) vis = AFun n formals (annotate vis True body)
-                
-    in  case p of
-            Fun main formals expr ->
-                AFun main formals (annotate visited False expr)
-            Seq ps -> 
-                case Map.lookup "main" funsMap of
-                    Just(formals, expr) -> AFun "main" formals (annotate visited False expr)
-                    Nothing             -> error "main not found"
+
+    in  case Map.lookup "main" funsMap of
+            Just(formals, expr) -> AFun "main" formals (annotate visited False expr)
+            Nothing             -> error "main not found"
     
 
 
