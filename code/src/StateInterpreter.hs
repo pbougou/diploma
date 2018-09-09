@@ -10,7 +10,7 @@ module StateInterpreter (
 ) where
 
 import Grammar
-import PPrint
+import AuxAnalysis
 
 import Debug.Trace
 
@@ -23,14 +23,15 @@ import Control.Monad.State
 
 import System.IO.Unsafe
 
-type StackFrame = (String, [StackFrameArg])
-data StackFrameArg = StrictArg { val :: Integer }
-                   | ByNameArg { expr :: Expr }
-                   | LazyArg   { expr :: Expr, isEvaluated :: Bool, cachedVal :: Maybe Integer }
-  deriving Show
+-- type StackFrame = (String, [StackFrameArg])
+-- data StackFrameArg = StrictArg { val :: Integer }
+--                    | ByNameArg { expr :: Expr }
+--                    | LazyArg   { expr :: Expr, isEvaluated :: Bool, cachedVal :: Maybe Integer }
+--   deriving Show
 
-type FunctionsMap = Map.Map String ([Formal], Expr)
-type CallStack = [StackFrame]
+-- type FunctionsMap = Map.Map String ([Formal], Expr)
+-- type CallStack = [StackFrame]
+
 
 
 run :: Program -> (Integer, CallStack, Integer)
@@ -38,7 +39,7 @@ run ast =
     let functions = functionMap ast Map.empty
     in  case Map.lookup "main" functions of
             Nothing              -> error "main not found"
-            Just (actuals, expr) -> let (v, s) = runState (eval expr functions) ([("main", [])], 0)
+            Just (actuals, expr) -> let (v, s) = runState (eval expr functions) ([("main", [])], 1)
                                     in  (v, fst s, snd s)  
 
 eval :: Expr                       -- expression to be evaluated
@@ -87,18 +88,18 @@ eval e funs =
                 Nothing     -> error $ "Call function: " ++ funName ++ " does not exist"
                 Just (f, e) -> (f, e)
             
-            makeStackFrame :: [Expr] -> [Formal] -> [StackFrameArg]
-            makeStackFrame [] [] = []
-            makeStackFrame (actual : actuals) (formal : formals) = 
-                case snd formal of 
-                    CBV          -> StrictArg {
-                                      val = evalState (eval actual funs) st
-                                    }
-                    CBN          -> ByNameArg { expr = actual }
-                    Grammar.Lazy -> LazyArg { expr = actual, isEvaluated = False, cachedVal = Nothing }
-                : makeStackFrame actuals formals
+            -- makeStackFrame :: [Expr] -> [Formal] -> [StackFrameArg]
+            -- makeStackFrame [] [] = []
+            -- makeStackFrame (actual : actuals) (formal : formals) = 
+            --     case snd formal of 
+            --         CBV          -> StrictArg {
+            --                           val = evalState (eval actual funs) st
+            --                         }
+            --         CBN          -> ByNameArg { expr = actual }
+            --         Grammar.Lazy -> LazyArg { expr = actual, isEvaluated = False, cachedVal = Nothing }
+            --     : makeStackFrame actuals formals
             
-            stackFrame = makeStackFrame actuals formals
+            stackFrame = makeStackFrame actuals formals funs st
         
         -- Add frame to stack
         (st', sts') <- get
@@ -132,7 +133,49 @@ eval e funs =
         
         return v
         -- trace ("var lookup: " ++ show byNameSt) $ return v
-    TailCall funName actuals -> error $ "Tail call not implemented yet " ++ funName ++ " " ++ show actuals 
+    TailCall funName actuals -> do
+      -- funName: callee's function name
+      -- actuals: callee's actual parameters
+      -- formals: callee's formal parameters
+      -- callerName: caller's name
+      -- 
+      -- error $ "Tail call not implemented yet " ++ funName ++ " " ++ show actuals 
+      st@(oldSt@(fSt : st'), n) <- get
+      let (callerName, stArgs) = fSt
+
+          (callerFormals, _) = case Map.lookup callerName funs of
+                                  Nothing -> error $ "Call function: " ++ callerName ++ " does not exist"
+                                  Just (f, e) -> (f, e)
+
+          (formals, funBody) = 
+            case Map.lookup funName funs of
+              Nothing     -> error $ "Call function: " ++ funName ++ " does not exist"
+              Just (f, e) -> (f, e)
+          
+          mutate :: [Expr]           -- list of actual parameters
+                 -> [Formal]         -- callee's formal parameters
+                 -> [StackFrameArg]  -- previous stackframe to be mutated
+                 -> (CallStack, Integer)  -- new stack
+          mutate [] _ [] = st
+          mutate actuals@(a : as) formals@(f : fs) args = 
+            if searchFS callerFormals formals actuals a then ((funName, makeStackFrame actuals formals funs st) : st', n)
+            else ((funName, makeStackFrame actuals formals funs st) : oldSt, n+1)
+
+      put (mutate actuals formals stArgs)
+      
+      eval funBody funs
+
+makeStackFrame :: [Expr] -> [Formal] -> FunctionsMap -> (CallStack, Integer) -> [StackFrameArg]
+makeStackFrame [] [] _ _ = []
+makeStackFrame (actual : actuals) (formal : formals) funs st = 
+  case snd formal of 
+    CBV          -> StrictArg {
+                      val = evalState (eval actual funs) st
+                    }
+    CBN          -> ByNameArg { expr = actual }
+    Grammar.Lazy -> LazyArg { expr = actual, isEvaluated = False, cachedVal = Nothing }
+  : makeStackFrame actuals formals funs st
+
 
 -- construct dictionary(map) where 
   -- K: function name, 

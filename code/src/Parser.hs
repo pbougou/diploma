@@ -41,11 +41,11 @@ opExpr = buildExpressionParser opAssoc term
 ifExpr =
   reserved "if" *> (
     Eif <$>
-      expr <*> (reserved "then" *> expr) <*> (reserved "else" *> expr))
+      expression <*> (reserved "then" *> expression) <*> (reserved "else" *> expression))
 
 callExpr = do
   reserved "call"
-  (x : xs) <- sepBy1 expr whitespace
+  (x : xs) <- sepBy1 expression whitespace
   case x of (EVar y)  -> if head y /= '#' && head y /= '!' then return $ Call y xs
                          else fail "call: function name starts with a letter"
             _ -> error "Function call"
@@ -54,7 +54,7 @@ callExpr = do
 functionDef = reserved "fun" *> do
     ids <- sepBy1 identifier whitespace
     reservedOp "="
-    e <- expr
+    e <- expression
     case ids of []       -> error "Function must have a name"
                 (x : xs) -> if head x /= '#' && head x /= '!' then return $ Fun x (getFormals xs) e
                             else fail "function name starts with a letter"
@@ -70,9 +70,9 @@ sequenceOfFns = sepBy1 functionDef semi
 
 term = eint
    <|> evar
-   <|> parens expr
+   <|> parens expression
 
-expr = callExpr
+expression = callExpr
    <|> ifExpr
    <|> opExpr
    <|> term
@@ -82,7 +82,7 @@ program = sequenceOfFns
 
 parseExpr :: String -> IO Expr
 parseExpr s =
-  case parse (expr <* eof) "" s of
+  case parse (expression <* eof) "" s of
     Right e  -> return e
     Left err -> error $ "parsing expression " ++ show err
 

@@ -48,11 +48,12 @@ library:
   - src/
   exposed-modules:
   - Grammar
+  - AuxAnalysis
   - StateInterpreter
   - TailCalls
   - Lexer
   - Parser
-  - PPrint
+  # - PPrint
   # dependencies:
   # - code
 
