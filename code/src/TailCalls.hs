@@ -22,6 +22,7 @@ import qualified Data.List as L
 import Data.Map.Strict
 import qualified Data.Map.Strict as Map
 
+import Debug.Trace(trace)
 
 -- Intraprocedural analysis:
 --  Spot tail calls locally in function' s body
@@ -94,12 +95,15 @@ spotTCs fdefs =
 
 
                                             b'' = L.foldr (\e acc -> 
-                                                            case e of
-                                                                Call n' _ -> 
-                                                                    let Just(fs, _) = Map.lookup n' funsMap
-                                                                    in  (searchFS formals fsCallee actuals e || isCBV e actuals fs) && acc
-                                                                _ -> searchFS formals fsCallee actuals e && acc) True actuals
-                                        in  if b' || b'' then TailCall n actuals else Call n actuals
+                                                            let isDependent = searchFS formals fsCallee actuals e
+                                                            in  case e of
+                                                                    Call n' _ -> 
+                                                                        let cbv = isCBV e actuals fsCallee
+                                                                        in  ( (cbv || isDependent) && acc)
+                                                                    _ ->  isDependent && acc) True actuals
+                                        in  if b' || b'' 
+                                            then TailCall n actuals
+                                            else Call n actuals
                             else Call n actuals
                         TailCall _ _ -> error "Tail Call: This should be unreached"
 
