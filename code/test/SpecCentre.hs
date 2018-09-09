@@ -1,9 +1,9 @@
 module SpecCentre (
     module Test.Hspec,
-    module Interpreter,
+    module StateInterpreter,
     module Grammar
 ) where
 
 import Test.Hspec
-import Interpreter
+import StateInterpreter
 import Grammar

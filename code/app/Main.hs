@@ -17,11 +17,9 @@ main = do
   p <- parseProgram s -- :: IO Program
   let ap                    = spotTCs p
       (result, stack, framesNum) = run p 
-  print p
-  print result
-  print stack
-  print framesNum
-  -- print $ "Result is: " ++ show result ++ ", StackFrames used: " ++ show framesNum 
+  print p   -- ast 
+  print ap  -- tail call annotation
+  print $ "Result is: " ++ show result ++ ", StackFrames used: " ++ show framesNum 
 
 
 

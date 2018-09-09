@@ -25,4 +25,4 @@ data Expr =
   | EDiv Expr Expr
   | EMod Expr Expr
   | Eif Expr Expr Expr
-
+    deriving Eq
