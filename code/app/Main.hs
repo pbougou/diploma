@@ -19,10 +19,10 @@ main = do
         (result', stack', framesNum') = run ap
       
   print p   -- ast 
-  print ap  -- tail call annotation
+  print ap  -- TC annotated AST
   
-  print $ "Result' is: " ++ show result' ++ ", StackFrames' used: " ++ show framesNum' 
   print $ "Result is: " ++ show result ++ ", StackFrames used: " ++ show framesNum 
+  print $ "Result' is: " ++ show result' ++ ", StackFrames' used: " ++ show framesNum' 
 
 
 

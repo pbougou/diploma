@@ -5,6 +5,7 @@ module StateInterpreter (
   CallStack(..),
   run,
   eval,
+  makeStackFrame,
   replaceNth,
   functionMap
 ) where
@@ -22,16 +23,6 @@ import qualified Data.Map.Strict as Map
 import Control.Monad.State
 
 import System.IO.Unsafe
-
--- type StackFrame = (String, [StackFrameArg])
--- data StackFrameArg = StrictArg { val :: Integer }
---                    | ByNameArg { expr :: Expr }
---                    | LazyArg   { expr :: Expr, isEvaluated :: Bool, cachedVal :: Maybe Integer }
---   deriving Show
-
--- type FunctionsMap = Map.Map String ([Formal], Expr)
--- type CallStack = [StackFrame]
-
 
 
 run :: Program -> (Integer, CallStack, Integer)
@@ -87,24 +78,12 @@ eval e funs =
               case Map.lookup funName funs of
                 Nothing     -> error $ "Call function: " ++ funName ++ " does not exist"
                 Just (f, e) -> (f, e)
-            
-            -- makeStackFrame :: [Expr] -> [Formal] -> [StackFrameArg]
-            -- makeStackFrame [] [] = []
-            -- makeStackFrame (actual : actuals) (formal : formals) = 
-            --     case snd formal of 
-            --         CBV          -> StrictArg {
-            --                           val = evalState (eval actual funs) st
-            --                         }
-            --         CBN          -> ByNameArg { expr = actual }
-            --         Grammar.Lazy -> LazyArg { expr = actual, isEvaluated = False, cachedVal = Nothing }
-            --     : makeStackFrame actuals formals
-            
-            stackFrame = makeStackFrame actuals formals funs st
+                        
+            (stackFrame, (_, stNum')) = makeStackFrame actuals formals funs ([], st)
         
-        -- Add frame to stack
-        (st', sts') <- get
-        let newSt = (funName, stackFrame) : st' 
-        put (newSt, sts' + 1)
+            -- Add frame to stack
+            newSt = (funName, stackFrame) : fst st
+        put (newSt, stNum' + 1)
 
         eval funBody funs
         -- trace ("call:  " ++ show newSt) eval funBody funs
@@ -112,6 +91,7 @@ eval e funs =
         (st'', n) <- get
         let ar = head st''
             (funName, stArgs) = ar
+
             i = case Map.lookup funName funs of
                 Nothing -> error "Var function lookup: Something is really wrong"
                 Just (formals, _) -> let justVars = Data.List.map fst formals in
@@ -126,55 +106,77 @@ eval e funs =
                              else let (v', (newSt, n')) = runState (eval e funs) (tail st'', n)
                                       stArgs'     = replaceNth i (LazyArg e True (Just v')) stArgs
                                   in  (v', Just ((funName, stArgs') : newSt, n))
+
         byNameSt <- get
         case s of
             Just s' -> put s'
             Nothing -> put byNameSt
-        
+
         return v
         -- trace ("var lookup: " ++ show byNameSt) $ return v
     TailCall funName actuals -> do
-      -- funName: callee's function name
-      -- actuals: callee's actual parameters
-      -- formals: callee's formal parameters
-      -- callerName: caller's name
-      -- 
-      -- error $ "Tail call not implemented yet " ++ funName ++ " " ++ show actuals 
+      ---------------------------------------------
+      -- funName: callee's function name          |
+      -- actuals: callee's actual parameters      |
+      -- formals: callee's formal parameters      |
+      -- callerName: caller's name                |
+      -- callerFormals: caller's formals          |
+      ---------------------------------------------
+      -- st:    state (callstack, e.r. in monad)  |
+      -- oldSt: current call stack                |
+      -- fSt:   top frame                         |
+      -- st':   next frames                       |
+      -- n:     number of stackFrames used so far |
+      ---------------------------------------------
       st@(oldSt@(fSt : st'), n) <- get
       let (callerName, stArgs) = fSt
 
           (callerFormals, _) = case Map.lookup callerName funs of
-                                  Nothing -> error $ "Call function: " ++ callerName ++ " does not exist"
+                                  Nothing     -> error $ "Call function: " ++ callerName ++ " does not exist"
                                   Just (f, e) -> (f, e)
 
-          (formals, funBody) = 
-            case Map.lookup funName funs of
-              Nothing     -> error $ "Call function: " ++ funName ++ " does not exist"
-              Just (f, e) -> (f, e)
-          
-          mutate :: [Expr]           -- list of actual parameters
-                 -> [Formal]         -- callee's formal parameters
-                 -> [StackFrameArg]  -- previous stackframe to be mutated
+          (formals, funBody) = case Map.lookup funName funs of
+                                  Nothing     -> error $ "Call function: " ++ funName ++ " does not exist"
+                                  Just (f, e) -> (f, e)
+
+          mutate :: [Expr]                -- list of actual parameters
+                 -> [Formal]              -- callee's formal parameters
+                 -> [StackFrameArg]       -- previous stackframe to be mutated
                  -> (CallStack, Integer)  -- new stack
           mutate [] _ [] = st
           mutate actuals@(a : as) formals@(f : fs) args = 
-            if searchFS callerFormals formals actuals a then ((funName, makeStackFrame actuals formals funs st) : st', n)
-            else ((funName, makeStackFrame actuals formals funs st) : oldSt, n+1)
+            if searchFS callerFormals a -- Case 1: True if actuals not dependent by caller's formals 
+            then  let (args', (s : ss, frNum)) = makeStackFrame actuals formals funs ([], st)
+                      frame' = (funName, args')
+                  in  (frame' : ss, frNum)
+            else  let (args', (s, frNum)) = makeStackFrame actuals formals funs ([], st)
+                      frame' = (funName, args')
+                  in  (frame' : s, frNum + 1)
 
       put (mutate actuals formals stArgs)
-      
+
       eval funBody funs
 
-makeStackFrame :: [Expr] -> [Formal] -> FunctionsMap -> (CallStack, Integer) -> [StackFrameArg]
-makeStackFrame [] [] _ _ = []
-makeStackFrame (actual : actuals) (formal : formals) funs st = 
+
+makeStackFrame :: [Expr] 
+                -> [Formal] 
+                -> FunctionsMap 
+                -> ([StackFrameArg], (CallStack, Integer))
+                -> ([StackFrameArg], (CallStack, Integer))
+makeStackFrame [] [] _ (args, st) = (reverse args, st)
+makeStackFrame (actual : actuals) (formal : formals) funs (frames, st) = 
   case snd formal of 
-    CBV          -> StrictArg {
-                      val = evalState (eval actual funs) st
-                    }
-    CBN          -> ByNameArg { expr = actual }
-    Grammar.Lazy -> LazyArg { expr = actual, isEvaluated = False, cachedVal = Nothing }
-  : makeStackFrame actuals formals funs st
+    CBV          -> 
+      let (v, st') = runState (eval actual funs) st
+          frames'  = StrictArg { val = v } : frames
+      in  makeStackFrame actuals formals funs (frames', st')
+    CBN          -> 
+      let frames' = ByNameArg { expr = actual } : frames
+      in  makeStackFrame actuals formals funs (frames', st)
+    Grammar.Lazy -> 
+      let frames' = LazyArg { expr = actual, isEvaluated = False, cachedVal = Nothing } : frames
+      in  makeStackFrame actuals formals funs (frames', st)
+  
 
 
 -- construct dictionary(map) where 
@@ -199,3 +201,4 @@ replaceNth _ _ [] = []
 replaceNth n newVal (x:xs)
     | n == 0    = newVal:xs
     | otherwise = x:replaceNth (n-1) newVal xs
+
