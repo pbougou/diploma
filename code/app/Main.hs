@@ -21,8 +21,8 @@ main = do
   print p   -- ast 
   print ap  -- TC annotated AST
   
-  print $ "Result is: " ++ show result ++ ", StackFrames used: " ++ show framesNum 
-  print $ "Result' is: " ++ show result' ++ ", StackFrames' used: " ++ show framesNum' 
+  print $ "Result is: " ++ show result ++ ", StackFrames used: " ++ show framesNum ++ ", CallStack: " ++ show stack'
+  print $ "Result' is: " ++ show result' ++ ", StackFrames' used: " ++ show framesNum' ++ ", CallStack: " ++ show stack
 
 
 

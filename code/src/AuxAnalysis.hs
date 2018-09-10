@@ -1,4 +1,5 @@
 module AuxAnalysis (
+    actualsFS,
     searchFS,
     isCBV,
     isVar
@@ -15,6 +16,10 @@ import Data.Map.Strict
 import qualified Data.Map.Strict as Map
 
 
+actualsFS :: [Formal]
+            -> [Expr]
+            -> Bool
+actualsFS fsCaller = L.foldr (\e acc -> searchFS fsCaller e && acc) True
 
 searchFS :: [Formal]    -- caller's formals
             -> Expr     -- actual processed
@@ -55,10 +60,12 @@ isCBV e es fs =
         CBV -> True
         _   -> False
 
-isVar :: [Expr] 
-        -> Bool
+-- Check if all actual parameters are values or variables
+isVar :: [Expr] -- actuals
+        -> Bool -- True if all are values or variables
 isVar []       = True 
 isVar (e : es) = 
     case e of
         EVar _ -> isVar es
+        EInt _ -> isVar es
         _      -> False

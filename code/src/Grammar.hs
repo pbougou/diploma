@@ -19,6 +19,7 @@ import qualified Data.Map.Strict as Map
 import Text.Read
 
 data Type   = CBV | CBN | Lazy
+    deriving Eq
 type Formal = (String, Type)
 
 type Program = [FDef]

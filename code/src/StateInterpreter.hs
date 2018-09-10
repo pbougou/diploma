@@ -10,13 +10,16 @@ module StateInterpreter (
   functionMap
 ) where
 
-import Grammar
+import Grammar as G
 import AuxAnalysis
 
 import Debug.Trace
 
 import Data.Maybe
-import Data.List
+
+import Data.List(map, elemIndex, lookup, foldr)
+import qualified Data.List as L
+
 import Data.Map.Strict hiding(foldr)
 import qualified Data.Map.Strict as Map
 
@@ -139,23 +142,55 @@ eval e funs =
                                   Nothing     -> error $ "Call function: " ++ funName ++ " does not exist"
                                   Just (f, e) -> (f, e)
 
-          mutate :: [Expr]                -- list of actual parameters
-                 -> [Formal]              -- callee's formal parameters
-                 -> [StackFrameArg]       -- previous stackframe to be mutated
-                 -> (CallStack, Integer)  -- new stack
-          mutate [] _ [] = st
-          mutate actuals@(a : as) formals@(f : fs) args = 
-            if searchFS callerFormals a -- Case 1: True if actuals not dependent by caller's formals 
-            then  let (args', (s : ss, frNum)) = makeStackFrame actuals formals funs ([], st)
+          -- Runtime check if mutation is possible and mutate
+          checkMutate :: [Expr]                 -- list of actual parameters
+                        -> [Formal]             -- callee's formal parameters
+                        -> [StackFrameArg]      -- previous stackframe to be mutated
+                        -> (CallStack, Integer) -- new stack
+          checkMutate actuals@(a : as) formals@(f : fs) args 
+            -- Case 1: True if actuals not dependent by caller's formals
+            | actualsFS callerFormals actuals =
+                  let (args', (s : ss, frNum)) = makeStackFrame actuals formals funs ([], st)
                       frame' = (funName, args')
-                  in  (frame' : ss, frNum)
-            else  let (args', (s, frNum)) = makeStackFrame actuals formals funs ([], st)
-                      frame' = (funName, args')
-                  in  (frame' : s, frNum + 1)
+                  in  (frame' : ss, frNum)   -- make stack frame and throw old
 
-      put (mutate actuals formals stArgs)
+            -- Case 2: If all actuals are variables (or values-integers)
+            | isVar actuals = 
+              let args' = mutate callerFormals formals args 0 actuals 
+              in  ((funName, args') : st', n)
+
+            -- Case 3: Actual parameter but in CBV position
+            | otherwise = let (args', (s, frNum)) = makeStackFrame actuals formals funs ([], st)
+                              frame'              = (funName, args')
+                          in  (frame' : s, frNum + 1)
+
+      put (checkMutate actuals formals stArgs)
 
       eval funBody funs
+
+--  Handle: case 2a else case 2b
+mutate :: [Formal]              -- caller's formals
+        -> [Formal]             -- callee's formals
+        -> [StackFrameArg]      -- current stack frame
+        -> Int
+        -> [Expr]               -- actuals
+        -> [StackFrameArg]  -- if possible return StackFrameArg else Nothing
+mutate _        _        _    _   []      = []
+mutate callerFs calleeFs args ix (a : as) =
+  let (_, tp) = calleeFs !! ix 
+  in  case a of
+        EVar v -> 
+          let Just tp' = L.lookup v callerFs     
+          in  if tp == tp' then let ix' = fromJust $ L.elemIndex (v, tp') callerFs
+                                in  (args !! ix') : mutate callerFs calleeFs args (ix + 1) as
+              else []
+        EInt n -> 
+          case tp of 
+            CBV -> StrictArg { val = n } : mutate callerFs calleeFs args (ix + 1) as
+            CBN -> ByNameArg { expr = a } : mutate callerFs calleeFs args (ix + 1) as
+            G.Lazy -> 
+              LazyArg { expr = a, isEvaluated = False, cachedVal = Nothing } : mutate callerFs calleeFs args (ix + 1) as
+        _      -> error $ "It should not be an expression: " ++ show a 
 
 
 makeStackFrame :: [Expr] 
@@ -173,7 +208,7 @@ makeStackFrame (actual : actuals) (formal : formals) funs (frames, st) =
     CBN          -> 
       let frames' = ByNameArg { expr = actual } : frames
       in  makeStackFrame actuals formals funs (frames', st)
-    Grammar.Lazy -> 
+    G.Lazy -> 
       let frames' = LazyArg { expr = actual, isEvaluated = False, cachedVal = Nothing } : frames
       in  makeStackFrame actuals formals funs (frames', st)
   
