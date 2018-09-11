@@ -64,6 +64,8 @@ instance Show Expr where
         (" else " ++) . showsPrec 0 z
   showsPrec p (EVar x)   = (x ++)
   showsPrec p (EInt x)   = (show x ++)
+  showsPrec p (EUnMinus x) = (" - " ++) . showsPrec 1 x
+  showsPrec p (EUnPlus x) = (" + " ++) . showsPrec 1 x
   showsPrec p (EAdd x y) =
       showParen (p > 0) $
           showsPrec 2 x . (" + " ++) . showsPrec 2 y

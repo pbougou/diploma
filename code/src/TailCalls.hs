@@ -63,11 +63,8 @@ spotTCs fdefs =
                                                 
                                             b'' = L.foldr (\e acc -> 
                                                             let isDependent = searchFS formals e
-                                                            in  case e of
-                                                                    Call n' _ -> 
-                                                                        let cbv = isCBV e actuals fsCallee
-                                                                        in  ( (cbv || isDependent) && acc)
-                                                                    _ ->  isDependent && acc) True actuals
+                                                                cbv = isCBV e actuals fsCallee
+                                                            in  (cbv || isDependent) && acc) True actuals
 
                                         in  if b' || b'' 
                                             then TailCall n actuals

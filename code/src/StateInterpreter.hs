@@ -154,17 +154,16 @@ eval e funs =
                       frame' = (funName, args')
                   in  (frame' : ss, frNum)   -- make stack frame and throw old
 
+            --------------------------------------------------------------
             -- Case 2: If all actuals are variables (or values-integers)
             --  Case 2a, 2b are handled in mutate
-            | isVar actuals = 
+            --------------------------------------------------------------
+            -- Case 3: Actual parameter is expr in CBV position
+            --------------------------------------------------------------
+            | otherwise =  
               let (args', nextST)    = mutate callerFormals formals args 0 funs actuals ([], st)
                   (newStack, newNum) = nextST
-              in  ((funName, args') : newStack, newNum)
-
-            -- Case 3: Actual parameter is expr in CBV position
-            | otherwise = let (args', (s, frNum)) = makeStackFrame actuals formals funs ([], st)
-                              frame'              = (funName, args')
-                          in  (frame' : s, frNum + 1)
+              in  ((funName, args') : tail newStack, newNum)
 
       put (checkMutate actuals formals stArgs)
 
@@ -183,13 +182,14 @@ mutate _        _        _    _  _    []       (args', st') = (reverse args', st
 mutate callerFs calleeFs args ix funs (a : as) (args', st)  =
   let (_, tp) = calleeFs !! ix 
   in  case a of
+-- Case 2a, 2b  
         EVar v -> 
           let Just tp' = L.lookup v callerFs
               ix'      = fromJust $ L.elemIndex (v, tp') callerFs
               arg      = args !! ix'
               (arg', st') = 
-                if tp == tp' then (arg, st)
-                else case tp of
+                if tp == tp' then (arg, st) -- 2a
+                else case tp of             -- 2b
                       CBV   ->  case tp' of
                                   CBV     -> (arg, st)  
                                   CBN     ->  let ByNameArg e = arg
@@ -221,7 +221,12 @@ mutate callerFs calleeFs args ix funs (a : as) (args', st)  =
                         G.Lazy  -> LazyArg { expr = a, isEvaluated = False, cachedVal = Nothing } 
           in  mutate callerFs calleeFs args (ix + 1) funs as (arg' : args', st)
 
-        _      -> error $ "It should not be an expression: " ++ show a 
+-- Case 3: We know if it is an expression, it should be in CBV position
+        _      ->
+          let (v', st') = runState (eval a funs) st
+              arg'           = StrictArg v'
+          in  mutate callerFs calleeFs args (ix + 1) funs as (arg' : args', st')
+          -- error $ "It should not be an expression: " ++ show a 
 
 
 makeStackFrame :: [Expr] 
