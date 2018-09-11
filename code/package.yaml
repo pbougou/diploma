@@ -41,6 +41,7 @@ dependencies:
 - monad-journal
 - optparse-applicative
 - hspec >= 2.2 
+- utility-ht
 
 
 library:
@@ -53,9 +54,6 @@ library:
   - TailCalls
   - Lexer
   - Parser
-  # - PPrint
-  # dependencies:
-  # - code
 
 executables:
   code-exe:
@@ -78,3 +76,4 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - code
+    - utility-ht
