@@ -97,8 +97,9 @@ eval e funs =
 
             i = case Map.lookup funName funs of
                 Nothing -> error "Var function lookup: Something is really wrong"
-                Just (formals, _) -> let justVars = Data.List.map fst formals in
-                  fromMaybe (error "variable not in formals") (elemIndex var justVars)
+                Just (formals, _) -> 
+                  let justVars = Data.List.map fst formals
+                  in  fromMaybe (error "variable not in formals") (elemIndex var justVars)
 
             (v, s) = 
                 case stArgs !! i of
