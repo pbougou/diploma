@@ -155,11 +155,13 @@ eval e funs =
                   in  (frame' : ss, frNum)   -- make stack frame and throw old
 
             -- Case 2: If all actuals are variables (or values-integers)
+            --  Case 2a, 2b are handled in mutate
             | isVar actuals = 
-              let args' = mutate callerFormals formals args 0 actuals 
-              in  ((funName, args') : st', n)
+              let (args', nextST)    = mutate callerFormals formals args 0 funs actuals ([], st)
+                  (newStack, newNum) = nextST
+              in  ((funName, args') : newStack, newNum)
 
-            -- Case 3: Actual parameter but in CBV position
+            -- Case 3: Actual parameter is expr in CBV position
             | otherwise = let (args', (s, frNum)) = makeStackFrame actuals formals funs ([], st)
                               frame'              = (funName, args')
                           in  (frame' : s, frNum + 1)
@@ -168,28 +170,57 @@ eval e funs =
 
       eval funBody funs
 
---  Handle: case 2a else case 2b
-mutate :: [Formal]              -- caller's formals
-        -> [Formal]             -- callee's formals
-        -> [StackFrameArg]      -- current stack frame
-        -> Int
-        -> [Expr]               -- actuals
-        -> [StackFrameArg]  -- if possible return StackFrameArg else Nothing
-mutate _        _        _    _   []      = []
-mutate callerFs calleeFs args ix (a : as) =
+--  case 2a, case 2b mutation
+mutate :: [Formal]                                  -- caller's formals
+        -> [Formal]                                 -- callee's formals
+        -> [StackFrameArg]                          -- current stack frame
+        -> Int                                      -- index in actuals
+        -> FunctionsMap                             -- map K: function name, V: (formals, body)
+        -> [Expr]                                   -- actuals
+        -> ([StackFrameArg], (CallStack, Integer))  -- acc (stackFrame, state)
+        -> ([StackFrameArg], (CallStack, Integer))  -- new (stackFrame, state)
+mutate _        _        _    _  _    []       (args', st') = (reverse args', st')
+mutate callerFs calleeFs args ix funs (a : as) (args', st)  =
   let (_, tp) = calleeFs !! ix 
   in  case a of
         EVar v -> 
-          let Just tp' = L.lookup v callerFs     
-          in  if tp == tp' then let ix' = fromJust $ L.elemIndex (v, tp') callerFs
-                                in  (args !! ix') : mutate callerFs calleeFs args (ix + 1) as
-              else []
+          let Just tp' = L.lookup v callerFs
+              ix'      = fromJust $ L.elemIndex (v, tp') callerFs
+              arg      = args !! ix'
+              (arg', st') = 
+                if tp == tp' then (arg, st)
+                else case tp of
+                      CBV   ->  case tp' of
+                                  CBV     -> (arg, st)  
+                                  CBN     ->  let ByNameArg e = arg
+                                                  (v, st') = runState (eval e funs) st
+                                              in  (StrictArg v, st') 
+                                  G.Lazy  -> let LazyArg e b v = arg 
+                                             in if b then (StrictArg (fromJust v), st) 
+                                                else  let (v, st') = runState (eval e funs) st 
+                                                      in  (StrictArg v, st')
+                      CBN    -> case tp' of
+                                  CBV   ->  let StrictArg v = arg 
+                                            in  (ByNameArg (EInt v), st)
+                                  CBN    -> (arg, st)  
+                                  G.Lazy -> let LazyArg e b v = arg 
+                                            in  if b then (ByNameArg (EInt (fromJust v)), st)  
+                                                else (ByNameArg e, st)  
+                      G.Lazy -> case tp' of
+                                  CBV     ->  let StrictArg v = arg 
+                                              in  (LazyArg (EInt v) True (Just v), st)  
+                                  CBN     ->  let ByNameArg e = arg 
+                                              in  (LazyArg e False Nothing, st)  
+                                  G.Lazy  ->  (arg, st) 
+          in  mutate callerFs calleeFs args (ix + 1) funs as (arg' : args', st')                 
+
         EInt n -> 
-          case tp of 
-            CBV -> StrictArg { val = n } : mutate callerFs calleeFs args (ix + 1) as
-            CBN -> ByNameArg { expr = a } : mutate callerFs calleeFs args (ix + 1) as
-            G.Lazy -> 
-              LazyArg { expr = a, isEvaluated = False, cachedVal = Nothing } : mutate callerFs calleeFs args (ix + 1) as
+          let arg' = case tp of 
+                        CBV     -> StrictArg { val = n } 
+                        CBN     -> ByNameArg { expr = a }
+                        G.Lazy  -> LazyArg { expr = a, isEvaluated = False, cachedVal = Nothing } 
+          in  mutate callerFs calleeFs args (ix + 1) funs as (arg' : args', st)
+
         _      -> error $ "It should not be an expression: " ++ show a 
 
 
