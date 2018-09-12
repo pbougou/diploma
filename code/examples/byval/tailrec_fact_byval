@@ -1,2 +1,2 @@
 fun fact !x !acc = if x then call fact (x-1) (x * acc) else acc;
-fun main = call fact 100 1
+fun main = call fact 10 1

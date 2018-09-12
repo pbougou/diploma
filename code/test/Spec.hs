@@ -1,5 +1,8 @@
 import Test.Hspec
 import InterpTest
+import TCOTest
 
 main :: IO ()
-main = hspec spec
+main = do
+    hspec spec
+    hspec tcoSpec
