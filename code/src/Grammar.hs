@@ -7,7 +7,8 @@ module Grammar(
     StackFrame(..),
     StackFrameArg(..),
     FunctionsMap(..),
-    CallStack(..)
+    CallStack(..),
+    List(..)
   ) where
 
 import Data.List(map, elemIndex, lookup, foldr)
@@ -25,11 +26,16 @@ type Formal = (String, Type)
 type Program = [FDef]
 data FDef    = Fun String [(String,Type)] Expr
 
+data List a = Cons a (List a)
+            | Nil
+    deriving Show
+
 data Expr =
     TailCall String [Expr]    -- used for tco
   | Call String [Expr]
   | EVar String
   | EInt Integer
+  | List 
   | EUnPlus Expr
   | EUnMinus Expr
   | EAdd Expr Expr
