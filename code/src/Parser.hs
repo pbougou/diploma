@@ -66,6 +66,30 @@ functionDef = reserved "fun" *> do
                   '!'  -> (tail x, CBV)
                   _    -> (x, Lazy)))
 
+constructor = do 
+  reserved "Cons" 
+  hd <- expression
+  tl <- expression -- constructor <|> nilConstr <|> parens constructor <|> parens nilConstr
+  case tl of
+    ConstrF []  -> return $ ConstrF [hd] 
+    _ -> return $ ConstrF (hd : [tl])
+
+nilConstr = do reserved "Nil" 
+               return $ ConstrF []
+
+caseF = do
+  reserved "case"
+  e <- expression
+  reserved "of"
+  lines <- many line
+  return $ CaseF e lines
+
+line = do
+  cons <- constructor <|> nilConstr
+  reserved "->"
+  e <- expression
+  return (cons, e)
+
 sequenceOfFns = sepBy1 functionDef semi
 
 term = eint
@@ -73,10 +97,13 @@ term = eint
    <|> parens expression
 
 expression = callExpr
-   <|> ifExpr
-   <|> opExpr
-   <|> term
-
+  <|> constructor
+  <|> nilConstr
+  <|> caseF
+  <|> ifExpr
+  <|> opExpr
+  <|> term
+ 
 
 program = sequenceOfFns
 

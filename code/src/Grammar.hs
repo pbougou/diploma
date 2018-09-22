@@ -7,8 +7,7 @@ module Grammar(
     StackFrame(..),
     StackFrameArg(..),
     FunctionsMap(..),
-    CallStack(..),
-    List(..)
+    CallStack(..)
   ) where
 
 import Data.List(map, elemIndex, lookup, foldr)
@@ -26,16 +25,13 @@ type Formal = (String, Type)
 type Program = [FDef]
 data FDef    = Fun String [(String,Type)] Expr
 
-data List a = Cons a (List a)
-            | Nil
-    deriving Show
-
 data Expr =
     TailCall String [Expr]    -- used for tco
   | Call String [Expr]
   | EVar String
   | EInt Integer
-  | List 
+  | ConstrF [Expr]
+  | CaseF Expr [(Expr, Expr)]
   | EUnPlus Expr
   | EUnMinus Expr
   | EAdd Expr Expr
@@ -57,17 +53,18 @@ type CallStack = [StackFrame]
 
 instance Show Expr where
   showList [] = ("" ++)
-  showList (l : ls) = showsPrec 1 l . (" " ++) . showList ls
+  showList list@(l : ls) = case list of [_] -> shows l
+                                        _   -> showsPrec 1 l . (" " ++) . showList ls
   showsPrec p (Call x l) =
-      ("call " ++) . (x ++) . (" " ++) .showsPrec 0 l
+      ("call " ++) . (x ++) . (" " ++) .shows l
 
   showsPrec p (TailCall x l) =
-      ("TC-call " ++) . (x ++) . (" " ++) .showsPrec 0 l
+      ("TC-call " ++) . (x ++) . (" " ++) .shows l
   showsPrec p (Eif x y z) =
     showParen (p > 0) $
-        ("if " ++) . showsPrec 0 x .
-        (" then " ++) . showsPrec 0 y .
-        (" else " ++) . showsPrec 0 z
+        ("if " ++) . shows x .
+        (" then " ++) . shows y .
+        (" else " ++) . shows z
   showsPrec p (EVar x)   = (x ++)
   showsPrec p (EInt x)   = (show x ++)
   showsPrec p (EUnMinus x) = (" - " ++) . showsPrec 1 x
@@ -81,12 +78,22 @@ instance Show Expr where
   showsPrec p (EMul x y) = showsPrec 1 x . (" * " ++) . showsPrec 1 y
   showsPrec p (EDiv x y) = showsPrec 1 x . (" / " ++) . showsPrec 1 y
   showsPrec p (EMod x y) = showsPrec 1 x . (" % " ++) . showsPrec 1 y
+  showsPrec p (ConstrF exps) = ("[" ++) . showList exps . ("]" ++)
+  showsPrec p (CaseF e lines) =
+    ("case " ++) . shows e . (" of " ++) . ("\n\t" ++) . showLines lines
+        where 
+            showLines [] = ("" ++)
+            showLines (line : lines) = shows (fst line) . 
+                                         (" -> " ++) . 
+                                         shows (snd line) . 
+                                         ("\n\t" ++) . 
+                                         showLines lines
 
 instance Show FDef where
   showList [] = ("" ++)
-  showList (l : ls) = showsPrec 0 l .(";\n" ++) .showList ls
+  showList (l : ls) = shows l .(";\n" ++) .showList ls
   showsPrec p (Fun x l e) = ("fun " ++) . (x ++) . (" " ++) . (l' ++) .
-                            ("=\n    " ++) . showsPrec 0 e
+                            ("=\n    " ++) . shows e
      where l' = showFormals l
            showFormals =
              L.foldr (\x y -> let ch = case snd x of { CBV  -> "!"; CBN  -> "#"; Lazy -> "" }

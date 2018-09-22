@@ -14,6 +14,8 @@ main :: IO ()
 main = do
   s <- getContents
   p <- parseProgram s   -- :: IO Program
+  print p
+{-
   let   ap                            = spotTCs p
         (result, stack, framesNum)    = run p
         (result', stack', framesNum') = run ap
@@ -25,6 +27,6 @@ main = do
   print $ "CallStack: " ++ show stack'
   print $ "Result' is: " ++ show result' ++ ", StackFrames' used: " ++ show framesNum' 
   print $ "CallStack: " ++ show stack
-
+-}
 
 
