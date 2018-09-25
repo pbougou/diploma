@@ -7,7 +7,8 @@ module Grammar(
     StackFrame(..),
     StackFrameArg(..),
     FunctionsMap(..),
-    CallStack(..)
+    CallStack(..),
+    Value(..)
   ) where
 
 import Data.List(map, elemIndex, lookup, foldr)
@@ -18,6 +19,10 @@ import qualified Data.Map.Strict as Map
 
 import Text.Read
 
+data Value =  VI Integer 
+            | VC [Value]
+    deriving Show
+
 data Type   = CBV | CBN | Lazy
     deriving Eq
 type Formal = (String, Type)
@@ -25,13 +30,14 @@ type Formal = (String, Type)
 type Program = [FDef]
 data FDef    = Fun String [(String,Type)] Expr
 
+type CaseID = Integer
 data Expr =
     TailCall String [Expr]    -- used for tco
   | Call String [Expr]
   | EVar String
   | EInt Integer
   | ConstrF [Expr]
-  | CaseF Expr [(Expr, Expr)]
+  | CaseF CaseID Expr [(Expr, Expr)]
   | EUnPlus Expr
   | EUnMinus Expr
   | EAdd Expr Expr
@@ -42,12 +48,13 @@ data Expr =
   | Eif Expr Expr Expr
     deriving Eq
 
+-- Runtime data structures
 type StackFrame = (String, [StackFrameArg])
-data StackFrameArg = StrictArg { val :: Integer }
+data StackFrameArg = StrictArg { val :: Value }
                    | ByNameArg { expr :: Expr }
-                   | LazyArg   { expr :: Expr, isEvaluated :: Bool, cachedVal :: Maybe Integer }
+                   | LazyArg   { expr :: Expr, isEvaluated :: Bool, cachedVal :: Maybe Value }
     deriving Show
-    
+
 type FunctionsMap = Map.Map String ([Formal], Expr)
 type CallStack = [StackFrame]
 
@@ -78,9 +85,9 @@ instance Show Expr where
   showsPrec p (EMul x y) = showsPrec 1 x . (" * " ++) . showsPrec 1 y
   showsPrec p (EDiv x y) = showsPrec 1 x . (" / " ++) . showsPrec 1 y
   showsPrec p (EMod x y) = showsPrec 1 x . (" % " ++) . showsPrec 1 y
-  showsPrec p (ConstrF exps) = ("[" ++) . showList exps . ("]" ++)
-  showsPrec p (CaseF e lines) =
-    ("case " ++) . shows e . (" of " ++) . ("\n\t" ++) . showLines lines
+  showsPrec p (ConstrF exps) = ("Cons " ++) . (case exps of { [] -> ("Nil" ++); _ -> showList exps })
+  showsPrec p (CaseF caseID e lines) =
+    ("case <" ++) . (show caseID  ++) . ("> " ++) . shows e . (" of " ++) . ("\n\t" ++) . showLines lines
         where 
             showLines [] = ("" ++)
             showLines (line : lines) = shows (fst line) . 

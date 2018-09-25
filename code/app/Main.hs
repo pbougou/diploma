@@ -14,13 +14,15 @@ main :: IO ()
 main = do
   s <- getContents
   p <- parseProgram s   -- :: IO Program
-  print p
-{-
-  let   ap                            = spotTCs p
-        (result, stack, framesNum)    = run p
-        (result', stack', framesNum') = run ap
+  let p' = correctCaseP p 0
+  -- let   -- ap                            = spotTCs p
+        -- (result, stack, framesNum)    = run p
+        -- (result', stack', framesNum') = run ap
 
-  print p   -- ast 
+  print p'   -- ast 
+  -- print $ "Result is: " ++ show result ++ ", StackFrames used: " ++ show framesNum 
+
+{-
   print ap  -- TC annotated AST
   
   print $ "Result is: " ++ show result ++ ", StackFrames used: " ++ show framesNum 
