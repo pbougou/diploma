@@ -27,16 +27,17 @@ import Control.Monad.State
 
 import System.IO.Unsafe
 
--- Programs are considered type safe(No type check)
-run :: Program -> (Integer, CallStack, Integer)
+-- Programs are considered type safe  ===  (No type check)
+run :: Program -> (Value, CallStack, Integer)
 run ast = 
     let functions = functionMap ast Map.empty
     in  case Map.lookup "main" functions of
             Nothing              -> error "main not found"
-            Just (actuals, expr) -> let (v, s) = runState (eval expr functions) ([("main", [])], 1)
-                                    in  case v of
-                                          VI v' -> (v', fst s, snd s)  
-                                          _     -> error "Constructor produced"
+            Just (actuals, expr) -> let (v, s) = runState (eval expr functions) ([(("main", []),[])], 1)
+                                    in  (v, fst s, snd s)
+                                        -- case v of
+                                          -- VI v' -> (v', fst s, snd s)  
+                                          -- _     -> error "Constructor produced"
 
 eval :: Expr                       -- expression to be evaluated
     ->  FunctionsMap               -- dictionary (K: function name, V: (formals, body))
@@ -76,14 +77,34 @@ eval e funs =
       VI vc <- eval c funs
       if vc /= 0 then eval l funs
                  else eval r funs
-    CaseF _ e cases -> do
-      -- For now e is an expression which returns an integer
-      VI evalE <- eval e funs
-      let nextE = fromJust $ L.lookup (EInt evalE) cases
+    -------------------------------------------------
+    -- Assume: 
+    --  a. cases = [Cons x y, Nil] or [Nil, Cons x y]
+    --  b. also pattern is exhaustive
+    -------------------------------------------------
+    -- Note: case forces evaluation of data
+    CaseF cid e cases -> do
+      evalE <- eval e funs
+      st@((ar, susps) : st', n) <- get 
+      let 
+        (nextE, nextST) = 
+          case evalE of
+        -- 1. evalE is an expression 
+            VI i -> let nextE = fromJust $ L.lookup (EInt i) cases
+                    in  (nextE, st)
+        -- 2. evalE is a constructor 
+            VC c -> let Susp (cn, _) _ = c
+                        i = fromJust $ L.elemIndex (ConstrF []) (L.map fst cases)
+                        ne = case cn of
+                            "Nil" -> snd (cases !! i)
+                            "Cons" -> snd (cases !! (1 - i))
+                        st'' = ((ar, (cid, c) : susps) : st', n) 
+                    in (ne, st'')
+      put nextST
       eval nextE funs
     EVar var -> do
         (st'', n) <- get
-        let ar = head st''
+        let ar = fst $ head st''
             (funName, stArgs) = ar
 
             i = case Map.lookup funName funs of
@@ -100,7 +121,7 @@ eval e funs =
                         if b then (fromJust val, Nothing)
                              else let (v', (newSt, n')) = runState (eval e funs) (tail st'', n)
                                       stArgs'     = replaceNth i (LazyArg e True (Just v')) stArgs
-                                  in  (v', Just ((funName, stArgs') : newSt, n))
+                                  in  (v', Just (((funName, stArgs'), []) : newSt, n))
 
         byNameSt <- get
         case s of
@@ -109,26 +130,27 @@ eval e funs =
 
         return v
         -- trace ("var lookup: " ++ show byNameSt) $ return v
-
     Call funName actuals -> do
           st <- get
           let (formals, funBody) = 
                 case Map.lookup funName funs of
                   Nothing     -> error $ "Call function: " ++ funName ++ " does not exist"
                   Just (f, e) -> (f, e)
-                          
+
               (stackFrame, (_, stNum')) = makeStackFrame actuals formals funs ([], st)
-          
+
               -- Add frame to stack
-              newSt = (funName, stackFrame) : fst st
+              newSt = ((funName, stackFrame), []) : fst st
           put (newSt, stNum' + 1)
-  
+
           eval funBody funs
           -- trace ("call:  " ++ show newSt) eval funBody funs
+    ConstrF exprs -> do 
+      (st, _) <- get
+      case exprs of 
+        [] -> return $ VC (Susp ("Nil", exprs) st)
+        _  -> return $ VC (Susp ("Cons", exprs) st)
 
-    c@(ConstrF (headC : moreE)) ->
-      error ("Constructor head = " ++ show headC ++ ", constructor tail = " ++ show moreE) 
-      
 
 {-
     

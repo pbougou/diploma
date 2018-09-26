@@ -133,6 +133,7 @@ parseProgram prog = case parse (program <* eof) "" prog of
                       Left err -> print err >> fail "parse error"
 
 correctCaseE :: Expr -> ST.State Integer Expr
+-- missing call, tailcall.. later fix
 correctCaseE e = do 
   n <- get 
   let (v, s) = case e of
@@ -179,7 +180,7 @@ correctCaseE e = do
 
 
 correctCaseEs :: [Expr] -> [Expr] -> Integer -> ([Expr], Integer)
-correctCaseEs [] acc n = (acc, n)
+correctCaseEs [] acc n = (reverse acc, n)
 correctCaseEs (e : es) acc n =
   let (e', n') = runState (correctCaseE e) n 
   in  correctCaseEs es (e' : acc) n' 

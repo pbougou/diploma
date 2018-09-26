@@ -1,0 +1,6 @@
+fun f n m e = 
+    case e of
+        Cons a b -> n + m
+        Nil -> n - m
+;
+fun main = call f 6 5 (Cons 1 Nil)

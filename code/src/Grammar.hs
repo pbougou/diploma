@@ -8,7 +8,9 @@ module Grammar(
     StackFrameArg(..),
     FunctionsMap(..),
     CallStack(..),
-    Value(..)
+    Value(..),
+    Context(..),
+    Susp(..)
   ) where
 
 import Data.List(map, elemIndex, lookup, foldr)
@@ -20,7 +22,7 @@ import qualified Data.Map.Strict as Map
 import Text.Read
 
 data Value =  VI Integer 
-            | VC [Value]
+            | VC Susp
     deriving Show
 
 data Type   = CBV | CBN | Lazy
@@ -33,7 +35,7 @@ data FDef    = Fun String [(String,Type)] Expr
 type CaseID = Integer
 data Expr =
     TailCall String [Expr]    -- used for tco
-  | Call String [Expr]
+  | Call String [Expr] 
   | EVar String
   | EInt Integer
   | ConstrF [Expr]
@@ -49,14 +51,20 @@ data Expr =
     deriving Eq
 
 -- Runtime data structures
-type StackFrame = (String, [StackFrameArg])
+type FN = String -- function name
+type StackFrame = (FN, [StackFrameArg])
 data StackFrameArg = StrictArg { val :: Value }
                    | ByNameArg { expr :: Expr }
                    | LazyArg   { expr :: Expr, isEvaluated :: Bool, cachedVal :: Maybe Value }
     deriving Show
 
 type FunctionsMap = Map.Map String ([Formal], Expr)
-type CallStack = [StackFrame]
+type Context = (StackFrame, [(CaseID, Susp)])
+type CallStack = [Context]
+
+type CN = String
+data Susp = Susp (CN, [Expr]) CallStack  -- Constructor carry the environment so far
+    deriving Show
 
 instance Show Expr where
   showList [] = ("" ++)
