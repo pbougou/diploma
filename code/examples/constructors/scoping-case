@@ -1,0 +1,14 @@
+fun main = call f (Cons 17 Nil);
+fun f !e = 
+    case e of
+        Cons a b ->
+            (case b of
+                Cons c d -> 
+                    (case d of
+                        Nil -> c
+                        Cons a b -> 2)
+
+                Nil -> 3)
+        Nil -> 17
+
+-- Result is 42

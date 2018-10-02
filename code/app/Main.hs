@@ -13,13 +13,16 @@ import Text.Parsec.String
 main :: IO ()
 main = do
   s <- getContents
-  p <- parseProgram s   -- :: IO Program
-  let p' = correctCaseP p 0
-  let   -- ap                            = spotTCs p
-        (result, stack, framesNum)    = run p
-        -- (result', stack', framesNum') = run ap
+  p <- parseProgram s         -- :: IO Program
+  let p'  = correctCaseP p 0  -- annotate case with ids 
+      p'' = scopingP p'       -- transform to CProj
+      -- Evaluation 
+      (result, stack, framesNum)    = run p''
+      -- ap                            = spotTCs p
+      -- (result', stack', framesNum') = run ap
 
-  print p'   -- ast 
+  -- print p'   -- ast 
+  print p''
   print $ "Result is: " ++ show result ++ ", StackFrames used: " ++ show framesNum 
 
 {-

@@ -3,7 +3,8 @@ module Parser (
   parseProgram,
   program,
   sequenceOfFns,
-  correctCaseP
+  correctCaseP,
+  scopingP
  ) where
 
 import Debug.Trace
@@ -25,7 +26,7 @@ import Control.Monad
 import Control.Monad.State
 import qualified Control.Monad.State as ST
 
-import Control.Arrow(second)
+import Control.Arrow
 
 eint = EInt <$> integer
 
@@ -192,3 +193,66 @@ correctCaseP (fdef : fdefs) n =
       (e', s')  = ST.runState (correctCaseE e) n
       fdef'     = Fun x y e'
   in  fdef' : correctCaseP fdefs (n + 1)
+
+-- A variable might belong to:
+--    a. formals --> stack frame --> Eval: 
+--      depends if formal is cbv, cbn, lazy
+--    b. bound to pattern --> Susp [expression list] as el --> el !! cpos 
+scopingP :: Program -> Program
+scopingP []             = []
+scopingP (fdef : fdefs) = scopingF fdef : scopingP fdefs
+  where
+    scopingF :: FDef -> FDef
+    scopingF (Fun fn frmls expr) = Fun fn frmls (scopingE [] expr)
+    
+    scopingE :: [(CaseID, [VN])] -> Expr -> Expr
+    -- scopingE scopes expr | trace ("Trace scopingE: expr = " ++ show expr ++ ", scopes = " ++ show scopes) False = undefined
+    scopingE scopes expr =
+      case expr of
+        EInt n -> EInt n
+        EUnPlus e  -> EUnPlus $ scopingE scopes e
+        EUnMinus e -> EUnMinus $ scopingE scopes e
+        EAdd el er -> EAdd (scopingE scopes el) (scopingE scopes er)
+        ESub el er -> ESub (scopingE scopes el) (scopingE scopes er)
+        EMul el er -> EMul (scopingE scopes el) (scopingE scopes er)
+        EDiv el er -> EDiv (scopingE scopes el) (scopingE scopes er)
+        EMod el er -> EMod (scopingE scopes el) (scopingE scopes er)
+        Eif c thenE elseE -> Eif (scopingE scopes c) (scopingE scopes thenE) (scopingE scopes elseE)
+        ConstrF exprs -> ConstrF (L.map (scopingE scopes) exprs)
+        Call fn actuals -> Call fn (L.map (scopingE scopes) actuals)
+        EVar v -> 
+          -- Lookup in symbol table
+          --  Should return:
+          --    EVar v, if var is bound with a formal parameter
+          --    CProj CaseID CPos - CPos is constructor position in case patterns - otherwise
+          let 
+            searchST :: VN -> [(CaseID, [VN])] -> Maybe (CaseID, CPos)
+            searchST _  [] = Nothing
+            searchST vn st@((id, [x, y]) : t)
+              | vn == x   = Just (id, 0) 
+              | vn == y   = Just (id, 1)
+              | otherwise = searchST vn t
+          in  case searchST v scopes of
+                Nothing         -> EVar v
+                Just (id, cpos) -> CProj id cpos
+          -- error "Var: Not yet implemented "
+        CaseF id e cases -> 
+          -- Case clause opens: Scope opens if e : Cons 
+          --  Also assume pattern matching is exhaustive.
+          --  ==> cases = [(patt1, e1), (patt2, e2)], 
+          --          if e is an expression that returns a Constructor
+            let cases' =  case cases of
+                            [case1@(patt1, e1), case2@(patt2, e2)] ->
+                              case [patt1, patt2] of                                
+                                [ConstrF [], ConstrF [EVar x, EVar y]] ->
+                                  let scope' = (id, [x, y])
+                                  in  [(patt1, scopingE scopes e1), (patt2, scopingE (scope' : scopes) e2)]
+                                [ConstrF [EVar x, EVar y], ConstrF []] ->
+                                  let scope' = (id, [x, y])
+                                  in  [(patt1, scopingE (scope' : scopes) e1), (patt2, scopingE scopes e2)]
+                                -- _ -> error "Pattern matching is complex or non-exhaustive"
+                            _ -> cases
+            in  CaseF id (scopingE scopes e) cases'
+              -- CaseF id e (L.map (fst &&& (scopingE scopes . snd)) cases) 
+        CProj _ _ -> error "CProj: This should be unreached"
+

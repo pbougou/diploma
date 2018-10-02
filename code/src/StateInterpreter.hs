@@ -35,9 +35,6 @@ run ast =
             Nothing              -> error "main not found"
             Just (actuals, expr) -> let (v, s) = runState (eval expr functions) ([(("main", []),[])], 1)
                                     in  (v, fst s, snd s)
-                                        -- case v of
-                                          -- VI v' -> (v', fst s, snd s)  
-                                          -- _     -> error "Constructor produced"
 
 eval :: Expr                       -- expression to be evaluated
     ->  FunctionsMap               -- dictionary (K: function name, V: (formals, body))
@@ -82,11 +79,13 @@ eval e funs =
     --  a. cases = [Cons x y, Nil] or [Nil, Cons x y]
     --  b. also pattern is exhaustive
     -------------------------------------------------
-    -- Note: case forces evaluation of data
+    -- Note: case forces evaluation of data 
     CaseF cid e cases -> do
       evalE <- eval e funs
       st@((ar, susps) : st', n) <- get 
       let 
+        -- nextST: next stack state
+        -- nextE:  expression to be evaluated next
         (nextE, nextST) = 
           case evalE of
         -- 1. evalE is an expression 
@@ -95,14 +94,17 @@ eval e funs =
         -- 2. evalE is a constructor 
             VC c -> let Susp (cn, _) _ = c
                         i = fromJust $ L.elemIndex (ConstrF []) (L.map fst cases)
-                        ne = case cn of
-                            "Nil" -> snd (cases !! i)
-                            "Cons" -> snd (cases !! (1 - i))
+                        ne = 
+                          if i > length cases || 1-i > length cases then error $ "Index out of bounds: Index = " ++ show i 
+                          else case cn of
+                                "Nil" -> snd (cases !! i)
+                                "Cons" -> snd (cases !! (1 - i))   -- Cons bound-1 bound-2
                         st'' = ((ar, (cid, c) : susps) : st', n) 
                     in (ne, st'')
       put nextST
       eval nextE funs
     EVar var -> do
+      -- Case variable is in formal parameteres of a function
         (st'', n) <- get
         let ar = fst $ head st''
             (funName, stArgs) = ar
@@ -111,17 +113,18 @@ eval e funs =
                   Nothing -> error "Var function lookup: Something is really wrong"
                   Just (formals, _) -> 
                     let justVars = Data.List.map fst formals
-                    in  fromMaybe (error "variable not in formals") (elemIndex var justVars)
+                    in  fromMaybe (error $ "variable not in formals: Var = " ++ var) (elemIndex var justVars)
 
             (v, s) = 
-                case stArgs !! i of
-                    StrictArg v   -> (v, Nothing)
-                    ByNameArg e   -> (evalState (eval e funs) (tail st'', n), Nothing)
-                    LazyArg e b val -> 
-                        if b then (fromJust val, Nothing)
-                             else let (v', (newSt, n')) = runState (eval e funs) (tail st'', n)
-                                      stArgs'     = replaceNth i (LazyArg e True (Just v')) stArgs
-                                  in  (v', Just (((funName, stArgs'), []) : newSt, n))
+              if i > length stArgs then error "i out of bounds"
+              else  case stArgs !! i of
+                      StrictArg v   -> (v, Nothing)
+                      ByNameArg e   -> (evalState (eval e funs) (tail st'', n), Nothing)
+                      LazyArg e b val -> 
+                          if b then (fromJust val, Nothing)
+                              else  let (v', (newSt, n')) = runState (eval e funs) (tail st'', n)
+                                        stArgs'     = replaceNth i (LazyArg e True (Just v')) stArgs
+                                    in  (v', Just (((funName, stArgs'), []) : newSt, n))
 
         byNameSt <- get
         case s of
@@ -150,6 +153,21 @@ eval e funs =
       case exprs of 
         [] -> return $ VC (Susp ("Nil", exprs) st)
         _  -> return $ VC (Susp ("Cons", exprs) st)
+    CProj cid cpos -> do 
+      -- error $ "CProj id = " ++ show id ++ ", vn = " ++ vn 
+      (st, n) <- get
+      let (ar, susps) = head st
+          (el, stSusp) = 
+            case L.lookup cid susps of 
+              Nothing -> error $ "CProj - not in susps: cid = " ++ show cid ++ ", cpos = " ++ show cpos ++ ", susps = " ++ show susps ++ ", st = " ++ show st 
+              Just (Susp (_, el) stSusp) -> 
+                if cpos > length el then error "CPos out of bounds"
+                else -- trace ("CProj: cid = " ++ show cid ++ ", cpos = " ++ show cpos ++ ", susps = " ++ show susps  ++ ", expr = " ++ show e ++ ", el = " ++ show (el !! cpos)) 
+                    (el, stSusp)
+      -- put (stSusp, n)
+      if cpos > length el then error "CPos out of bounds" else eval (el !! cpos) funs 
+      
+
 
 
 {-
