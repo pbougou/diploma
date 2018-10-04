@@ -152,8 +152,9 @@ eval e funs =
     ConstrF exprs -> do 
       (st, _) <- get
       case exprs of 
-        [] -> return $ VC (Susp ("Nil", exprs) st)
-        _  -> return $ VC (Susp ("Cons", exprs) st)
+        []  -> return $ VC (Susp ("Nil", exprs) st)
+        -- [e] -> return $ VC (Susp ("Nil", exprs) st) 
+        _   -> return $ VC (Susp ("Cons", exprs) st)
     CProj cid cpos -> do 
       -- error $ "CProj id = " ++ show id ++ ", vn = " ++ vn 
       (st, n) <- get
@@ -162,8 +163,9 @@ eval e funs =
             case L.lookup cid susps of 
               Nothing -> error $ "CProj - not in susps: cid = " ++ show cid ++ ", cpos = " ++ show cpos ++ ", susps = " ++ show susps ++ ", st = " ++ show st 
               Just (Susp (_, el) stSusp) -> (el, stSusp)
-      modify (\(s, num) -> (stSusp ++ st, n))
-      trace ("CProj: cid = " ++ show cid ++ ", cpos = " ++ show cpos ++ ", susps = " ++ show susps  ++ ", expr = " ++ show e ++ ", el = " ++ show el) $ eval (el !! cpos) funs 
+      -- modify (\(s, num) -> (stSusp ++ st, n))
+      trace ("CProj: cid = " ++ show cid ++ ", cpos = " ++ show cpos ++ ", susps = " ++ show susps  ++ ", expr = " ++ show e ++ ", el = " ++ show el) $ 
+        eval (if cpos >= length el then ConstrF [] else el !! cpos) funs 
       
 
 
