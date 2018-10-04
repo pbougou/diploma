@@ -79,13 +79,13 @@ type Scopes = Map FN [(CaseID, [(VN, Expr)])]
 
 instance Show Expr where
     showList [] = ("" ++)
-    showList list@(l : ls) = case list of   [_] -> shows l
+    showList list@(l : ls) = case list of   [_] -> showsPrec 1 l
                                             _   -> showsPrec 1 l . (" " ++) . showList ls
     showsPrec p (Call x l) =
-        ("call " ++) . (x ++) . (" " ++) .shows l
+        ("call " ++) . (x ++) . (" " ++) . showsPrec 1 l
 
     showsPrec p (TailCall x l) =
-        ("TC-call " ++) . (x ++) . (" " ++) .shows l
+        ("TC-call " ++) . (x ++) . (" " ++) . shows l
     showsPrec p (Eif x y z) =
         showParen (p > 0) $
             ("if " ++) . shows x .
@@ -104,21 +104,27 @@ instance Show Expr where
     showsPrec p (EMul x y) = showsPrec 1 x . (" * " ++) . showsPrec 1 y
     showsPrec p (EDiv x y) = showsPrec 1 x . (" / " ++) . showsPrec 1 y
     showsPrec p (EMod x y) = showsPrec 1 x . (" % " ++) . showsPrec 1 y
-    showsPrec p (ConstrF exps) = case exps of { [] -> ("Nil" ++); _ -> ("Cons " ++) . showList exps }
+    showsPrec p (ConstrF exps) = 
+        let ending = if length exps < 2 then " Nil" else ""
+        in  showParen (p > 0) $
+                case exps of { [] -> ("Nil" ++); _ -> ("Cons " ++) . showList exps . (ending ++)}
     showsPrec p (CaseF caseID e lines) =
-        ("case <" ++) . (show caseID  ++) . ("> " ++) . shows e . (" of " ++) . ("\n\t" ++) . showLines lines
-            where 
-                showLines [] = ("" ++)
-                showLines (line : lines) =  
-                                            shows (fst line) . 
-                                            (" -> " ++) . 
-                                            shows (snd line) . 
-                                            ("\n\t" ++) . 
-                                            showLines lines
-    showsPrec p (CProj cid cpos) = (("CProj " ++ show cid ++ " " ++ show cpos) ++)
+        showParen (p > 0) $
+            ("case <" ++) . (show caseID  ++) . ("> " ++) . shows e . (" of " ++) . ("{ " ++) . showLines lines . (" }" ++)
+            where   showLines [] = ("" ++)
+                    showLines [line] =  shows (fst line) . 
+                                        (" -> " ++) . 
+                                        showsPrec 1 (snd line)
+                    showLines (line : lines) =  shows (fst line) . 
+                                                (" -> " ++) . 
+                                                shows (snd line) . 
+                                                ("; " ++) . 
+                                                showLines lines
+    showsPrec p (CProj cid cpos) = showParen True (("CProj " ++ show cid ++ " " ++ show cpos) ++)
 
 instance Show FDef where
     showList [] = ("" ++)
+    showList [l] = shows l
     showList (l : ls) = shows l .(";\n" ++) .showList ls
     showsPrec p (Fun x l e) = ("fun " ++) . (x ++) . (" " ++) . (l' ++) .
                                 ("=\n    " ++) . shows e

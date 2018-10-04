@@ -18,7 +18,7 @@ main = do
       p'' = scopingP p'       -- transform to CProj
       -- Evaluation 
       (result, stack, framesNum)    = run p''
-      -- ap                            = spotTCs p
+      -- ap                         = spotTCs p
       -- (result', stack', framesNum') = run ap
 
   -- print p'   -- ast 

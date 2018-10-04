@@ -41,6 +41,7 @@ eval :: Expr                       -- expression to be evaluated
     ->  State 
               (CallStack, Integer) -- State: execution stack, number of stackframes allocated 
               Value                -- Value: evaluation result
+eval e funs | trace ("expr = " ++ show e ) False = undefined
 eval e funs =
   case e of
     EInt n -> return (VI n)
@@ -100,7 +101,7 @@ eval e funs =
                                 "Nil" -> snd (cases !! i)
                                 "Cons" -> snd (cases !! (1 - i))   -- Cons bound-1 bound-2
                         st'' = ((ar, (cid, c) : susps) : st', n) 
-                    in (ne, st'')
+                    in  (ne, st'')
       put nextST
       eval nextE funs
     EVar var -> do
@@ -160,12 +161,9 @@ eval e funs =
           (el, stSusp) = 
             case L.lookup cid susps of 
               Nothing -> error $ "CProj - not in susps: cid = " ++ show cid ++ ", cpos = " ++ show cpos ++ ", susps = " ++ show susps ++ ", st = " ++ show st 
-              Just (Susp (_, el) stSusp) -> 
-                if cpos > length el then error "CPos out of bounds"
-                else -- trace ("CProj: cid = " ++ show cid ++ ", cpos = " ++ show cpos ++ ", susps = " ++ show susps  ++ ", expr = " ++ show e ++ ", el = " ++ show (el !! cpos)) 
-                    (el, stSusp)
-      -- put (stSusp, n)
-      if cpos > length el then error "CPos out of bounds" else eval (el !! cpos) funs 
+              Just (Susp (_, el) stSusp) -> (el, stSusp)
+      modify (\(s, num) -> (stSusp ++ st, n))
+      trace ("CProj: cid = " ++ show cid ++ ", cpos = " ++ show cpos ++ ", susps = " ++ show susps  ++ ", expr = " ++ show e ++ ", el = " ++ show el) $ eval (el !! cpos) funs 
       
 
 
