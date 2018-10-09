@@ -42,128 +42,130 @@ eval :: Expr                       -- expression to be evaluated
               (CallStack, Integer) -- State: execution stack, number of stackframes allocated 
               Value                -- Value: evaluation result
 eval e funs | trace ("expr = " ++ show e ) False = undefined
-eval e funs =
-  case e of
-    EInt n -> return (VI n)
-    EUnPlus e -> eval e funs
-    EUnMinus e -> do
-      VI v <- eval e funs
-      return $ VI (-v)
-    EAdd l r -> do
-      VI vl <- eval l funs
-      VI vr <- eval r funs
-      return $ VI (vl + vr)
-    ESub l r -> do
-      VI vl <- eval l funs
-      VI vr <- eval r funs
-      return $ VI (vl - vr)
-    EMul l r -> do
-      VI vl <- eval l funs
-      VI vr <- eval r funs
-      return $ VI (vl * vr)
-    EDiv l r -> do
-      VI vl <- eval l funs
-      VI vr <- eval r funs
-      if vr == 0 then error "Division by zero"
-                 else return $ VI (vl `div` vr)
-    EMod l r -> do
-      VI vl <- eval l funs
-      VI vr <- eval r funs
-      if vr == 0 then error "Modulo zero"
-                 else return $ VI (vl `mod` vr)
-    Eif c l r -> do
-      VI vc <- eval c funs
-      if vc /= 0 then eval l funs
-                 else eval r funs
-    -------------------------------------------------
-    -- Assume: 
-    --  a. cases = [Cons x y, Nil] or [Nil, Cons x y]
-    --  b. also pattern is exhaustive
-    -------------------------------------------------
-    -- Note: case forces evaluation of data 
-    CaseF cid e cases -> do
-      evalE <- eval e funs
-      st@((ar, susps) : st', n) <- get 
-      let 
-        -- nextST: next stack state
-        -- nextE:  expression to be evaluated next
-        (nextE, nextST) = 
-          case evalE of
-        -- 1. evalE is an expression 
-            VI i -> let nextE = fromJust $ L.lookup (EInt i) cases
-                    in  (nextE, st)
-        -- 2. evalE is a constructor 
-            VC c -> let Susp (cn, _) _ = c
-                        i = fromJust $ L.elemIndex (ConstrF "Nil" []) (L.map fst cases)
-                        ne = 
-                          if i > length cases || 1-i > length cases then error $ "Index out of bounds: Index = " ++ show i 
-                          else case cn of
-                                "Nil" -> snd (cases !! i)
-                                "Cons" -> snd (cases !! (1 - i))   -- Cons bound-1 bound-2
-                        st'' = ((ar, (cid, c) : susps) : st', n) 
-                    in  (ne, st'')
-      put nextST
-      eval nextE funs
-    EVar var -> do
-      -- Case variable is in formal parameteres of a function
-        (st'', n) <- get
-        let ar = fst $ head st''
-            (funName, stArgs) = ar
+eval e funs = do
+  (stack, nFrames) <- get
+  trace ("stack = " ++ show stack) $
+    case e of
+      EInt n -> return (VI n)
+      EUnPlus e -> eval e funs
+      EUnMinus e -> do
+        VI v <- eval e funs
+        return $ VI (-v)
+      EAdd l r -> do
+        VI vl <- eval l funs
+        VI vr <- eval r funs
+        return $ VI (vl + vr)
+      ESub l r -> do
+        VI vl <- eval l funs
+        VI vr <- eval r funs
+        return $ VI (vl - vr)
+      EMul l r -> do
+        VI vl <- eval l funs
+        VI vr <- eval r funs
+        return $ VI (vl * vr)
+      EDiv l r -> do
+        VI vl <- eval l funs
+        VI vr <- eval r funs
+        if vr == 0 then error "Division by zero"
+                  else return $ VI (vl `div` vr)
+      EMod l r -> do
+        VI vl <- eval l funs
+        VI vr <- eval r funs
+        if vr == 0 then error "Modulo zero"
+                  else return $ VI (vl `mod` vr)
+      Eif c l r -> do
+        VI vc <- eval c funs
+        if vc /= 0 then eval l funs
+                  else eval r funs
+      -------------------------------------------------
+      -- Assume: 
+      --  a. cases = [Cons x y, Nil] or [Nil, Cons x y]
+      --  b. also pattern is exhaustive
+      -------------------------------------------------
+      -- Note: case forces evaluation of data 
+      CaseF cid e cases -> do
+        evalE <- eval e funs
+        st@((ar, susps) : st', n) <- get 
+        let 
+          -- nextST: next stack state
+          -- nextE:  expression to be evaluated next
+          (nextE, nextST) = 
+            case evalE of
+          -- 1. evalE is an expression 
+              VI i -> let nextE = fromJust $ L.lookup (EInt i) cases
+                      in  (nextE, st)
+          -- 2. evalE is a constructor 
+              VC c -> let Susp (cn, _) _ = c
+                          i = fromJust $ L.elemIndex (ConstrF "Nil" []) (L.map fst cases)
+                          ne = 
+                            if i > length cases || 1-i > length cases then error $ "Index out of bounds: Index = " ++ show i 
+                            else case cn of
+                                  "Nil" -> snd (cases !! i)
+                                  "Cons" -> snd (cases !! (1 - i))   -- Cons bound-1 bound-2
+                          st'' = ((ar, (cid, c) : susps) : st', n) 
+                      in  (ne, st'')
+        put nextST
+        eval nextE funs
+      EVar var -> do
+        -- Case variable is in formal parameteres of a function
+          (st'', n) <- get
+          let ar = fst $ head st''
+              (funName, stArgs) = ar
 
-            i = case Map.lookup funName funs of
-                  Nothing -> error "Var function lookup: Something is really wrong"
-                  Just (formals, _) -> 
-                    let justVars = Data.List.map fst formals
-                    in  fromMaybe (error $ "variable not in formals: Var = " ++ var) (elemIndex var justVars)
+              i = case Map.lookup funName funs of
+                    Nothing -> error "Var function lookup: Something is really wrong"
+                    Just (formals, _) -> 
+                      let justVars = Data.List.map fst formals
+                      in  fromMaybe (error $ "variable not in formals: Var = " ++ var) (elemIndex var justVars)
 
-            (v, s) = 
-              if i > length stArgs then error "i: out of bounds"
-              else  case stArgs !! i of
-                      StrictArg v   -> (v, Nothing)
-                      ByNameArg e   -> (evalState (eval e funs) (tail st'', n), Nothing)
-                      LazyArg e b val -> 
-                          if b then (fromJust val, Nothing)
-                              else  let (v', (newSt, n')) = runState (eval e funs) (tail st'', n)
-                                        stArgs'     = replaceNth i (LazyArg e True (Just v')) stArgs
-                                    in  (v', Just (((funName, stArgs'), []) : newSt, n))
+              (v, s) = 
+                if i > length stArgs then error "i: out of bounds"
+                else  case stArgs !! i of
+                        StrictArg v   -> (v, Nothing)
+                        ByNameArg e   -> (evalState (eval e funs) (tail st'', n), Nothing)
+                        LazyArg e b val -> 
+                            if b then (fromJust val, Nothing)
+                                else  let (v', (newSt, n')) = runState (eval e funs) (tail st'', n)
+                                          stArgs'     = replaceNth i (LazyArg e True (Just v')) stArgs
+                                      in  (v', Just (((funName, stArgs'), []) : newSt, n))
 
-        byNameSt <- get
-        case s of
-            Just s' -> put s'
-            Nothing -> put byNameSt
+          byNameSt <- get
+          case s of
+              Just s' -> put s'
+              Nothing -> put byNameSt
 
-        return v
-    Call funName actuals -> do
-          st <- get
-          let (formals, funBody) = 
-                case Map.lookup funName funs of
-                  Nothing     -> error $ "Call function: " ++ funName ++ " does not exist"
-                  Just (f, e) -> (f, e)
+          return v
+      Call funName actuals -> do
+            st <- get
+            let (formals, funBody) = 
+                  case Map.lookup funName funs of
+                    Nothing     -> error $ "Call function: " ++ funName ++ " does not exist"
+                    Just (f, e) -> (f, e)
 
-              (stackFrame, (_, stNum')) = makeStackFrame actuals formals funs ([], st)
+                (stackFrame, (_, stNum')) = makeStackFrame actuals formals funs ([], st)
 
-              -- Add frame to stack
-              newSt = ((funName, stackFrame), []) : fst st
-          put (newSt, stNum' + 1)
+                -- Add frame to stack
+                newSt = ((funName, stackFrame), []) : fst st
+            put (newSt, stNum' + 1)
 
-          eval funBody funs
-    ConstrF tag exprs -> do 
-      (st, _) <- get 
-      return $ VC (Susp (tag, exprs) st)
+            eval funBody funs
+      ConstrF tag exprs -> do 
+        (st, _) <- get 
+        return $ VC (Susp (tag, exprs) st)
 
-    CProj cid cpos -> do 
-      (st, n) <- get
-      let (ar, susps) = head st
-          (cn, el, stSusp) = 
-            case L.lookup cid susps of 
-              Nothing -> error "CProj - not in susps"
-              -- ++ ": cid = " ++ show cid ++ ", cpos = " ++ show cpos ++ ", susps = " ++ show susps ++ ", st = " ++ show st 
-              Just (Susp (cn, el) stSusp) -> (cn, el, stSusp)
-          (val, (stSusp', n')) = runState (eval (el !! cpos) funs) (stSusp, 0)
-          newSusps = replaceNth cid (cid, Susp (cn, el) stSusp') susps 
-          
-      put ((ar, newSusps) : tail st, n + n')
-      return val
+      CProj cid cpos -> do 
+        (st, n) <- get
+        let (ar, susps) = head st
+            (cn, el, stSusp) = 
+              case L.lookup cid susps of 
+                Nothing -> error "CProj - not in susps"
+                -- ++ ": cid = " ++ show cid ++ ", cpos = " ++ show cpos ++ ", susps = " ++ show susps ++ ", st = " ++ show st 
+                Just (Susp (cn, el) stSusp) -> (cn, el, stSusp)
+            (val, (stSusp', n')) = runState (eval (el !! cpos) funs) (stSusp, 0)
+            newSusps = replaceNth cid (cid, Susp (cn, el) stSusp') susps 
+            
+        put ((ar, newSusps) : tail st, n + n')
+        return val
 
 
 

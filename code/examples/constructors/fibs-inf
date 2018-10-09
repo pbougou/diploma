@@ -5,7 +5,7 @@ fun next l =
             (case t of
                 Nil -> Nil
                 Cons b d -> Cons (a+b) (call next t));
-fun fibs = Cons 0 (Cons 1 (call next fibs));
+fun fibs = Cons 0 (Cons 1 (call next (call fibs)));
 fun main = call take 3 (call fibs);
 fun take #n #l = 
     case l of 
