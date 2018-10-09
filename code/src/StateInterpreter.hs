@@ -159,9 +159,9 @@ eval e funs = do
             (cn, el, stSusp) = 
               case L.lookup cid susps of 
                 Nothing -> error "CProj - not in susps"
-                -- ++ ": cid = " ++ show cid ++ ", cpos = " ++ show cpos ++ ", susps = " ++ show susps ++ ", st = " ++ show st 
                 Just (Susp (cn, el) stSusp) -> (cn, el, stSusp)
-            (val, (stSusp', n')) = runState (eval (el !! cpos) funs) (stSusp, 0)
+            nextE = if cpos >= length el then ConstrF "Nil" [] else el !! cpos
+            (val, (stSusp', n')) = runState (eval nextE funs) (stSusp, 0)
             newSusps = replaceNth cid (cid, Susp (cn, el) stSusp') susps 
             
         put ((ar, newSusps) : tail st, n + n')

@@ -5,19 +5,15 @@ fun take !n #l =
         Nil -> -2
         Cons a b -> 
             if n then call take (n-1) b else a;
-fun test = call take 2 (call makeList 5);
 
--- call take 2 (Cons 1 (Cons 2 (Cons 3 (Cons 4 (Cons 5 Nil)))));
-
-fun main = call test
-
-{-
-    case call makeList 6 of
+fun test n = 
+    case (call makeList n) of
         Cons a b -> 
-            (case Cons 42 b of
+            (case (Cons 42 b) of
                 Cons d b -> (case b of
-                                Cons c b -> d
-                                Nil -> -42)
-                Nil -> -43)
-        Nil -> -1
--}
+                                Cons c b -> c
+                                Nil -> d)
+                Nil -> a)
+        Nil -> -1;
+        
+fun main = call test 42
