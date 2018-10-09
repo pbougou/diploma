@@ -22,7 +22,13 @@ main = do
       -- (result', stack', framesNum') = run ap
 
   -- print p'   -- ast 
+  putStrLn "================================="
+  putStrLn "=====Abstract Syntax Tree========"
+  putStrLn "================================="
   print p''
+  putStrLn "================================="
+  putStrLn "===========Interpeter============"
+  putStrLn "================================="
   print $ "Result is: " ++ show result ++ ", StackFrames used: " ++ show framesNum 
 
 {-

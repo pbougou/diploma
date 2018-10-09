@@ -94,7 +94,7 @@ eval e funs =
                     in  (nextE, st)
         -- 2. evalE is a constructor 
             VC c -> let Susp (cn, _) _ = c
-                        i = fromJust $ L.elemIndex (ConstrF []) (L.map fst cases)
+                        i = fromJust $ L.elemIndex (ConstrF "Nil" []) (L.map fst cases)
                         ne = 
                           if i > length cases || 1-i > length cases then error $ "Index out of bounds: Index = " ++ show i 
                           else case cn of
@@ -117,7 +117,7 @@ eval e funs =
                     in  fromMaybe (error $ "variable not in formals: Var = " ++ var) (elemIndex var justVars)
 
             (v, s) = 
-              if i > length stArgs then error "i out of bounds"
+              if i > length stArgs then error "i: out of bounds"
               else  case stArgs !! i of
                       StrictArg v   -> (v, Nothing)
                       ByNameArg e   -> (evalState (eval e funs) (tail st'', n), Nothing)
@@ -133,7 +133,6 @@ eval e funs =
             Nothing -> put byNameSt
 
         return v
-        -- trace ("var lookup: " ++ show byNameSt) $ return v
     Call funName actuals -> do
           st <- get
           let (formals, funBody) = 
@@ -148,25 +147,23 @@ eval e funs =
           put (newSt, stNum' + 1)
 
           eval funBody funs
-          -- trace ("call:  " ++ show newSt) eval funBody funs
-    ConstrF exprs -> do 
-      (st, _) <- get
-      case exprs of 
-        []  -> return $ VC (Susp ("Nil", exprs) st)
-        -- [e] -> return $ VC (Susp ("Nil", exprs) st) 
-        _   -> return $ VC (Susp ("Cons", exprs) st)
+    ConstrF tag exprs -> do 
+      (st, _) <- get 
+      return $ VC (Susp (tag, exprs) st)
+
     CProj cid cpos -> do 
-      -- error $ "CProj id = " ++ show id ++ ", vn = " ++ vn 
       (st, n) <- get
       let (ar, susps) = head st
-          (el, stSusp) = 
+          (cn, el, stSusp) = 
             case L.lookup cid susps of 
-              Nothing -> error $ "CProj - not in susps: cid = " ++ show cid ++ ", cpos = " ++ show cpos ++ ", susps = " ++ show susps ++ ", st = " ++ show st 
-              Just (Susp (_, el) stSusp) -> (el, stSusp)
-      -- modify (\(s, num) -> (stSusp ++ st, n))
-      trace ("CProj: cid = " ++ show cid ++ ", cpos = " ++ show cpos ++ ", susps = " ++ show susps  ++ ", expr = " ++ show e ++ ", el = " ++ show el) $ 
-        eval (if cpos >= length el then ConstrF [] else el !! cpos) funs 
-      
+              Nothing -> error "CProj - not in susps"
+              -- ++ ": cid = " ++ show cid ++ ", cpos = " ++ show cpos ++ ", susps = " ++ show susps ++ ", st = " ++ show st 
+              Just (Susp (cn, el) stSusp) -> (cn, el, stSusp)
+          (val, (stSusp', n')) = runState (eval (el !! cpos) funs) (stSusp, 0)
+          newSusps = replaceNth cid (cid, Susp (cn, el) stSusp') susps 
+          
+      put ((ar, newSusps) : tail st, n + n')
+      return val
 
 
 
@@ -322,7 +319,7 @@ functionMap program _map =
               Just s  -> error $ "redeclaration of function " ++ show s) _map program
 
 
-replaceNth :: Int -> a -> [a] -> [a]
+-- replaceNth :: Integer -> a -> [a] -> [a]
 replaceNth _ _ [] = []
 replaceNth n newVal (x:xs)
     | n == 0    = newVal:xs

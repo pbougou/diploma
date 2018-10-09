@@ -1,0 +1,14 @@
+fun next l = 
+    case l of
+        Nil -> Nil
+        Cons a t -> 
+            (case t of
+                Nil -> Nil
+                Cons b d -> Cons (a+b) (call next t));
+fun fibs = Cons 0 (Cons 1 (call next fibs));
+fun main = call take 3 (call fibs);
+fun take #n #l = 
+    case l of 
+        Nil -> -1
+        Cons a b -> 
+            if n then call take (n-1) b else a 

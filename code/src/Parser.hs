@@ -84,11 +84,11 @@ constructor = do
   hd <- expression
   tl <- expression -- constructor <|> nilConstr <|> parens constructor <|> parens nilConstr
   case tl of
-    ConstrF []  -> return $ ConstrF [hd] 
-    _           -> return $ ConstrF (hd : [tl])
+    ConstrF "Nil" []  -> return $ ConstrF "Cons" [hd] 
+    _           -> return $ ConstrF "Cons" (hd : [tl])
 
 nilConstr = do reserved "Nil" 
-               return $ ConstrF []
+               return $ ConstrF "Nil" []
 
 caseF = do
   reserved "case"
@@ -218,7 +218,7 @@ scopingP (fdef : fdefs) = scopingF fdef : scopingP fdefs
         EDiv el er -> EDiv (scopingE scopes el) (scopingE scopes er)
         EMod el er -> EMod (scopingE scopes el) (scopingE scopes er)
         Eif c thenE elseE -> Eif (scopingE scopes c) (scopingE scopes thenE) (scopingE scopes elseE)
-        ConstrF exprs -> ConstrF (L.map (scopingE scopes) exprs)
+        ConstrF tag exprs -> ConstrF tag (L.map (scopingE scopes) exprs)
         Call fn actuals -> Call fn (L.map (scopingE scopes) actuals)
         EVar v -> 
           -- Lookup in symbol table
@@ -244,10 +244,10 @@ scopingP (fdef : fdefs) = scopingF fdef : scopingP fdefs
             let cases' =  case cases of
                             [case1@(patt1, e1), case2@(patt2, e2)] ->
                               case [patt1, patt2] of                                
-                                [ConstrF [], ConstrF [EVar x, EVar y]] ->
+                                [ConstrF "Nil" [], ConstrF "Cons" [EVar x, EVar y]] ->
                                   let scope' = (id, [x, y])
                                   in  [(patt1, scopingE scopes e1), (patt2, scopingE (scope' : scopes) e2)]
-                                [ConstrF [EVar x, EVar y], ConstrF []] ->
+                                [ConstrF "Cons" [EVar x, EVar y], ConstrF "Nil" []] ->
                                   let scope' = (id, [x, y])
                                   in  [(patt1, scopingE (scope' : scopes) e1), (patt2, scopingE scopes e2)]
                                 -- _ -> error "Pattern matching is complex or non-exhaustive"

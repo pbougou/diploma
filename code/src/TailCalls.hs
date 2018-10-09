@@ -71,7 +71,6 @@ spotTCs fdefs =
                                             else Call n actuals
                             else Call n actuals
                         TailCall _ _ -> error "Tail Call: This should be unreached"
-                        ConstrF _ -> error  "Constructors not yet implemented"
 
     in  L.map annotateL fdefs
 
