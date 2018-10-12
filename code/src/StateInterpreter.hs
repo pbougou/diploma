@@ -7,6 +7,7 @@ module StateInterpreter (
   eval,
   -- makeStackFrame,
   replaceNth,
+  updateL,
   functionMap
 ) where
 
@@ -28,6 +29,7 @@ import Control.Monad.State
 import System.IO.Unsafe
 
 -- Programs are considered type safe  ===  (No type check)
+-- Also do not name your functions cons 
 run :: Program -> (Value, CallStack, Integer)
 run ast = 
     let functions = functionMap ast Map.empty
@@ -41,42 +43,55 @@ eval :: Expr                       -- expression to be evaluated
     ->  State 
               (CallStack, Integer) -- State: execution stack, number of stackframes allocated 
               Value                -- Value: evaluation result
-eval e funs | trace ("expr = " ++ show e ) False = undefined
+-- eval e funs | trace ("expr = " ++ show e ) False = undefined
 eval e funs = do
   (stack, nFrames) <- get
-  trace ("stack = " ++ show stack) $
+  -- trace ("stack = " ++ show stack) $
+  trace ("expr = " ++ show e ++ "\nstack = " ++ show stack) $
+  -- trace "" $
     case e of
-      EInt n -> return (VI n)
-      EUnPlus e -> eval e funs
+      EInt n -> 
+        trace "EInt" $
+          return (VI n)
+      EUnPlus e -> 
+        trace "EUnPlus" $
+          eval e funs
       EUnMinus e -> do
         VI v <- eval e funs
-        return $ VI (-v)
+        trace "EUnMinus" $
+          return $ VI (-v)
       EAdd l r -> do
         VI vl <- eval l funs
         VI vr <- eval r funs
-        return $ VI (vl + vr)
+        trace "EAdd" $
+          return $ VI (vl + vr)
       ESub l r -> do
         VI vl <- eval l funs
         VI vr <- eval r funs
-        return $ VI (vl - vr)
+        trace "ESub" $        
+          return $ VI (vl - vr)
       EMul l r -> do
         VI vl <- eval l funs
         VI vr <- eval r funs
-        return $ VI (vl * vr)
+        trace "EMul" $
+          return $ VI (vl * vr)
       EDiv l r -> do
         VI vl <- eval l funs
         VI vr <- eval r funs
-        if vr == 0 then error "Division by zero"
-                  else return $ VI (vl `div` vr)
+        trace "EDiv" $
+          if vr == 0 then error "Division by zero"
+                     else return $ VI (vl `div` vr)
       EMod l r -> do
         VI vl <- eval l funs
         VI vr <- eval r funs
-        if vr == 0 then error "Modulo zero"
-                  else return $ VI (vl `mod` vr)
+        trace "EMod" $
+          if vr == 0  then error "Modulo zero"
+                      else return $ VI (vl `mod` vr)
       Eif c l r -> do
         VI vc <- eval c funs
-        if vc /= 0 then eval l funs
-                  else eval r funs
+        trace "EIf" $
+          if vc /= 0 then eval l funs
+                     else eval r funs
       -------------------------------------------------
       -- Assume: 
       --  a. cases = [Cons x y, Nil] or [Nil, Cons x y]
@@ -84,89 +99,96 @@ eval e funs = do
       -------------------------------------------------
       -- Note: case forces evaluation of data 
       CaseF cid e cases -> do
-        evalE <- eval e funs
-        st@((ar, susps) : st', n) <- get 
+        curST <- get 
+        let (evalE, st@((ar, susps) : st', n)) = runState (eval e funs) curST
+        put st
         let 
           -- nextST: next stack state
           -- nextE:  expression to be evaluated next
           (nextE, nextST) = 
             case evalE of
           -- 1. evalE is an expression 
-              VI i -> let nextE = fromJust $ L.lookup (EInt i) cases
+              VI i -> let nextE = fromMaybe (error "Case patterns must be integers") (L.lookup (EInt i) cases)
                       in  (nextE, st)
           -- 2. evalE is a constructor 
               VC c -> let Susp (cn, _) _ = c
-                          i = fromJust $ L.elemIndex (ConstrF "Nil" []) (L.map fst cases)
+                          nilIX = fromMaybe (error "Non-exhaustive patterns: Nil does not exist") (L.elemIndex (ConstrF "Nil" []) (L.map fst cases))
+                          consIX = 1 - nilIX
                           ne = 
-                            if i > length cases || 1-i > length cases then error $ "Index out of bounds: Index = " ++ show i 
+                            if nilIX > length cases || consIX > length cases then error $ "Index out of bounds: Index = " ++ show nilIX
                             else case cn of
-                                  "Nil" -> snd (cases !! i)
-                                  "Cons" -> snd (cases !! (1 - i))   -- Cons bound-1 bound-2
+                                  "Nil" -> snd (cases !! nilIX)
+                                  "Cons" -> snd (cases !! consIX)   -- Cons bound-1 bound-2
                           st'' = ((ar, (cid, c) : susps) : st', n) 
                       in  (ne, st'')
         put nextST
-        eval nextE funs
+        trace "Case" $
+          eval nextE funs
       EVar var -> do
         -- Case variable is in formal parameteres of a function
           (st'', n) <- get
-          let ar = fst $ head st''
+          let topFR@(ar, susps) = head st''
               (funName, stArgs) = ar
-
               i = case Map.lookup funName funs of
-                    Nothing -> error "Var function lookup: Something is really wrong"
+                    Nothing -> error "No function definition found"
                     Just (formals, _) -> 
                       let justVars = Data.List.map fst formals
                       in  fromMaybe (error $ "variable not in formals: Var = " ++ var) (elemIndex var justVars)
-
               (v, s) = 
                 if i > length stArgs then error "i: out of bounds"
                 else  case stArgs !! i of
                         StrictArg v   -> (v, Nothing)
-                        ByNameArg e   -> (evalState (eval e funs) (tail st'', n), Nothing)
+                        ByNameArg e   -> 
+                          let (v, s) = runState (eval e funs) (tail st'', n) 
+                          in  (v, Just s)
                         LazyArg e b val -> 
                             if b then (fromJust val, Nothing)
-                                else  let (v', (newSt, n')) = runState (eval e funs) (tail st'', n)
-                                          stArgs'     = replaceNth i (LazyArg e True (Just v')) stArgs
-                                      in  (v', Just (((funName, stArgs'), []) : newSt, n))
-
-          byNameSt <- get
+                                 else   let (v', (newSt, n')) = runState (eval e funs) (tail st'', n)
+                                            stArgs' = replaceNth i (LazyArg e True (Just v')) stArgs
+                                        in  (v', Just (((funName, stArgs'), susps) : newSt, n'))
           case s of
               Just s' -> put s'
-              Nothing -> put byNameSt
-
-          return v
+              Nothing -> modify id
+          trace "EVar" $
+            return v
       Call funName actuals -> do
-            st <- get
+            st@(stack@((ar, susps) : _), n) <- get
             let (formals, funBody) = 
                   case Map.lookup funName funs of
                     Nothing     -> error $ "Call function: " ++ funName ++ " does not exist"
                     Just (f, e) -> (f, e)
-
-                (stackFrame, (_, stNum')) = makeStackFrame actuals formals funs ([], st)
-
+                (stackFrame, (stack', stNum')) = makeStackFrame actuals formals funs ([], st)
+                newAR = (funName, stackFrame)
                 -- Add frame to stack
-                newSt = ((funName, stackFrame), []) : fst st
+                newSt = (newAR, []) : stack'
             put (newSt, stNum' + 1)
-
-            eval funBody funs
+            trace "Call" $
+              eval funBody funs
       ConstrF tag exprs -> do 
         (st, _) <- get 
-        return $ VC (Susp (tag, exprs) st)
-
+        trace "ConstrF" $
+          return $ VC (Susp (tag, exprs) st)
       CProj cid cpos -> do 
         (st, n) <- get
         let (ar, susps) = head st
             (cn, el, stSusp) = 
               case L.lookup cid susps of 
-                Nothing -> error "CProj - not in susps"
+                Nothing -> error $ "CProj - not in susps, susps = " ++ show susps 
                 Just (Susp (cn, el) stSusp) -> (cn, el, stSusp)
             nextE = if cpos >= length el then ConstrF "Nil" [] else el !! cpos
             (val, (stSusp', n')) = runState (eval nextE funs) (stSusp, 0)
-            newSusps = replaceNth cid (cid, Susp (cn, el) stSusp') susps 
-            
-        put ((ar, newSusps) : tail st, n + n')
-        return val
+            el' = 
+              case val of
+                VI v -> replaceNth cpos (EInt v) el
+                VC c -> error $ "Constructor " ++ show c
+            newSusp = Susp (cn, el') stSusp'
+            newSusps = updateL cid newSusp susps 
+        put ((ar, newSusps) : tail st, n + n') 
+        stack <- get
+        trace ("CProj: val = " ++ show val ++ ", \nsusp = " ++ show newSusp ++ ",\nsusps = " ++ show susps) $ 
+          return val 
 
+          
 
 
 {-
@@ -291,11 +313,11 @@ makeStackFrame :: [Expr]
 makeStackFrame [] [] _ (args, st) = (reverse args, st)
 makeStackFrame (actual : actuals) (formal : formals) funs (frames, st) = 
   case snd formal of 
-    CBV          -> 
+    CBV    -> 
       let (v, st') = runState (eval actual funs) st
           frames'  = StrictArg { val = v } : frames
       in  makeStackFrame actuals formals funs (frames', st')
-    CBN          -> 
+    CBN    -> 
       let frames' = ByNameArg { expr = actual } : frames
       in  makeStackFrame actuals formals funs (frames', st)
     G.Lazy -> 
@@ -327,3 +349,9 @@ replaceNth n newVal (x:xs)
     | n == 0    = newVal:xs
     | otherwise = x:replaceNth (n-1) newVal xs
 
+-- Function that updates a value paired with a given key
+--  Updates the first key found
+updateL _ _ [] = []
+updateL key val ((k, v) : xs) 
+  | key == k  = (k, val) : xs
+  | otherwise = (k, v) : updateL key val xs 

@@ -250,7 +250,8 @@ scopingP (fdef : fdefs) = scopingF fdef : scopingP fdefs
                                 [ConstrF "Cons" [EVar x, EVar y], ConstrF "Nil" []] ->
                                   let scope' = (id, [x, y])
                                   in  [(patt1, scopingE (scope' : scopes) e1), (patt2, scopingE scopes e2)]
-                                -- _ -> error "Pattern matching is complex or non-exhaustive"
+                                _ -> cases
+                                  -- error "Pattern matching is complex or non-exhaustive"
                             _ -> cases
             in  CaseF id (scopingE scopes e) cases'
               -- CaseF id e (L.map (fst &&& (scopingE scopes . snd)) cases) 

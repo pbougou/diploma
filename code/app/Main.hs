@@ -29,7 +29,7 @@ main = do
     putStrLn "================================="
     putStrLn "===========Interpeter============"
     putStrLn "================================="
-    print $ "Result is: " ++ show result ++ ", StackFrames used: " ++ show framesNum 
+    putStrLn $ "Result is: " ++ show result ++ ", StackFrames used: " ++ show framesNum 
 
 {-
   print ap  -- TC annotated AST

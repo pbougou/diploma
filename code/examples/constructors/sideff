@@ -1,4 +1,4 @@
-fun f !x = Cons x Nil;
+fun f x = Cons x Nil;
 fun fact n = if n then n * (call fact (n-1)) else 1;
 fun main = 
     case (call f (call fact 1)) of
