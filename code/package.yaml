@@ -49,6 +49,7 @@ library:
   - src/
   exposed-modules:
   - Grammar
+  - RuntimeStructs
   - AuxAnalysis
   - StateInterpreter
   - TailCalls

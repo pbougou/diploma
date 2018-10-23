@@ -12,6 +12,8 @@ module StateInterpreter (
 ) where
 
 import Grammar as G
+import RuntimeStructs
+
 import AuxAnalysis
 
 import Debug.Trace

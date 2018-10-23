@@ -1,18 +1,11 @@
-module Grammar(
+module Grammar (
     Expr (..),
     Program(..),
     FDef(..),
     Formal,
     Type(..),
-    StackFrame(..),
-    StackFrameArg(..),
-    FunctionsMap(..),
-    CallStack(..),
-    Value(..),
-    Context(..),
-    Susp(..),
     Scopes(..),
-    CaseID, VN, FN, CPos
+    CaseID, VN, FN, CN, CPos, Tag, Scrutinee
   ) where
 
 import Data.List(map, elemIndex, lookup, foldr)
@@ -23,29 +16,30 @@ import qualified Data.Map.Strict as Map
 
 import Text.Read
 
-data Value =  VI Integer 
-            | VC Susp 
-    deriving Show
+type CN = String -- constructor name
+type FN = String -- function name
+type VN = String -- variable name
 
-data Type   = CBV | CBN | Lazy
+data Type = CBV | CBN | Lazy
     deriving Eq
-type Formal = (String, Type)
-
+type Formal = (VN, Type) -- variable with strictness annotation
+data FDef = Fun FN [Formal] Expr
 type Program = [FDef]
-data FDef    = Fun String [(String,Type)] Expr
 
+--  case e of (patt -> expr)+
 type CaseID = Integer
-type CPos   = Int
--- data Tag = CONS | NIL
+type CPos = Int
+
 type Tag = String
+type Scrutinee = Expr
 data Expr =
-    TailCall String [Expr]    -- used for tco
-  | Call String [Expr] 
-  | EVar String
+    TailCall FN [Expr]    -- used for tco
+  | Call FN [Expr] 
+  | EVar VN
   | EInt Integer
   | ConstrF Tag [Expr]
-  | CaseF CaseID Expr [(Expr, Expr)]
-  | CProj CaseID CPos         -- bound variables from case
+  | CaseF CaseID Scrutinee [(Expr, Expr)]
+  | CProj CaseID CPos     -- bound variables from case
   | EUnPlus Expr
   | EUnMinus Expr
   | EAdd Expr Expr
@@ -56,26 +50,7 @@ data Expr =
   | Eif Expr Expr Expr
     deriving Eq
 
--- Runtime data structures
-type FN = String -- function name
-type StackFrame = (FN, [StackFrameArg])
-data StackFrameArg = StrictArg { val :: Value }
-                   | ByNameArg { expr :: Expr }
-                   | LazyArg   { expr :: Expr, isEvaluated :: Bool, cachedVal :: Maybe Value }
-    deriving Show
-
-type FunctionsMap = Map.Map String ([Formal], Expr)
-
--- cactus stack = stack + heap
-type Context = (StackFrame, [(CaseID, Susp)])
-type CallStack = [Context]
-
-type CN = String
-data Susp = Susp (CN, [Expr]) CallStack  -- Constructor carry the environment so far
-    deriving Show
-
 -- Symbol table with name scopes
-type VN = String    -- variable name
 type Scopes = Map FN [(CaseID, [(VN, Expr)])]
 
 
