@@ -36,17 +36,17 @@ binaryOp ch fun = Infix $ reservedOp ch $> fun
 unaryOp ch fun = Prefix $ reservedOp ch $> fun
 opAssoc = [
             [
-              unaryOp "+" EUnPlus,
-              unaryOp "-" EUnMinus
+              unaryOp "+" (UnaryOp EUnPlus),
+              unaryOp "-" (UnaryOp EUnMinus)
             ],
             [
-              binaryOp "*" EMul AssocLeft,
-              binaryOp "/" EDiv AssocLeft,
-              binaryOp "%" EMod AssocLeft
+              binaryOp "*" (BinaryOp EMul) AssocLeft,
+              binaryOp "/" (BinaryOp EDiv) AssocLeft,
+              binaryOp "%" (BinaryOp EMod) AssocLeft
             ],
             [
-              binaryOp "+" EAdd AssocLeft,
-              binaryOp "-" ESub AssocLeft
+              binaryOp "+" (BinaryOp EAdd) AssocLeft,
+              binaryOp "-" (BinaryOp ESub) AssocLeft
             ]
           ]
 opExpr = buildExpressionParser opAssoc term 
@@ -82,7 +82,7 @@ functionDef = reserved "fun" *> do
 constructor = do 
   reserved "Cons" 
   hd <- expression
-  tl <- expression -- constructor <|> nilConstr <|> parens constructor <|> parens nilConstr
+  tl <- expression 
   case tl of
     ConstrF "Nil" []  -> return $ ConstrF "Cons" [hd] 
     _           -> return $ ConstrF "Cons" (hd : [tl])
@@ -162,32 +162,13 @@ correctCaseE e = do
                     (snds', n'') = correctCaseEs snds [] n'
                     exprs' = zip fsts snds'
                 in  (CaseF n e'' exprs', n'')
-              EAdd el er  -> 
-                let (el', n')  = runState (correctCaseE el) n
-                    (er', n'') = runState (correctCaseE er) n'
-                in  (EAdd el' er', n'')
-              ESub el er  -> 
-                let (el', n')  = runState (correctCaseE el) n
-                    (er', n'') = runState (correctCaseE er) n'
-                in  (ESub el' er', n'')
-              EMul el er  -> 
-                let (el', n')  = runState (correctCaseE el) n
-                    (er', n'') = runState (correctCaseE er) n'
-                in  (EMul el' er', n'')
-              EDiv el er  -> 
-                let (el', n')  = runState (correctCaseE el) n
-                    (er', n'') = runState (correctCaseE er) n'
-                in  (EDiv el' er', n'')
-              EMod el er  -> 
-                let (el', n')  = runState (correctCaseE el) n
-                    (er', n'') = runState (correctCaseE er) n'
-                in  (EMod el' er', n'')
-              EUnPlus el  -> 
+              BinaryOp arithmOp el er ->
+                  let (el', n')  = runState (correctCaseE el) n
+                      (er', n'') = runState (correctCaseE er) n'
+                  in  (BinaryOp arithmOp el' er', n'')  
+              UnaryOp unaryArithm el ->
                 let (el', n'')  = runState (correctCaseE el) n
-                in  (EUnPlus el', n'')
-              EUnMinus el -> 
-                let (el', n'')  = runState (correctCaseE el) n
-                in  (EUnMinus el', n'')
+                in  (UnaryOp unaryArithm el', n'')
               Eif c el er -> 
                 let (el', n')  = runState (correctCaseE el) n
                     (er', n'') = runState (correctCaseE er) n'
@@ -227,13 +208,8 @@ scopingP (fdef : fdefs) = scopingF fdef : scopingP fdefs
     scopingE scopes expr =
       case expr of
         EInt n -> EInt n
-        EUnPlus e  -> EUnPlus $ scopingE scopes e
-        EUnMinus e -> EUnMinus $ scopingE scopes e
-        EAdd el er -> EAdd (scopingE scopes el) (scopingE scopes er)
-        ESub el er -> ESub (scopingE scopes el) (scopingE scopes er)
-        EMul el er -> EMul (scopingE scopes el) (scopingE scopes er)
-        EDiv el er -> EDiv (scopingE scopes el) (scopingE scopes er)
-        EMod el er -> EMod (scopingE scopes el) (scopingE scopes er)
+        UnaryOp unaryArithm e -> UnaryOp unaryArithm $ scopingE scopes e
+        BinaryOp binArithm el er -> BinaryOp binArithm (scopingE scopes el) (scopingE scopes er)
         Eif c thenE elseE -> Eif (scopingE scopes c) (scopingE scopes thenE) (scopingE scopes elseE)
         ConstrF tag exprs -> ConstrF tag (L.map (scopingE scopes) exprs)
         Call fn actuals -> Call fn (L.map (scopingE scopes) actuals)

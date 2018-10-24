@@ -30,18 +30,10 @@ searchFS fsCaller actual =
                             Nothing -> error "Variable must be in formals"
                             Just _  -> False
         EInt n       -> True
-        EUnPlus e    -> searchFS fsCaller e
-        EUnMinus e   -> searchFS fsCaller e
-        EAdd e1 e2   -> searchFS fsCaller e1 && 
-                        searchFS fsCaller e2
-        ESub e1 e2   -> searchFS fsCaller e1 && 
-                        searchFS fsCaller e2
-        EMul e1 e2   -> searchFS fsCaller e1 && 
-                        searchFS fsCaller e2
-        EDiv e1 e2   -> searchFS fsCaller e1 && 
-                        searchFS fsCaller e2
-        EMod e1 e2   -> searchFS fsCaller e1 && 
-                        searchFS fsCaller e2
+        UnaryOp unaryArithm e -> searchFS fsCaller e
+        BinaryOp binAr e1 e2 ->
+            searchFS fsCaller e1 && 
+            searchFS fsCaller e2 
         Eif c e1 e2  -> searchFS fsCaller e1 && 
                         searchFS fsCaller c && 
                         searchFS fsCaller e2

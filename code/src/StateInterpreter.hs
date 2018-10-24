@@ -40,47 +40,37 @@ run ast =
             Just (actuals, expr) -> let (v, s) = runState (eval expr functions) ([(("main", []),[])], 1)
                                     in  (v, fst s, snd s)
 
-eval :: Expr                       -- expression to be evaluated
-    ->  FunctionsMap               -- dictionary (K: function name, V: (formals, body))
+eval :: Expr                        -- expression to be evaluated
+    ->  FunctionsMap                -- dictionary (K: function name, V: (formals, body))
     ->  State 
               (CallStack, NRFrames) -- State: execution stack, number of stackframes allocated 
-              Value                -- Value: evaluation result
--- eval e funs | trace ("expr = " ++ show e ) False = undefined
+              Value                 -- Value: evaluation result
 eval e funs = do
   (stack, nFrames) <- get
-  -- trace ("stack = " ++ show stack) $
   trace ("expr = " ++ show e ++ "\nstack = " ++ show stack) $
-  -- trace "" $
     case e of
       EInt n -> 
         return (VI n)
-      EUnPlus e -> 
-        eval e funs
-      EUnMinus e -> do
+      UnaryOp unaryArithm e ->  do
         VI v <- eval e funs
-        return $ VI (-v)
-      EAdd l r -> do
+        case unaryArithm of 
+          EUnPlus -> 
+            return $ VI v
+          EUnMinus ->
+            return $ VI (-v)
+      BinaryOp binArithm l r -> do
         VI vl <- eval l funs
         VI vr <- eval r funs
-        return $ VI (vl + vr)
-      ESub l r -> do
-        VI vl <- eval l funs
-        VI vr <- eval r funs
-        return $ VI (vl - vr)
-      EMul l r -> do
-        VI vl <- eval l funs
-        VI vr <- eval r funs
-        return $ VI (vl * vr)
-      EDiv l r -> do
-        VI vl <- eval l funs
-        VI vr <- eval r funs
-        if vr == 0  then error "Division by zero"
-                    else return $ VI (vl `div` vr)
-      EMod l r -> do
-        VI vl <- eval l funs
-        VI vr <- eval r funs
-        if vr == 0  then error "Modulo zero"
-                    else return $ VI (vl `mod` vr)
+        case binArithm of
+          EAdd -> return $ VI (vl + vr)
+          ESub -> return $ VI (vl - vr)
+          EMul -> return $ VI (vl * vr)
+          EDiv ->
+            if vr == 0  then error "Division by zero"
+                        else return $ VI (vl `div` vr)
+          EMod ->
+            if vr == 0  then error "Modulo zero"
+                        else return $ VI (vl `mod` vr)
       Eif c l r -> do
         VI vc <- eval c funs
         if vc /= 0  then eval l funs
@@ -124,11 +114,13 @@ eval e funs = do
         put (newSt, stNum' + 1)
         eval funBody funs
       -------------------------------------------------
+      --------------DATA DECONSTRUCTION----------------
       -- Assume: 
       --  a. cases = [Cons x y, Nil] or [Nil, Cons x y]
       --  b. also pattern is exhaustive
       -------------------------------------------------
       -- Note: case forces evaluation of data 
+      -------------------------------------------------
       CaseF cid e cases -> do
         curST <- get 
         let (evalE, st@((ar, susps) : st', n)) = runState (eval e funs) curST
@@ -160,7 +152,10 @@ eval e funs = do
               case L.lookup cid susps of 
                 Nothing -> error $ "CProj - not in susps, susps = " ++ show susps 
                 Just (Susp (cn, el) stSusp) -> (cn, el, stSusp)
-            nextE = if cpos >= length el then ConstrF "Nil" [] else el !! cpos
+            len = length el
+            nextE = 
+              if cpos >= len then ConstrF "Nil" [] 
+              else el !! cpos
             (val, (stSusp', n')) = runState (eval nextE funs) (stSusp, 0)
             el' = 
               case val of

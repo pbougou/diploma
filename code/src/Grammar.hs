@@ -6,6 +6,8 @@ module Grammar (
     Type(..),
     Scopes(..),
     Pattern(..),
+    ArithmOp(..),
+    UnaryArithm(..),
     CaseID, VN, FN, CN, CPos, Tag, Scrutinee, Branch
   ) where
 
@@ -38,6 +40,11 @@ type Branch = (Pattern, Expr)
 data Pattern = CPat { tag :: CN, vars :: [VN] }
              | IPat { pattVal :: Integer }
     deriving Eq
+
+data ArithmOp = EAdd | ESub | EMul | EDiv | EMod
+    deriving Eq
+data UnaryArithm = EUnMinus | EUnPlus
+    deriving Eq
 data Expr =
     TailCall FN [Expr]    -- used for tco
   | Call FN [Expr] 
@@ -46,13 +53,8 @@ data Expr =
   | ConstrF Tag [Expr]
   | CaseF CaseID Scrutinee [Branch]
   | CProj CaseID CPos     -- bound variables from case
-  | EUnPlus Expr
-  | EUnMinus Expr
-  | EAdd Expr Expr
-  | ESub Expr Expr
-  | EMul Expr Expr
-  | EDiv Expr Expr
-  | EMod Expr Expr
+  | UnaryOp UnaryArithm Expr
+  | BinaryOp ArithmOp Expr Expr
   | Eif Expr Expr Expr
     deriving Eq
 
@@ -76,17 +78,19 @@ instance Show Expr where
             (" else " ++) . shows z
     showsPrec p (EVar x)   = (x ++)
     showsPrec p (EInt x)   = (show x ++)
-    showsPrec p (EUnMinus x) = (" - " ++) . showsPrec 1 x
-    showsPrec p (EUnPlus x) = (" + " ++) . showsPrec 1 x
-    showsPrec p (EAdd x y) =
-        showParen (p > 0) $
-            showsPrec 2 x . (" + " ++) . showsPrec 2 y
-    showsPrec p (ESub x y) =
-        showParen (p > 0) $
-            showsPrec 2 x . (" - " ++) . showsPrec 2 y
-    showsPrec p (EMul x y) = showsPrec 1 x . (" * " ++) . showsPrec 1 y
-    showsPrec p (EDiv x y) = showsPrec 1 x . (" / " ++) . showsPrec 1 y
-    showsPrec p (EMod x y) = showsPrec 1 x . (" % " ++) . showsPrec 1 y
+    showsPrec p (UnaryOp unArithm x) = 
+        case unArithm of
+            EUnMinus -> (" - " ++) . showsPrec 1 x
+            EUnPlus -> (" + " ++) . showsPrec 1 x
+    showsPrec p (BinaryOp binArithm x y) = 
+        case binArithm of
+            EAdd -> showParen (p > 0) $
+                        showsPrec 2 x . (" + " ++) . showsPrec 2 y
+            ESub -> showParen (p > 0) $
+                        showsPrec 2 x . (" - " ++) . showsPrec 2 y
+            EMul -> showsPrec 1 x . (" * " ++) . showsPrec 1 y 
+            EDiv -> showsPrec 1 x . (" / " ++) . showsPrec 1 y
+            EMod -> showsPrec 1 x . (" % " ++) . showsPrec 1 y
     showsPrec p (ConstrF tag exps) = 
         let ending = if length exps < 2 then " Nil" else ""
         in  showParen (p > 0) $
