@@ -1,0 +1,13 @@
+f x =
+  case g x of
+    Cons a _ -> h a
+
+-------[x : ... | Case#0: Cons ["g_x", "Nil"]]-------
+[a: <x>]
+
+g g_x = Cons g_x Nil
+h a = a + 1
+
+Susp "Cons" ["g_x", "Nil"]
+
+escape analysis

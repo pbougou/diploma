@@ -1,0 +1,15 @@
+fun func l acc = 
+    case l of 
+        Cons h t -> 
+            (case t of 
+                Cons s t' -> (call func t (Cons (h + s) acc))
+                Nil -> Cons h acc)
+        Nil -> acc;
+
+fun main = call take 3 (call func (Cons 1 (Cons 2 (Cons 3 (Cons 4 Nil)))) Nil);
+
+fun take n l = 
+    case l of 
+        Nil -> -2
+        Cons a b -> 
+            if n then call take (n-1) b else a

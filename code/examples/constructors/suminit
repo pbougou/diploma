@@ -1,0 +1,6 @@
+fun suminit xs len acc = 
+    if len then (case xs of 
+                    Nil -> acc
+                    Cons x xss -> call suminit xss (len - 1) (acc + x))
+            else acc;
+fun main = call suminit (Cons 1 (Cons 2 (Cons 3 (Cons 4 Nil)))) 4 0

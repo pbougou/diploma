@@ -1,0 +1,12 @@
+fun main = call head2 (call take2 42 (call inf));
+fun take2 n l = 
+    if n then call take2_aux n l else Nil;
+fun take2_aux n_aux l_aux =
+    case l_aux of
+        Cons cons_0 cons_1 -> Cons cons_0 (call take2 (n_aux - 1) cons_1)
+        Nil -> Nil;
+fun head2 hl = 
+    case hl of
+        Cons cons_0 cons_1 -> cons_0
+        Nil -> -1;
+fun inf = Cons 42 (call inf)

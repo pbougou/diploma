@@ -165,7 +165,7 @@ eval e funs = do
             el' = 
               case val of
                 VI v -> replaceNth cpos (EInt v) el
-                VC c -> error $ "Constructor " ++ show c
+                VC c -> el -- error $ "Constructor " ++ show c
             newSusp = Susp (cn, el') stSusp'
             newSusps = updateL cid newSusp susps 
         put ((ar, newSusps) : tail st, n + n') 
