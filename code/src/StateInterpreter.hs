@@ -43,7 +43,7 @@ run ast =
 eval :: Expr                       -- expression to be evaluated
     ->  FunctionsMap               -- dictionary (K: function name, V: (formals, body))
     ->  State 
-              (CallStack, Integer) -- State: execution stack, number of stackframes allocated 
+              (CallStack, NRFrames) -- State: execution stack, number of stackframes allocated 
               Value                -- Value: evaluation result
 -- eval e funs | trace ("expr = " ++ show e ) False = undefined
 eval e funs = do
@@ -53,79 +53,38 @@ eval e funs = do
   -- trace "" $
     case e of
       EInt n -> 
-        trace "EInt" $
-          return (VI n)
+        return (VI n)
       EUnPlus e -> 
-        trace "EUnPlus" $
-          eval e funs
+        eval e funs
       EUnMinus e -> do
         VI v <- eval e funs
-        trace "EUnMinus" $
-          return $ VI (-v)
+        return $ VI (-v)
       EAdd l r -> do
         VI vl <- eval l funs
         VI vr <- eval r funs
-        trace "EAdd" $
-          return $ VI (vl + vr)
+        return $ VI (vl + vr)
       ESub l r -> do
         VI vl <- eval l funs
         VI vr <- eval r funs
-        trace "ESub" $        
-          return $ VI (vl - vr)
+        return $ VI (vl - vr)
       EMul l r -> do
         VI vl <- eval l funs
         VI vr <- eval r funs
-        trace "EMul" $
-          return $ VI (vl * vr)
+        return $ VI (vl * vr)
       EDiv l r -> do
         VI vl <- eval l funs
         VI vr <- eval r funs
-        trace "EDiv" $
-          if vr == 0 then error "Division by zero"
-                     else return $ VI (vl `div` vr)
+        if vr == 0  then error "Division by zero"
+                    else return $ VI (vl `div` vr)
       EMod l r -> do
         VI vl <- eval l funs
         VI vr <- eval r funs
-        trace "EMod" $
-          if vr == 0  then error "Modulo zero"
-                      else return $ VI (vl `mod` vr)
+        if vr == 0  then error "Modulo zero"
+                    else return $ VI (vl `mod` vr)
       Eif c l r -> do
         VI vc <- eval c funs
-        trace "EIf" $
-          if vc /= 0 then eval l funs
-                     else eval r funs
-      -------------------------------------------------
-      -- Assume: 
-      --  a. cases = [Cons x y, Nil] or [Nil, Cons x y]
-      --  b. also pattern is exhaustive
-      -------------------------------------------------
-      -- Note: case forces evaluation of data 
-      CaseF cid e cases -> do
-        curST <- get 
-        let (evalE, st@((ar, susps) : st', n)) = runState (eval e funs) curST
-        put st
-        let 
-          -- nextST: next stack state
-          -- nextE:  expression to be evaluated next
-          (nextE, nextST) = 
-            case evalE of
-          -- 1. evalE is an expression 
-              VI i -> let nextE = fromMaybe (error "Case patterns must be integers") (L.lookup (EInt i) cases)
-                      in  (nextE, st)
-          -- 2. evalE is a constructor 
-              VC c -> let Susp (cn, _) _ = c
-                          nilIX = fromMaybe (error "Non-exhaustive patterns: Nil does not exist") (L.elemIndex (ConstrF "Nil" []) (L.map fst cases))
-                          consIX = 1 - nilIX
-                          ne = 
-                            if nilIX > length cases || consIX > length cases then error $ "Index out of bounds: Index = " ++ show nilIX
-                            else case cn of
-                                  "Nil" -> snd (cases !! nilIX)
-                                  "Cons" -> snd (cases !! consIX)   -- Cons bound-1 bound-2
-                          st'' = ((ar, (cid, c) : susps) : st', n) 
-                      in  (ne, st'')
-        put nextST
-        trace "Case" $
-          eval nextE funs
+        if vc /= 0  then eval l funs
+                    else eval r funs
       EVar var -> do
         -- Case variable is in formal parameteres of a function
           (st'', n) <- get
@@ -145,31 +104,55 @@ eval e funs = do
                           in  (v, Just s)
                         LazyArg e b val -> 
                             if b then (fromJust val, Nothing)
-                                 else   let (v', (newSt, n')) = runState (eval e funs) (tail st'', n)
+                                  else  let (v', (newSt, n')) = runState (eval e funs) (tail st'', n)
                                             stArgs' = replaceNth i (LazyArg e True (Just v')) stArgs
                                         in  (v', Just (((funName, stArgs'), susps) : newSt, n'))
           case s of
               Just s' -> put s'
               Nothing -> modify id
-          trace "EVar" $
-            return v
+          return v
       Call funName actuals -> do
-            st@(stack@((ar, susps) : _), n) <- get
-            let (formals, funBody) = 
-                  case Map.lookup funName funs of
-                    Nothing     -> error $ "Call function: " ++ funName ++ " does not exist"
-                    Just (f, e) -> (f, e)
-                (stackFrame, (stack', stNum')) = makeStackFrame actuals formals funs ([], st)
-                newAR = (funName, stackFrame)
-                -- Add frame to stack
-                newSt = (newAR, []) : stack'
-            put (newSt, stNum' + 1)
-            trace "Call" $
-              eval funBody funs
+        st@(stack@((ar, susps) : _), n) <- get
+        let (formals, funBody) = 
+              case Map.lookup funName funs of
+                Nothing     -> error $ "Call function: " ++ funName ++ " does not exist"
+                Just (f, e) -> (f, e)
+            (stackFrame, (stack', stNum')) = makeStackFrame actuals formals funs ([], st)
+            newAR = (funName, stackFrame)
+            -- Add frame to stack
+            newSt = (newAR, []) : stack'
+        put (newSt, stNum' + 1)
+        eval funBody funs
+      -------------------------------------------------
+      -- Assume: 
+      --  a. cases = [Cons x y, Nil] or [Nil, Cons x y]
+      --  b. also pattern is exhaustive
+      -------------------------------------------------
+      -- Note: case forces evaluation of data 
+      CaseF cid e cases -> do
+        curST <- get 
+        let (evalE, st@((ar, susps) : st', n)) = runState (eval e funs) curST
+        put st
+        let 
+          -- nextST: next stack state
+          -- nextE:  expression to be evaluated next
+          (nextE, nextST) = 
+            case evalE of
+          -- 1. evalE is an expression 
+              VI i -> let nextE = fromMaybe (error "Case: Patterns must be integers") (L.lookup (IPat i) cases)
+                      in  (nextE, st)
+          -- 2. evalE is a constructor 
+              VC c -> let Susp (cn, _) _ = c
+                          patterns = L.map fst cases
+                          pattIndex = indexOfPattern cn patterns 0
+                          (_, ne) = cases !! pattIndex
+                          st'' = ((ar, (cid, c) : susps) : st', n) 
+                      in  (ne, st'')
+        put nextST
+        eval nextE funs
       ConstrF tag exprs -> do 
         (st, _) <- get 
-        trace "ConstrF" $
-          return $ VC (Susp (tag, exprs) st)
+        return $ VC (Susp (tag, exprs) st)
       CProj cid cpos -> do 
         (st, n) <- get
         let (ar, susps) = head st
@@ -189,8 +172,6 @@ eval e funs = do
         stack <- get
         trace ("CProj: val = " ++ show val ++ ", \nsusp = " ++ show newSusp ++ ",\nsusps = " ++ show susps) $ 
           return val 
-
-          
 
 
 {-
@@ -357,3 +338,12 @@ updateL _ _ [] = []
 updateL key val ((k, v) : xs) 
   | key == k  = (k, val) : xs
   | otherwise = (k, v) : updateL key val xs 
+
+indexOfPattern cn patterns i = 
+  case patterns of
+    [] -> error $ "Patterns are assumed exhaustive: " ++ cn ++ " not in patterns"
+    patt : patts -> 
+      case patt of
+        CPat cn' vars -> 
+          if cn == cn' then i else indexOfPattern cn patts (i + 1)
+        _ -> error "Searching for integer patterns in constructor case"

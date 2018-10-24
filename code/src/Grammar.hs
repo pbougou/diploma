@@ -5,7 +5,8 @@ module Grammar (
     Formal,
     Type(..),
     Scopes(..),
-    CaseID, VN, FN, CN, CPos, Tag, Scrutinee
+    Pattern(..),
+    CaseID, VN, FN, CN, CPos, Tag, Scrutinee, Branch
   ) where
 
 import Data.List(map, elemIndex, lookup, foldr)
@@ -22,23 +23,28 @@ type VN = String -- variable name
 
 data Type = CBV | CBN | Lazy
     deriving Eq
-type Formal = (VN, Type) -- variable with strictness annotation
-data FDef = Fun FN [Formal] Expr
+type Formal = (VN, Type) -- formal variable with strictness annotation
+type Funbody = Expr
+data FDef = Fun { function :: FN, formals :: [Formal], body :: Funbody }
 type Program = [FDef]
 
---  case e of (patt -> expr)+
+--  case e of { (patt1 -> expr1); (patt2 -> expr2) }
 type CaseID = Integer
 type CPos = Int
 
 type Tag = String
 type Scrutinee = Expr
+type Branch = (Pattern, Expr)
+data Pattern = CPat { tag :: CN, vars :: [VN] }
+             | IPat { pattVal :: Integer }
+    deriving Eq
 data Expr =
     TailCall FN [Expr]    -- used for tco
   | Call FN [Expr] 
   | EVar VN
   | EInt Integer
   | ConstrF Tag [Expr]
-  | CaseF CaseID Scrutinee [(Expr, Expr)]
+  | CaseF CaseID Scrutinee [Branch]
   | CProj CaseID CPos     -- bound variables from case
   | EUnPlus Expr
   | EUnMinus Expr
@@ -89,8 +95,7 @@ instance Show Expr where
         showParen (p > 0) $
             ("case <" ++) . (show caseID  ++) . ("> " ++) . shows e . (" of " ++) . ("{ " ++) . showLines lines . (" }" ++)
             where   showLines [] = ("" ++)
-                    showLines [line] =  shows (fst line) . 
-                                        (" -> " ++) . 
+                    showLines [line] =  shows (fst line) .  
                                         showsPrec 1 (snd line)
                     showLines (line : lines) =  shows (fst line) . 
                                                 (" -> " ++) . 
@@ -117,3 +122,13 @@ instance Show Type where
                         CBV  -> ("! " ++)
                         CBN  -> ("# " ++)
                         Lazy -> ("" ++)
+
+instance Show Pattern where 
+    showsPrec p patt = 
+        case patt of
+            IPat val -> (show val ++)
+            CPat cn vars -> 
+                (cn ++) 
+                . (" " ++) 
+                . (show vars ++) 
+                . (" -> " ++)

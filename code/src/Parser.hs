@@ -97,11 +97,28 @@ caseF = do
   lines <- many line
   return $ CaseF 42 e lines
 
+consPattern = do
+  reserved "Cons"
+  EVar a <- evar
+  EVar b <- evar
+  return CPat { tag = "Cons", vars = [a, b] }
+
+nilPattern = do
+  reserved "Nil"
+  return CPat { tag = "Nil", vars = [] }
+
+intPattern = do
+  patt <- eint
+  let v = case patt of
+            EInt v' -> v'
+            _ -> error "Parser: Pattern should be an integer"
+  return IPat { pattVal = v }
+
 line = do
-  cons <- constructor <|> nilConstr <|> eint
+  patt <- consPattern <|> nilPattern <|> intPattern -- pattern 
   reserved "->"
   e <- expression
-  return (cons, e)
+  return (patt, e)
 
 sequenceOfFns = sepBy1 functionDef semi
 
@@ -118,7 +135,7 @@ expression =
   <|> ifExpr
   <|> opExpr
   <|> term
- 
+
 
 program = sequenceOfFns
 
@@ -242,17 +259,16 @@ scopingP (fdef : fdefs) = scopingF fdef : scopingP fdefs
           --  ==> cases = [(patt1, e1), (patt2, e2)], 
           --          if e is an expression that returns a Constructor
             let cases' =  case cases of
-                            [case1@(patt1, e1), case2@(patt2, e2)] ->
-                              case [patt1, patt2] of                                
-                                [ConstrF "Nil" [], ConstrF "Cons" [EVar x, EVar y]] ->
-                                  let scope' = (id, [x, y])
-                                  in  [(patt1, scopingE scopes e1), (patt2, scopingE (scope' : scopes) e2)]
-                                [ConstrF "Cons" [EVar x, EVar y], ConstrF "Nil" []] ->
-                                  let scope' = (id, [x, y])
-                                  in  [(patt1, scopingE (scope' : scopes) e1), (patt2, scopingE scopes e2)]
-                                _ -> cases
-                                  -- error "Pattern matching is complex or non-exhaustive"
-                            _ -> cases
+                            [(patt1@(CPat cn1 vars1), e1), (patt2@(CPat cn2 vars2), e2)] ->
+                                  case [(cn1, vars1), (cn2, vars2)] of 
+                                    [("Nil", []), ("Cons", [x, y])] ->
+                                      let scope' = (id, [x, y])
+                                      in  [(patt1, scopingE scopes e1), (patt2, scopingE (scope' : scopes) e2)]
+                                    [("Cons", [x, y]), ("Nil", [])] ->
+                                      let scope' = (id, [x, y])
+                                      in  [(patt1, scopingE (scope' : scopes) e1), (patt2, scopingE scopes e2)]
+                                    _ -> error "Pattern Matching is not exhaustive or mismatched patterns"
+                            _ -> cases  
             in  CaseF id (scopingE scopes e) cases'
               -- CaseF id e (L.map (fst &&& (scopingE scopes . snd)) cases) 
         CProj _ _ -> error "CProj: This should be unreached"

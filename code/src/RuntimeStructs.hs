@@ -5,7 +5,8 @@ module RuntimeStructs (
     Value(..),
     Context(..),
     Susp(..),
-    FunctionsMap(..)
+    FunctionsMap(..),
+    NRFrames
 ) where
 import Grammar 
 import Data.List(map, elemIndex, lookup, foldr)
@@ -35,4 +36,17 @@ type Context = (StackFrame, [(CaseID, Susp)])
 type CallStack = [Context]
 
 data Susp = Susp (CN, [Expr]) CallStack  -- Constructor carry the environment so far
-    deriving Show
+
+-- Runtime statistics
+type NRFrames = Integer
+
+instance Show Susp where
+    showsPrec p (Susp (cn, exprs) st) = 
+        ("[ suspension of " ++) 
+        . (show cn ++) 
+        . (": " ++) 
+        . (show exprs ++) 
+        . (" | " ++) 
+        . (show st ++)
+        . (" | " ++)
+        . (" ] " ++)
