@@ -25,11 +25,11 @@ main = do
     putStrLn "================================="
     putStrLn "=====Abstract Syntax Tree========"
     putStrLn "================================="
-    print p''
-    putStrLn "================================="
-    putStrLn "===========Interpeter============"
-    putStrLn "================================="
-    putStrLn $ "Result is: " ++ show result ++ ", StackFrames used: " ++ show framesNum 
+    print p
+    -- putStrLn "================================="
+    -- putStrLn "===========Interpeter============"
+    -- putStrLn "================================="
+    -- putStrLn $ "Result is: " ++ show result ++ ", StackFrames used: " ++ show framesNum 
 
 {-
   print ap  -- TC annotated AST

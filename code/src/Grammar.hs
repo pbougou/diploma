@@ -45,12 +45,31 @@ data ArithmOp = EAdd | ESub | EMul | EDiv | EMod
     deriving Eq
 data UnaryArithm = EUnMinus | EUnPlus
     deriving Eq
+type Actual = Expr
+-- Assumming local variables have different names and different from the formal parameter of the function
+-- Binds a local variable(key: unique variable name) with a FΟ λambda (value: lambda)
+--      * All let expressions contain bindings
+--      * Bindings: 
+--          1. LHS: variable name, unique names in a program
+--          2. RHS: expressions
+--      * The use of LETs: {
+--          A. For two cases of expressions:
+--              1. function applications
+--              2. constructor applications
+--          B. Explanation: 
+--              * The two expressions above should contain only variable names.
+--              * Their actual expression are RHS of let bindings.
+--          C. LET is a builder of heap objects
+--          D. Local variables: ρ(k: name -> v: Heap address), ρ: local environment
+--        }
+type Bindings = Map.Map VN Expr
 data Expr =
     TailCall FN [Expr]    -- used for tco
-  | Call FN [Expr] 
+  | Call FN [Actual] 
   | EVar VN
   | EInt Integer
   | ConstrF Tag [Expr]
+  | Let Bindings Expr     -- local definitions
   | CaseF CaseID Scrutinee [Branch]
   | CProj CaseID CPos     -- bound variables from case
   | UnaryOp UnaryArithm Expr
@@ -102,11 +121,13 @@ instance Show Expr where
                     showLines [line] =  shows (fst line) .  
                                         showsPrec 1 (snd line)
                     showLines (line : lines) =  shows (fst line) . 
-                                                (" -> " ++) . 
+                                                -- (" -> " ++) . 
                                                 shows (snd line) . 
                                                 ("; " ++) . 
                                                 showLines lines
     showsPrec p (CProj cid cpos) = showParen True (("CProj " ++ show cid ++ " " ++ show cpos) ++)
+    showsPrec p (Let bindings e) =
+        ("let { " ++ ) . (showBindings (assocs bindings) ++) . ("in " ++) . (show e ++)
 
 instance Show FDef where
     showList [] = ("" ++)
@@ -131,8 +152,21 @@ instance Show Pattern where
     showsPrec p patt = 
         case patt of
             IPat val -> (show val ++)
-            CPat cn vars -> 
-                (cn ++) 
-                . (" " ++) 
-                . (show vars ++) 
-                . (" -> " ++)
+            CPat cn vars ->
+                case cn of 
+                    "Nil" -> ("Nil -> " ++)
+                    _ ->
+                        (cn ++) 
+                        . (" " ++) 
+                        . (show vars ++) 
+                        . (" -> " ++)
+
+showBindings :: [(VN, Expr)] -> String
+showBindings [] = "} "
+showBindings (bind : binds) =
+    let (vn, expr) = bind
+    in  vn ++ " = " ++ show expr ++ "; " ++ showBindings binds
+
+showVars :: [VN] -> String
+showVars [var] = var
+showVars (var : vars) = var ++ " " ++ showVars vars

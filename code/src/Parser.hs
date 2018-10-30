@@ -15,6 +15,9 @@ import Lexer
 import Data.List(map, elemIndex, lookup, foldr)
 import qualified Data.List as L
 
+import Data.Map.Strict
+import qualified Data.Map.Strict as Map
+
 import Text.Parsec.Expr
 import Text.Parsec
 import Text.Parsec.String
@@ -73,11 +76,25 @@ functionDef = reserved "fun" *> do
                             else fail "function name starts with a letter"
   where
     getFormals = 
-      map (
+      L.map (
         \x -> (case head x of
                   '#'  -> (tail x, CBN)
                   '!'  -> (tail x, CBV)
                   _    -> (x, Lazy)))
+
+letBlock = do
+  reserved "let"
+  bindings <- many binding
+  reserved "in"
+  e <- expression
+  return $ Let (Map.fromList bindings) e
+
+binding = do
+  vn <- identifier
+  reservedOp "="
+  e <- expression
+  return (vn, e)
+
 
 constructor = do 
   reserved "Cons" 
@@ -131,6 +148,7 @@ expression =
       callExpr
   <|> constructor
   <|> nilConstr
+  <|> letBlock
   <|> caseF
   <|> ifExpr
   <|> opExpr
@@ -161,7 +179,7 @@ correctCaseE e = do
                     snds = L.map snd exprs
                     (snds', n'') = correctCaseEs snds [] n'
                     exprs' = zip fsts snds'
-                in  (CaseF n e'' exprs', n'')
+                in  (CaseF n e'' exprs', n'' + 1)
               BinaryOp arithmOp el er ->
                   let (el', n')  = runState (correctCaseE el) n
                       (er', n'') = runState (correctCaseE er) n'
@@ -190,7 +208,7 @@ correctCaseP (fdef : fdefs) n =
   let Fun x y e = fdef 
       (e', s')  = ST.runState (correctCaseE e) n
       fdef'     = Fun x y e'
-  in  fdef' : correctCaseP fdefs (n + 1)
+  in  fdef' : correctCaseP fdefs s'
 
 -- A variable might belong to:
 --    a. formals --> stack frame --> Eval: 

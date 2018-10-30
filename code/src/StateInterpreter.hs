@@ -47,7 +47,10 @@ eval :: Expr                        -- expression to be evaluated
               Value                 -- Value: evaluation result
 eval e funs = do
   (stack, nFrames) <- get
-  trace ("expr = " ++ show e ++ "\nstack = " ++ show stack) $
+  trace ( "\n****************************EXPRESSION******************************\n" ++ 
+          show e ++
+          "\n********************************STACK*******************************\n" ++ 
+          showStack stack) $
     case e of
       EInt n -> 
         return (VI n)
@@ -77,30 +80,30 @@ eval e funs = do
                     else eval r funs
       EVar var -> do
         -- Case variable is in formal parameteres of a function
-          (st'', n) <- get
-          let topFR@(ar, susps) = head st''
-              (funName, stArgs) = ar
-              i = case Map.lookup funName funs of
-                    Nothing -> error "No function definition found"
-                    Just (formals, _) -> 
-                      let justVars = Data.List.map fst formals
-                      in  fromMaybe (error $ "variable not in formals: Var = " ++ var) (elemIndex var justVars)
-              (v, s) = 
-                if i > length stArgs then error "i: out of bounds"
-                else  case stArgs !! i of
-                        StrictArg v   -> (v, Nothing)
-                        ByNameArg e   -> 
-                          let (v, s) = runState (eval e funs) (tail st'', n) 
-                          in  (v, Just s)
-                        LazyArg e b val -> 
-                            if b then (fromJust val, Nothing)
-                                  else  let (v', (newSt, n')) = runState (eval e funs) (tail st'', n)
-                                            stArgs' = replaceNth i (LazyArg e True (Just v')) stArgs
-                                        in  (v', Just (((funName, stArgs'), susps) : newSt, n'))
-          case s of
-              Just s' -> put s'
-              Nothing -> modify id
-          return v
+        (st'', n) <- get
+        let topFR@(ar, susps) = head st''
+            (funName, stArgs) = ar
+            i = case Map.lookup funName funs of
+                  Nothing -> error "No function definition found"
+                  Just (formals, _) -> 
+                    let justVars = Data.List.map fst formals
+                    in  fromMaybe (error $ "variable not in formals: Var = " ++ var) (elemIndex var justVars)
+            (v, s) = 
+              if i > length stArgs then error "i: out of bounds"
+              else  case stArgs !! i of
+                      StrictArg v   -> (v, Nothing)
+                      ByNameArg e   -> 
+                        let (v, s) = runState (eval e funs) ({- tail -} st'', n) 
+                        in  (v, Just s)
+                      LazyArg e b val -> 
+                          if b then (fromJust val, Nothing)
+                                else  let (v', (newSt, n')) = runState (eval e funs) (tail st'', n)
+                                          stArgs' = replaceNth i (LazyArg e True (Just v')) stArgs
+                                      in  (v', Just (((funName, stArgs'), susps) : newSt, n'))
+        case s of
+          Just s' -> put s'
+          Nothing -> modify id
+        return v
       Call funName actuals -> do
         st@(stack@((ar, susps) : _), n) <- get
         let (formals, funBody) = 
@@ -122,8 +125,8 @@ eval e funs = do
       -- Note: case forces evaluation of data 
       -------------------------------------------------
       CaseF cid e cases -> do
-        curST <- get 
-        let (evalE, st@((ar, susps) : st', n)) = runState (eval e funs) curST
+        curST@((ar, susps) : st', n) <- get 
+        let (evalE, st) = runState (eval e funs) curST
         put st
         let 
           -- nextST: next stack state

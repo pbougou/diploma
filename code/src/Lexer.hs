@@ -30,8 +30,8 @@ lexer =
     Token.commentLine = "--",
     Token.identStart = letter <|> char '#' <|> char '!',
     Token.identLetter = alphaNum <|> char '_' <|> char '\'',
-    Token.reservedNames = ["fun", "if", "then", "else", "call", "Cons", "Nil", "case", "of"],
-    Token.reservedOpNames = ["+", "-", "*", "/", "%", "->", "_"]
+    Token.reservedNames = ["fun", "if", "then", "else", "call", "Cons", "Nil", "case", "of", "let", "in"],
+    Token.reservedOpNames = ["+", "-", "*", "/", "%", "->", "_", "="]
   }
 
 identifier = Token.identifier lexer

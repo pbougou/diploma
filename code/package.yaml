@@ -9,13 +9,6 @@ copyright:           "2018 Panagiotis Bougoulias"
 extra-source-files:
 - README.md
 - ChangeLog.md
-# - package.yaml
-# - stack.yaml
-# - src/Grammar.hs
-# - src/Interpreter.hs
-# - src/Lexer.hs
-# - src/Parser.hs
-# - src/PPrint.hs
 
 # Metadata used when publishing your package
 # synopsis:            Short description of your package
@@ -32,8 +25,6 @@ dependencies:
 - parsec
 - mtl
 - lens
-# - Cabal-1.24.2.0
-# - base-4.9.1.0
 - cabal-helper
 - extra
 - haskell-src-exts
@@ -50,6 +41,8 @@ library:
   exposed-modules:
   - Grammar
   - RuntimeStructs
+  - Heap
+  - IntermediateTransform
   - AuxAnalysis
   - StateInterpreter
   - TailCalls
