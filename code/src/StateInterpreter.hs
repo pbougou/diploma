@@ -8,7 +8,9 @@ module StateInterpreter (
   -- makeStackFrame,
   replaceNth,
   updateL,
-  functionMap
+  functionMap,
+  interpret,
+  step
 ) where
 
 import Grammar as G
@@ -29,6 +31,178 @@ import qualified Data.Map.Strict as Map
 import Control.Monad.State
 
 import System.IO.Unsafe
+import Heap
+import IntermediateTransform
+
+-- -- Local environment : Map: [variables -> values]
+-- type Env = Map VN VMValue
+-- -- No # arguments for now
+-- data VMValue =  VInt Integer
+--               | VAddr Addr
+--   deriving Show
+-- type FValue = VMValue
+-- -------------------------------------------------
+-- -- 1. CAF: top-level function with no arguments
+-- -- 2. HFun: top-level function with arguments
+-- -- 3. HCons: constructor suspension
+-- -- 4. Thunk: function built by let(updatable)
+-- -------------------------------------------------
+-- data HNode = 
+--         CAF Code
+--     |   FunH [Formal] Code
+--     |   Thunk FreeVars Code [Formal] [FValue]
+--     |   Cons [VN] [VMValue]
+--   deriving Show
+-- type Stack = [AR]
+-- type AR = (FN, [VMValue])
+-- data VMSTate = VMSTate {
+--   globals :: Globals,
+--   heap :: Heap Block,
+--   stack :: Stack,
+--   nrFrames :: NRFrames
+-- }
+dom :: [VN] -> Env -> [VMValue]
+dom [] env = []
+dom (v : vs) env = 
+  let Just val = Map.lookup v env
+  in  val : dom vs env
+
+
+interpret :: Program -> VMValue
+interpret ast = 
+  let (g, heapInit) = buildHeapGlobals ast
+      Just mainAddr = Map.lookup "main" g
+      CAF funbody = hLookup heapInit mainAddr
+      envInit = Map.empty
+      stackInit = [("main", [])]
+      initState = VMSTate { globals = g, heap = heapInit, stack = stackInit, nrFrames = 1 }
+      value = evalState (step funbody envInit) initState
+  in  value
+
+step :: Expr
+        -> Env
+        -> State VMSTate VMValue
+step expr env = do
+  state@(VMSTate g h s n) <- get
+  trace ( let (_, _, heap) = h in
+          "\n****************************EXPRESSION******************************\n" ++ 
+          show expr ++
+          "\n*************************** GLOBALS*********************************\n" ++
+          show (assocs g) ++
+          "\n****************************HEAP************************************\n" ++
+          show (assocs heap) ++
+          "\n****************************STACK***********************************\n" ++ 
+          show s ++
+          "\n****************************LOCAL_ENV*******************************\n" ++
+          show (assocs env)) $
+    case expr of
+      EInt n -> 
+        return (VInt n)
+      UnaryOp unaryArithm e ->  do
+        VInt v <- step e env
+        case unaryArithm of 
+          EUnPlus -> 
+            return $ VInt v
+          EUnMinus ->
+            return $ VInt (-v)
+      BinaryOp binArithm l r -> do
+        VInt vl <- step l env
+        VInt vr <- step r env
+        case binArithm of
+          EAdd -> return $ VInt (vl + vr)
+          ESub -> return $ VInt (vl - vr)
+          EMul -> return $ VInt (vl * vr)
+          EDiv ->
+            if vr == 0  then error "Division by zero"
+                        else return $ VInt (vl `div` vr)
+          EMod ->
+            if vr == 0  then error "Modulo zero"
+                        else return $ VInt (vl `mod` vr)
+      Eif c l r -> do
+        c' <- step c env
+        let vc = case c' of
+                    VInt v -> v
+                    VAddr addr -> error "IF: Good"
+        if vc /= 0  then step l env
+                    else step r env
+      Call funName actuals -> do
+        -- 1. build argument stack
+        -- 2. build new local environment
+        let Just funAddr = Map.lookup funName g
+            FunH formals funbody = hLookup h funAddr
+
+            -- Assuming partial application case does not exist
+            --  This means that len(actuals) = len(formals)
+            buildArgsEnv :: [Formal] 
+                            -> [Actual] 
+                            -> ([(VN, VMValue)], [VMValue]) 
+                            -> ([(VN, VMValue)], [VMValue])
+            buildArgsEnv [] [] (newEnv, newAR) = (newEnv, reverse newAR)
+            buildArgsEnv (f : fs) (a : as) (newEnv, newAR) =
+              let (vn, annoType) = f
+                  val = 
+                    case annoType of
+                      -- strict argument forces evaluation
+                      CBV -> evalState (step a env) state
+                      CBN -> error "ByNameArg is not implemented yet"
+                      -- lazy argument exists in local environmnet
+                      --    a let block should have already built it
+                      G.Lazy -> 
+                        -- lazy arguments are atoms
+                        --  atom ::= var | number
+                        case a of
+                          EInt n -> VInt n
+                          EVar v -> 
+                            fromMaybe (error $ "Local env: " ++ vn) (Map.lookup v env)
+                          _ -> evalState (step a env) state
+                  newEnv' = (vn, val) : newEnv
+                  newAR' = val : newAR
+              in  buildArgsEnv fs as (newEnv', newAR')
+            
+            (env', ar) = 
+              case actuals of
+                [] -> ([], []) 
+                _  -> buildArgsEnv formals actuals ([], [])
+            s' = (funName, ar) : s
+        put VMSTate { globals = g, heap = h, stack = s', nrFrames = n }
+        step funbody (fromList env')
+      EVar var ->
+        -- Case env[var] of
+        --    * VInt i -> return i
+        --    * VAddr addr -> 
+        --        ** this happens because variable was bound by a let case
+        --        ** force evaluation of thunk in address env[var]
+        --        ** env[var] = eval(heap(env[var])) 
+        
+        return (case Map.lookup var env of
+                  Just var' ->
+                    case var' of
+                      VInt i -> VInt i
+                      VAddr addr -> 
+                        let Thunk varsf e fvalues = hLookup h addr
+                            tempEnv = fromList (zip varsf fvalues)
+                            evaluated = evalState (step e tempEnv) state
+                            env' = Map.insert var evaluated
+                        in  evaluated
+                  Nothing -> error ("Unbound variable: " ++ var))
+      
+      Let bindings expr -> do
+        let 
+            extendHeap :: Bindings -> (Env, Heap Block)
+            extendHeap binds = 
+              let bindsAssoc = assocs binds
+                  extendHeap' :: [(VN, (FreeVars, Expr))] -> (Env, Heap Block) -> (Env, Heap Block) 
+                  extendHeap' [] (locals, h) = (locals, h)
+                  extendHeap' (b : bs) (locals, h) = 
+                    let (vn, (varsf, e)) = b
+                        (h', addr) = hAlloc h (Thunk varsf e (dom varsf env)) -- (e, Lambda, varsf, [], dom varsf env)
+                        locals' = Map.insert vn (VAddr addr) locals
+                    in  extendHeap' bs (locals', h')
+              in  extendHeap' bindsAssoc (env, h) 
+            (env', heap') = extendHeap bindings
+        put VMSTate { globals = g, heap = heap', stack = s, nrFrames = n }
+        step expr env'
+
 
 -- Programs are considered type safe  ===  (No type check)
 -- Also do not name your functions cons 

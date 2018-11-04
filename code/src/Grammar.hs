@@ -8,7 +8,7 @@ module Grammar (
     Pattern(..),
     ArithmOp(..),
     UnaryArithm(..),
-    CaseID, VN, FN, CN, CPos, Tag, Scrutinee, Branch
+    CaseID, VN, FN, CN, CPos, Tag, Scrutinee, Branch, Actual, FreeVars, Bindings
   ) where
 
 import Data.List(map, elemIndex, lookup, foldr)
@@ -62,7 +62,8 @@ type Actual = Expr
 --          C. LET is a builder of heap objects
 --          D. Local variables: ρ(k: name -> v: Heap address), ρ: local environment
 --        }
-type Bindings = Map.Map VN Expr
+type Bindings = Map.Map VN (FreeVars, Expr)
+type FreeVars = [VN]
 data Expr =
     TailCall FN [Expr]    -- used for tco
   | Call FN [Actual] 
@@ -127,7 +128,11 @@ instance Show Expr where
                                                 showLines lines
     showsPrec p (CProj cid cpos) = showParen True (("CProj " ++ show cid ++ " " ++ show cpos) ++)
     showsPrec p (Let bindings e) =
-        ("let { " ++ ) . (showBindings (assocs bindings) ++) . ("in " ++) . (show e ++)
+        let assoc = Map.assocs bindings
+        in  ("let { " ++ ) . 
+            (showBindings assoc ++) . 
+            ("in " ++) . 
+            (show e ++)
 
 instance Show FDef where
     showList [] = ("" ++)
@@ -161,12 +166,13 @@ instance Show Pattern where
                         . (show vars ++) 
                         . (" -> " ++)
 
-showBindings :: [(VN, Expr)] -> String
+showBindings :: [(VN, (FreeVars, Expr))] -> String
 showBindings [] = "} "
 showBindings (bind : binds) =
-    let (vn, expr) = bind
-    in  vn ++ " = " ++ show expr ++ "; " ++ showBindings binds
+    let (vn, (freeVars, expr)) = bind
+    in  "{ " ++ showVars freeVars ++ " } " ++ vn ++ " = " ++ show expr ++ "; " ++ showBindings binds
 
 showVars :: [VN] -> String
+showVars [] = ""
 showVars [var] = var
 showVars (var : vars) = var ++ " " ++ showVars vars

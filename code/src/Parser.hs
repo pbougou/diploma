@@ -90,10 +90,21 @@ letBlock = do
   return $ Let (Map.fromList bindings) e
 
 binding = do
+  varsF <- freeVars <|> noVars
   vn <- identifier
   reservedOp "="
   e <- expression
-  return (vn, e)
+  return (vn, (varsF,e))
+
+freeVars = do
+  reservedOp "{"
+  vars <- sepBy1 identifier semi <|> noVars 
+  reservedOp "}"
+  return vars
+
+noVars = do
+  whitespace 
+  return []
 
 
 constructor = do 

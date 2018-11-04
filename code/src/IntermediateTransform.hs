@@ -1,5 +1,5 @@
 module IntermediateTransform (
-
+    buildHeapGlobals
 ) where
 import Heap
 import RuntimeStructs
@@ -33,6 +33,7 @@ buildHeapGlobals :: Program -> (Globals, Heap Block)
 buildHeapGlobals p = 
     let 
         aux :: Program -> Globals -> Heap Block -> (Globals, Heap Block)
+        aux [] globals heap = (globals, heap)
         aux (fdef : fdefs) globals heap = 
             let (globals', heap') = processFDef fdef globals heap
             in  aux fdefs globals' heap'
@@ -40,7 +41,10 @@ buildHeapGlobals p =
 
 processFDef :: FDef -> Globals -> Heap Block -> (Globals, Heap Block)
 processFDef (Fun fn formals funbody) globals heap =
-    let (heap', addr) = hAlloc heap (funbody, Lambda, [])
+    let (heap', addr) = 
+            case formals of
+                [] -> hAlloc heap (CAF funbody)
+                _  -> hAlloc heap (FunH formals funbody)
         globals' = Map.insert fn addr globals
     in  (globals', heap')
 

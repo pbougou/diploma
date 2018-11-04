@@ -10,7 +10,15 @@ module RuntimeStructs (
     showStack,
     showContext,
     Globals,
-    Env, Code, FreeVars, Block,
+    FreeVars,
+    Env,
+    VMValue(..),
+    FValue,
+    Stack,
+    AR,
+    VMSTate(..),
+    Code,
+    Block(..),
     BTag(..)
 ) where
 import Grammar 
@@ -46,14 +54,45 @@ data Susp = Susp (CN, [Expr]) CallStack  -- Constructor carry the environment so
 -- Top level functions
 --      Map each function to its heap address, where function's closure is stored
 type Globals = Map.Map FN Addr
+-----------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------
+-- STG-Machine
 -- Local environment : Map: [variables -> values]
-type Env = Map VN Value
+type Env = Map VN VMValue
+-- No # arguments for now
+data VMValue =  VInt Integer
+              | VAddr Addr
+  deriving Show
+type FValue = VMValue
+-------------------------------------------------
+-- 1. CAF: top-level function with no arguments
+-- 2. HFun: top-level function with arguments
+-- 3. HCons: constructor suspension
+-- 4. Thunk: function built by let(updatable)
+-------------------------------------------------
+data Block = 
+        CAF Code
+    |   FunH [Formal] Code
+    |   Thunk FreeVars Code [FValue]
+    |   Cons [VN] [VMValue]
+  deriving Show
+type Stack = [AR]
+type AR = (FN, [VMValue])
+data VMSTate = VMSTate {
+  globals :: Globals,
+  heap :: Heap Block,
+  stack :: Stack,
+  nrFrames :: NRFrames
+}
 -- Heap building block
 type Code = Expr 
-type FreeVars = [VN]
 data BTag =   Lambda
             | Constructor
-type Block = (Code, BTag, FreeVars)
+    deriving Show
+-- type Block = (Code, BTag, FreeVars, [Formal], [VMValue])
+----------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------
+
 -- Runtime statistics
 type NRFrames = Integer
 

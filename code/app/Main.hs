@@ -17,19 +17,20 @@ main = do
     let p'  = correctCaseP p 0  -- annotate case with ids 
         p'' = scopingP p'       -- transform to CProj
         -- Evaluation 
-        (result, stack, framesNum)    = run p''
+        -- (result, stack, framesNum)    = run p''
         -- ap                         = spotTCs p
         -- (result', stack', framesNum') = run ap
+        result = interpret p
 
     -- print p'   -- ast 
     putStrLn "================================="
     putStrLn "=====Abstract Syntax Tree========"
     putStrLn "================================="
     print p
-    -- putStrLn "================================="
-    -- putStrLn "===========Interpeter============"
-    -- putStrLn "================================="
-    -- putStrLn $ "Result is: " ++ show result ++ ", StackFrames used: " ++ show framesNum 
+    putStrLn "================================="
+    putStrLn "===========Interpeter============"
+    putStrLn "================================="
+    putStrLn $ "Result is: " ++ show result -- ++ ", StackFrames used: " ++ show framesNum 
 
 {-
   print ap  -- TC annotated AST

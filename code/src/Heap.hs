@@ -1,7 +1,8 @@
 module Heap (
     Heap(..), Addr,
     hInitial,
-    hAlloc
+    hAlloc,
+    hLookup
 ) where
 
 import Data.List(map, elemIndex, lookup, foldr)

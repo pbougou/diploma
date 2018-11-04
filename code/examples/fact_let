@@ -1,0 +1,7 @@
+fun fact n = 
+    let { n } x = n - 1
+    in  if n then n * (call fact x) else 1;
+fun main = 
+    let { } x = call fact 6
+    in  x + 3 * x 
+
