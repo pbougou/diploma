@@ -74,7 +74,7 @@ data Block =
         CAF Code
     |   FunH [Formal] Code
     |   Thunk FreeVars Code [FValue]
-    |   Cons [VN] [VMValue]
+    |   Cons [VN] Tag [VMValue]
   deriving Show
 type Stack = [AR]
 type AR = (FN, [VMValue])

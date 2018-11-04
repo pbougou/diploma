@@ -1,3 +1,5 @@
+{-# LANGUAGE LambdaCase #-}
+
 module StateInterpreter (
   StackFrameArg(..),
   StackFrame(..),
@@ -22,13 +24,13 @@ import Debug.Trace
 
 import Data.Maybe
 
-import Data.List(map, elemIndex, lookup, foldr)
+import Data.List(map, elemIndex, lookup, foldr, unzip, filter)
 import qualified Data.List as L
 
 import Data.Map.Strict hiding(foldr)
 import qualified Data.Map.Strict as Map
 
-import Control.Monad.State
+import Control.Monad.State.Strict
 
 import System.IO.Unsafe
 import Heap
@@ -72,7 +74,7 @@ interpret :: Program -> VMValue
 interpret ast = 
   let (g, heapInit) = buildHeapGlobals ast
       Just mainAddr = Map.lookup "main" g
-      CAF funbody = hLookup heapInit mainAddr
+      Left (CAF funbody) = hLookup heapInit mainAddr
       envInit = Map.empty
       stackInit = [("main", [])]
       initState = VMSTate { globals = g, heap = heapInit, stack = stackInit, nrFrames = 1 }
@@ -126,13 +128,18 @@ step expr env = do
         if vc /= 0  then step l env
                     else step r env
       Call funName actuals -> do
+        state@(VMSTate g h s n) <- get
         -- 1. build argument stack
         -- 2. build new local environment
         let Just funAddr = Map.lookup funName g
-            FunH formals funbody = hLookup h funAddr
+            FunH formals funbody = 
+              case hLookup h funAddr of
+                Left l -> l
+                Right r -> error ("Function call " ++ r)
 
             -- Assuming partial application case does not exist
             --  This means that len(actuals) = len(formals)
+            -- !!!!!!!!!!! New state !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             buildArgsEnv :: [Formal] 
                             -> [Actual] 
                             -> ([(VN, VMValue)], [VMValue]) 
@@ -140,10 +147,10 @@ step expr env = do
             buildArgsEnv [] [] (newEnv, newAR) = (newEnv, reverse newAR)
             buildArgsEnv (f : fs) (a : as) (newEnv, newAR) =
               let (vn, annoType) = f
-                  val = 
+                  (val, newState) = 
                     case annoType of
                       -- strict argument forces evaluation
-                      CBV -> evalState (step a env) state
+                      CBV -> runState (step a env) state
                       CBN -> error "ByNameArg is not implemented yet"
                       -- lazy argument exists in local environmnet
                       --    a let block should have already built it
@@ -151,10 +158,10 @@ step expr env = do
                         -- lazy arguments are atoms
                         --  atom ::= var | number
                         case a of
-                          EInt n -> VInt n
+                          EInt n -> (VInt n, state)
                           EVar v -> 
-                            fromMaybe (error $ "Local env: " ++ vn) (Map.lookup v env)
-                          _ -> evalState (step a env) state
+                            (fromMaybe (error $ "Local env: " ++ vn) (Map.lookup v env), state)
+                          _ -> runState (step a env) state
                   newEnv' = (vn, val) : newEnv
                   newAR' = val : newAR
               in  buildArgsEnv fs as (newEnv', newAR')
@@ -163,23 +170,29 @@ step expr env = do
               case actuals of
                 [] -> ([], []) 
                 _  -> buildArgsEnv formals actuals ([], [])
-            s' = (funName, ar) : s
-        put VMSTate { globals = g, heap = h, stack = s', nrFrames = n }
-        step funbody (fromList env')
-      EVar var ->
+        VMSTate mg mh ms mn <- get
+        let s' = (funName, ar) : ms
+        put VMSTate { globals = mg, heap = mh, stack = s', nrFrames = mn }
+        trace ("\n\n\nHeap = " ++ show (fst3 mh)) (step funbody (fromList env'))
+      EVar var -> do
+        state@(VMSTate g h s n) <- get
         -- Case env[var] of
         --    * VInt i -> return i
         --    * VAddr addr -> 
         --        ** this happens because variable was bound by a let case
         --        ** force evaluation of thunk in address env[var]
         --        ** env[var] = eval(heap(env[var])) 
-        
+
         return (case Map.lookup var env of
                   Just var' ->
                     case var' of
                       VInt i -> VInt i
                       VAddr addr -> 
-                        let Thunk varsf e fvalues = hLookup h addr
+                        let  
+                            (Thunk varsf e fvalues) = 
+                              case hLookup h addr of
+                                Left l -> l
+                                Right r -> error ("Variable: " ++ r) 
                             tempEnv = fromList (zip varsf fvalues)
                             evaluated = evalState (step e tempEnv) state
                             env' = Map.insert var evaluated
@@ -187,6 +200,7 @@ step expr env = do
                   Nothing -> error ("Unbound variable: " ++ var))
       
       Let bindings expr -> do
+        state@(VMSTate g h s n) <- get
         let 
             extendHeap :: Bindings -> (Env, Heap Block)
             extendHeap binds = 
@@ -202,7 +216,30 @@ step expr env = do
             (env', heap') = extendHeap bindings
         put VMSTate { globals = g, heap = heap', stack = s, nrFrames = n }
         step expr env'
+      -- Lazy data construction
+      ConstrF tag exprs -> do
+        state@(VMSTate g h s n) <- get
+        -- assume exprs are only variables
+        -- Find variables in local environment and 
+        -- allocate in heap a constructor building block
+        let 
+            envOfFreevars :: [Expr] -> [(VN, FValue)]
+            envOfFreevars = 
+              L.map (\case
+                          EVar var -> 
+                            let Just val = Map.lookup var env
+                            in  (var, val)
+                          val@(EInt y) -> error "It should have been filtered"
+                          _ -> error "Constructor arguments are atoms")
+            
+            noIntsExprs = L.filter (\case EInt y -> False
+                                          _ -> True) exprs
+            (fvars, fvalues) = L.unzip (envOfFreevars noIntsExprs)
+            (heap', addr) = hAlloc h (Cons fvars tag fvalues)
+        put VMSTate { globals = g, heap = heap', stack = s, nrFrames = n } 
+        return (VAddr addr)
 
+fst3 (_, _, x) = x
 
 -- Programs are considered type safe  ===  (No type check)
 -- Also do not name your functions cons 

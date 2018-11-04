@@ -54,10 +54,11 @@ hFree (size, free, cts) a = (size - 1, a : free, Map.delete a cts)
 -------------------------------SEARCH OPERATIONS-----------------------------------
 -----------------------------------------------------------------------------------
 -- Returns content of a
-hLookup :: Heap a -> Addr -> a
+type HeapException = String
+hLookup :: Heap a -> Addr -> Either a HeapException
 hLookup heap@(_, _, cts) a =
-    if hIsnull heap a then error ("Address: " ++ show a ++ " not in the heap") 
-    else fromJust (Map.lookup a cts)
+    if hIsnull heap a then Right ("Address: " ++ show a ++ " not in the heap") 
+    else Left (fromJust (Map.lookup a cts))
 
 -- Returns all addresses in the heap
 hAddresses :: Heap a -> [Addr]

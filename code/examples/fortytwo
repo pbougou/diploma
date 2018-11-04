@@ -1,3 +1,3 @@
-fun f #a #b = if b then call f a 0 else a + b + 42;
+fun f a b = if b then call f a 0 else a + b + 42;
 fun main = if call f 1 1 then call f 1 0 else -1
 
