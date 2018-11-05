@@ -2,7 +2,7 @@ fun addVal i !list =
     case list of
         Nil -> Nil
         Cons a b -> Cons (Cons i (Cons a Nil)) (call addVal i b);
-fun main = call take 0 (Cons (Cons 1 Nil) Nil); -- (call addVal 42 (Cons 1 (Cons 2 Nil)));
+fun main = call take 0 (call take 0 ((call addVal 42 (Cons 1 (Cons 2 Nil)))));
 fun take n l = 
     case l of 
         Nil -> -2
