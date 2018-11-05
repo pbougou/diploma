@@ -1,15 +1,18 @@
 module RuntimeStructs (
     Frame(..),
     FrameArg(..),
-    CallStack(..),
     Depth,
     Value(..),
     Susp(..),
+    FrameId,
     FunctionsMap(..),
     Mem(..),
     NRFrames,
+    cTOP_FRAME_ID,
+    getFrame,
     push,
-    showStack
+    showStack,
+    updFrame
 ) where
 import Grammar 
 import Data.List(map, elemIndex, lookup, foldr)
@@ -25,11 +28,12 @@ data Value =  VI Integer
             | VC Susp 
     deriving Show
 
-data Frame = Frame FN [FrameArg] [(CaseID, Susp)]
+type FrameId = Int
+data Frame = Frame { fName :: FN, fArgs :: [FrameArg], fSusps :: [(CaseID, Susp)], fPrev :: FrameId }
 
 instance Show Frame where
-  show (Frame fn args susps) =
-    "Activation record [ " ++ show fn ++ "]\n" ++
+  show (Frame fn args susps prev) =
+    "* Activation record [ function: " ++ show fn ++ ", previous frame: " ++ (show prev) ++ " ]\n" ++
     "Args:\n" ++ (concatMap showLine args) ++
     "Suspensions:\n" ++ (concatMap showLine susps)
 
@@ -42,15 +46,19 @@ instance Show FrameArg where
   show (ByNameArg e) = show e
   show (LazyArg e True cachedVal) =
     case cachedVal of
-      Just val -> "{cached : " ++ show cachedVal ++ " }"
+      Just val -> "{ cached : " ++ show cachedVal ++ " }"
       Nothing -> error $ "Corrupt lazy argument of expression: " ++ (show e)
   show (LazyArg expr False cachedVal) =
     case cachedVal of
-      Nothing -> "{ unevaluated : " ++ show expr ++ " }"
+      Nothing -> "{ unevaluated : '" ++ show expr ++ "' }"
       Just val -> error $ "Corrupt lazy argument: forgot its memoized value " ++ (show val)
 
-type FrameId = Int
 data Mem = Mem { memFrames :: Map.Map FrameId Frame, lastFrameId :: FrameId }
+
+instance Show Mem where
+  show (Mem frames frameId) =
+    let fStrings = L.concatMap (\(k, v) -> (show k) ++ " -> " ++ (show v) ++ "\n") $ Map.assocs frames
+    in  "***** Memory ******\n" ++ "* Last frame ID : " ++ (show frameId) ++ "\n" ++ fStrings
 
 push :: Mem -> Frame -> Mem
 push mem f =
@@ -64,35 +72,47 @@ getFrame mem i =
     Just frame -> frame
     Nothing -> error $ "Internal error: no frame in memory for id " ++ (show i)
 
+updFrame :: Mem -> FrameId -> Frame -> Mem
+updFrame mem frameId frame =
+  mem{memFrames = Map.insert frameId frame (memFrames mem)}
+
+cTOP_FRAME_ID :: FrameId
+cTOP_FRAME_ID = 0
+
+frameTrace :: Mem -> FrameId -> [Frame]
+frameTrace mem fId =
+  case Map.lookup fId (memFrames mem) of
+    Just frame@(Frame _ _ _ prevId) -> frame : (frameTrace mem prevId)
+    Nothing ->
+      if fId == cTOP_FRAME_ID then [] else error $ "Frame trace error for id " ++ (show fId)
+
 type Depth = Int
 type FunctionsMap = Map.Map String ([Formal], Expr, Depth)
 
 -- cactus stack = stack + heap
-type CallStack = [Frame]
+-- type CallStack = [Frame]
 
-data Susp = Susp (CN, [Expr]) CallStack  -- Constructor carry the environment so far
+data Susp = Susp (CN, [Expr]) FrameId  -- Constructor carry the environment so far
 
 -- Runtime statistics
 type NRFrames = Integer
 
 instance Show Susp where
-    showsPrec p (Susp (cn, exprs) st) = 
-        ("[ suspension of " ++) 
-        . (show cn ++) 
-        . (": " ++) 
-        . (show exprs ++) 
-        . (" | " ++) 
-        . (show st ++)
-        . (" | " ++)
+    showsPrec p (Susp (cn, exprs) frameId) =
+        ("[ suspension of " ++)
+        . (show cn ++)
+        . (" : exprs = " ++)
+        . (show exprs ++)
+        . (" | frameId = " ++)
+        . (show frameId ++)
         . (" ] " ++)
 
 -- Pretty printer for callstack
-showStack :: CallStack -> String
-showStack = L.foldr (\s acc -> acc ++ show s) ""
+showStack :: Mem -> FrameId -> String
+showStack mem fId = L.foldr (\s acc -> acc ++ show s) "" $ frameTrace mem fId
 
 showList :: String -> [String] -> String
-showList delim l =
-  concat $ L.intersperse delim l
+showList delim l = concat $ L.intersperse delim l
 
 showLine :: (Show s) => s -> String
 showLine s = show s ++ "\n"

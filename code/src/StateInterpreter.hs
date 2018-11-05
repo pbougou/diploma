@@ -2,7 +2,6 @@ module StateInterpreter (
   FrameArg(..),
   Frame(..),
   FunctionsMap(..),
-  CallStack(..),
   run,
   eval,
   -- makeFrame,
@@ -32,18 +31,18 @@ import System.IO.Unsafe
 
 -- The state of a call: its stack, the frames counter, and a helper
 -- integer for pretty printing.
-type CallState = (Mem, CallStack, NRFrames, Int)
+type CallState = (Mem, FrameId, NRFrames, Int)
 
 -- Programs are considered type safe  ===  (No type check)
 -- Also do not name your functions cons 
-run :: Program -> (Value, CallStack, NRFrames)
+run :: Program -> (Value, FrameId, NRFrames)
 run ast = 
     let functions = functionMap ast Map.empty
         frame0 :: Frame
-        frame0 = Frame "main" [] []
+        frame0 = Frame "main" [] [] cTOP_FRAME_ID
         mem0 :: Mem
         mem0 = push (Mem Map.empty 0) frame0
-        state0 = (mem0, [frame0], 1, 0)
+        state0 = (mem0, lastFrameId mem0, 1, 0)
     in  case Map.lookup "main" functions of
             Nothing              -> error "main not found"
             Just (actuals, expr, _) -> let (v, (_, s0, s1, _)) = runState (eval expr functions) state0
@@ -54,9 +53,10 @@ eval :: Expr                        -- expression to be evaluated
     ->  State CallState             -- State: execution stack, number of stackframes allocated
               Value                 -- Value: evaluation result
 eval e funs = do
-  st@(mem, stack, nFrames, indent) <- get
+  st@(mem, frameId, nFrames, indent) <- get
+  let thisFrame@(Frame funName funArgs susps prevFrameId) = getFrame mem frameId
   let debugPrefix = (show nFrames) ++ ". " ++ (L.replicate (indent*4) ' ')
-  trace (debugPrefix ++ "expr = " ++ show e ++ ", stack:\n" ++ (showStack stack)) $
+  trace (debugPrefix ++ "expr = " ++ show e ++ ", frame#" ++ (show frameId) ++ ":\n" ++ (showStack mem frameId)) $
     case e of
       EInt n -> 
         return (VI n)
@@ -86,39 +86,38 @@ eval e funs = do
                     else eval r funs
       EVar var -> do
         -- Case variable is in formal parameteres of a function
-          let topFR@(Frame funName stArgs susps) = head stack
-              i = case Map.lookup funName funs of
+          let i = case Map.lookup funName funs of
                     Nothing -> error "No function definition found"
                     Just (formals, _, _) -> 
                       let justVars = Data.List.map fst formals
-                      in  fromMaybe (error $ "variable not in formals: Var = " ++ var) (elemIndex var justVars)
+                      in  fromMaybe (error $ "variable not in formals: Var = " ++ var ++ ", memory dump: \n" ++ (show mem)) (elemIndex var justVars)
               (v, s) = 
-                if i > length stArgs then error "i: out of bounds"
-                else  case stArgs !! i of
+                if i > length funArgs then error "i: out of bounds"
+                else  case funArgs !! i of
                         StrictArg v   -> (v, Nothing)
                         ByNameArg e   -> 
-                          let (v, s) = runState (eval e funs) (mem, tail stack, nFrames, indent)
+                          let (v, s) = runState (eval e funs) (mem, prevFrameId, nFrames, indent)
                           in  (v, Just s)
                         LazyArg e b val -> 
                             if b then (fromJust val, Nothing)
-                                  else  let (v', (newMem, newSt, n', _)) = runState (eval e funs) (mem, tail stack, nFrames, indent)
-                                            stArgs' = replaceNth i (LazyArg e True (Just v')) stArgs
-                                        in  (v', Just (mem, (Frame funName stArgs' susps) : newSt, n', indent))
+                                  else  let (v', (mem', _, n', _)) = runState (eval e funs) (mem, prevFrameId, nFrames, indent)
+                                            funArgs' = replaceNth i (LazyArg e True (Just v')) funArgs
+                                            frame' = thisFrame{fArgs = funArgs'}
+                                        in  (v', Just (updFrame mem' frameId frame', frameId, n', indent))
           case s of
               Just s' -> put s'
               Nothing -> modify id
           trace (debugPrefix ++ "Variable [" ++ var ++ "] lookup: " ++ (show v) ++ "\n") $
             return v
       Call funName actuals -> do
-        let (Frame _ _ susps) : _ = stack
-            (formals, funBody, depth) =
+        let (formals, funBody, depth) =
               case Map.lookup funName funs of
                 Nothing     -> error $ "Call function: " ++ funName ++ " does not exist"
                 Just fData  -> fData
-            (stackFrame, (mem', stack', stNum', _)) = makeFrame actuals formals funs ([], st)
-            -- Add frame to stack
-            newSt = (Frame funName stackFrame []) : stack'
-        put (mem, newSt, stNum' + 1, indent)
+            (stackFrame, (mem', _, stNum', _)) = makeFrameArgs actuals formals funs ([], st)
+            -- Push frame and enter (use its frame id)
+            mem'' = push mem' (Frame funName stackFrame [] frameId)
+        put (mem'', lastFrameId mem'', stNum' + 1, indent)
         eval funBody funs
       -------------------------------------------------
       --------------DATA DECONSTRUCTION----------------
@@ -129,9 +128,7 @@ eval e funs = do
       -- Note: case forces evaluation of data 
       -------------------------------------------------
       CaseF cid e cases -> do
-        -- TODO: review (it will go with more refactoring)
-        let (evalE, st@(mem', (Frame fn0 args0 susps) : st', n, _)) = runState (eval e funs) (mem, stack, nFrames, indent + 1)
-        put st
+        let (evalE, st@(mem', savedFrameId, n, _)) = runState (eval e funs) (mem, frameId, nFrames, indent + 1)
         let 
           -- nextST: next stack state
           -- nextE:  expression to be evaluated next
@@ -141,36 +138,34 @@ eval e funs = do
               VI i -> let nextE = fromMaybe (error "Case: Patterns must be integers") (L.lookup (IPat i) cases)
                       in  (nextE, st)
           -- 2. evalE is a constructor 
-              VC c -> let Susp (cn, _) _ = c
-                          patterns = L.map fst cases
+              VC c@(Susp (cn, _) _) ->
+                      let patterns = L.map fst cases
                           pattIndex = indexOfPattern cn patterns 0
                           (_, ne) = cases !! pattIndex
-                          st'' = (mem', (Frame fn0 args0 ((cid, c) : susps)) : st', n, indent)
-                      in  (ne, st'')
+                          frame' = thisFrame{fSusps = (cid, c) : susps}
+                          st' = (updFrame mem' frameId frame', frameId, n, indent)
+                      in  (ne, st')
         put nextST
         eval nextE funs
       ConstrF tag exprs -> do 
-        return $ VC (Susp (tag, exprs) stack)
+        return $ VC (Susp (tag, exprs) frameId)
       CProj cid cpos -> do 
-        let (Frame fn args susps) = head stack
-            (cn, el, stSusp) = 
+        let susp@(Susp (_, el) savedFrameId) =
               case L.lookup cid susps of 
-                Nothing -> error $ "CProj - not in susps, susps = " ++ show susps 
-                Just (Susp (cn, el) stSusp) -> (cn, el, stSusp)
-            len = length el
-            nextE = 
-              if cpos >= len then ConstrF "Nil" [] 
+                Nothing -> error $ "CProj - not in susps, susps = " ++ show susps ++ ", memory dump: \n" ++ (show mem)
+                Just susp -> susp
+            nextE =
+              -- TODO: must be fixed in the grammar
+              if cpos >= length el then ConstrF "Nil" []
               else el !! cpos
-            (val, (mem', stSusp', nFrames', _)) = runState (eval nextE funs) (mem, stSusp, nFrames, indent)
+            (val, (mem', _, nFrames', _)) = runState (eval nextE funs) (mem, savedFrameId, nFrames, indent)
             -- TODO: review the following
-            el' = 
-              case val of
-                VI v -> replaceNth cpos (EInt v) el
-                VC c -> el -- error $ "Constructor " ++ show c
-            newSusp = Susp (cn, el') stSusp'
-            newSusps = updateL cid newSusp susps
-        put (mem', (Frame fn args newSusps) : tail stack, nFrames', indent)
-        stack <- get
+            -- el' =
+            --   case val of
+            --     VI v -> replaceNth cpos (EInt v) el
+            --     VC c -> el -- error $ "Constructor " ++ show c
+            -- newSusp = Susp (cn, el') savedFrameId'
+        put (mem', frameId, nFrames', indent)
         -- trace ("CProj: val = " ++ show val ++ ", \nsusp = " ++ show newSusp ++ ",\nsusps = " ++ show susps) $
         return val
 
@@ -289,24 +284,24 @@ mutate callerFs calleeFs args ix funs (a : as) (args', st)  =
           -- error $ "It should not be an expression: " ++ show a 
 -}  
 
-makeFrame :: [Expr] 
-          -> [Formal] 
-          -> FunctionsMap 
-          -> ([FrameArg], CallState)
-          -> ([FrameArg], CallState)
-makeFrame [] [] _ (args, st) = (reverse args, st)
-makeFrame (actual : actuals) (formal : formals) funs (frames, st) = 
-  case snd formal of 
-    CBV    -> 
+makeFrameArgs :: [Expr]
+              -> [Formal]
+              -> FunctionsMap
+              -> ([FrameArg], CallState)
+              -> ([FrameArg], CallState)
+makeFrameArgs [] [] _ (args, st) = (reverse args, st)
+makeFrameArgs (actual : actuals) (formal : formals) funs (frames, st) =
+  case snd formal of
+    CBV    ->
       let (v, st') = runState (eval actual funs) st
           frames'  = StrictArg { val = v } : frames
-      in  makeFrame actuals formals funs (frames', st')
-    CBN    -> 
+      in  makeFrameArgs actuals formals funs (frames', st')
+    CBN    ->
       let frames' = ByNameArg { expr = actual } : frames
-      in  makeFrame actuals formals funs (frames', st)
-    G.Lazy -> 
+      in  makeFrameArgs actuals formals funs (frames', st)
+    G.Lazy ->
       let frames' = LazyArg { expr = actual, isEvaluated = False, cachedVal = Nothing } : frames
-      in  makeFrame actuals formals funs (frames', st)
+      in  makeFrameArgs actuals formals funs (frames', st)
 
 
 
