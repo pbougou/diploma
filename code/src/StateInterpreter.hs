@@ -30,24 +30,27 @@ import Control.Monad.State
 
 import System.IO.Unsafe
 
+-- The state of a call: its stack, the frames counter, and a helper
+-- integer for pretty printing.
+type CallState = (CallStack, NRFrames, Int)
+
 -- Programs are considered type safe  ===  (No type check)
 -- Also do not name your functions cons 
-run :: Program -> (Value, CallStack, Integer)
+run :: Program -> (Value, CallStack, NRFrames)
 run ast = 
     let functions = functionMap ast Map.empty
     in  case Map.lookup "main" functions of
             Nothing              -> error "main not found"
-            Just (actuals, expr) -> let (v, s) = runState (eval expr functions) ([(("main", []),[])], 1)
-                                    in  (v, fst s, snd s)
+            Just (actuals, expr) -> let (v, (s0, s1, _)) = runState (eval expr functions) ([(("main", []),[])], 1, 0)
+                                    in  (v, s0, s1)
 
 eval :: Expr                        -- expression to be evaluated
     ->  FunctionsMap                -- dictionary (K: function name, V: (formals, body))
-    ->  State 
-              (CallStack, NRFrames) -- State: execution stack, number of stackframes allocated 
+    ->  State CallState             -- State: execution stack, number of stackframes allocated
               Value                 -- Value: evaluation result
 eval e funs = do
-  (stack, nFrames) <- get
-  trace ("expr = " ++ show e ++ "\nstack = " ++ show stack) $
+  st@(stack, nFrames, indent) <- get
+  trace ((show nFrames) ++ ". " ++ (L.replicate (indent*4) ' ') ++ "expr = " ++ show e ++ " [ stack : " ++ show stack ++ " ]") $
     case e of
       EInt n -> 
         return (VI n)
@@ -77,8 +80,7 @@ eval e funs = do
                     else eval r funs
       EVar var -> do
         -- Case variable is in formal parameteres of a function
-          (st'', n) <- get
-          let topFR@(ar, susps) = head st''
+          let topFR@(ar, susps) = head stack
               (funName, stArgs) = ar
               i = case Map.lookup funName funs of
                     Nothing -> error "No function definition found"
@@ -90,28 +92,28 @@ eval e funs = do
                 else  case stArgs !! i of
                         StrictArg v   -> (v, Nothing)
                         ByNameArg e   -> 
-                          let (v, s) = runState (eval e funs) (tail st'', n) 
+                          let (v, s) = runState (eval e funs) (tail stack, nFrames, indent)
                           in  (v, Just s)
                         LazyArg e b val -> 
                             if b then (fromJust val, Nothing)
-                                  else  let (v', (newSt, n')) = runState (eval e funs) (tail st'', n)
+                                  else  let (v', (newSt, n', _)) = runState (eval e funs) (tail stack, nFrames, indent)
                                             stArgs' = replaceNth i (LazyArg e True (Just v')) stArgs
-                                        in  (v', Just (((funName, stArgs'), susps) : newSt, n'))
+                                        in  (v', Just (((funName, stArgs'), susps) : newSt, n', indent))
           case s of
               Just s' -> put s'
               Nothing -> modify id
           return v
       Call funName actuals -> do
-        st@(stack@((ar, susps) : _), n) <- get
-        let (formals, funBody) = 
+        let (ar, susps) : _ = stack
+            (formals, funBody) =
               case Map.lookup funName funs of
                 Nothing     -> error $ "Call function: " ++ funName ++ " does not exist"
                 Just (f, e) -> (f, e)
-            (stackFrame, (stack', stNum')) = makeStackFrame actuals formals funs ([], st)
+            (stackFrame, (stack', stNum', _)) = makeStackFrame actuals formals funs ([], st)
             newAR = (funName, stackFrame)
             -- Add frame to stack
             newSt = (newAR, []) : stack'
-        put (newSt, stNum' + 1)
+        put (newSt, stNum' + 1, indent)
         eval funBody funs
       -------------------------------------------------
       --------------DATA DECONSTRUCTION----------------
@@ -122,8 +124,7 @@ eval e funs = do
       -- Note: case forces evaluation of data 
       -------------------------------------------------
       CaseF cid e cases -> do
-        curST <- get 
-        let (evalE, st@((ar, susps) : st', n)) = runState (eval e funs) curST
+        let (evalE, st@((ar, susps) : st', n, _)) = runState (eval e funs) (stack, nFrames, indent + 1)
         put st
         let 
           -- nextST: next stack state
@@ -138,16 +139,14 @@ eval e funs = do
                           patterns = L.map fst cases
                           pattIndex = indexOfPattern cn patterns 0
                           (_, ne) = cases !! pattIndex
-                          st'' = ((ar, (cid, c) : susps) : st', n) 
+                          st'' = ((ar, (cid, c) : susps) : st', n, indent)
                       in  (ne, st'')
         put nextST
         eval nextE funs
       ConstrF tag exprs -> do 
-        (st, _) <- get 
-        return $ VC (Susp (tag, exprs) st)
+        return $ VC (Susp (tag, exprs) stack)
       CProj cid cpos -> do 
-        (st, n) <- get
-        let (ar, susps) = head st
+        let (ar, susps) = head stack
             (cn, el, stSusp) = 
               case L.lookup cid susps of 
                 Nothing -> error $ "CProj - not in susps, susps = " ++ show susps 
@@ -156,14 +155,14 @@ eval e funs = do
             nextE = 
               if cpos >= len then ConstrF "Nil" [] 
               else el !! cpos
-            (val, (stSusp', n')) = runState (eval nextE funs) (stSusp, 0)
+            (val, (stSusp', n', _)) = runState (eval nextE funs) (stSusp, 0, indent)
             el' = 
               case val of
                 VI v -> replaceNth cpos (EInt v) el
                 VC c -> el -- error $ "Constructor " ++ show c
             newSusp = Susp (cn, el') stSusp'
-            newSusps = updateL cid newSusp susps 
-        put ((ar, newSusps) : tail st, n + n') 
+            newSusps = updateL cid newSusp susps
+        put ((ar, newSusps) : tail stack, nFrames + n', indent)
         stack <- get
         trace ("CProj: val = " ++ show val ++ ", \nsusp = " ++ show newSusp ++ ",\nsusps = " ++ show susps) $ 
           return val 
@@ -286,8 +285,8 @@ mutate callerFs calleeFs args ix funs (a : as) (args', st)  =
 makeStackFrame :: [Expr] 
                 -> [Formal] 
                 -> FunctionsMap 
-                -> ([StackFrameArg], (CallStack, Integer))
-                -> ([StackFrameArg], (CallStack, Integer))
+                -> ([StackFrameArg], CallState)
+                -> ([StackFrameArg], CallState)
 makeStackFrame [] [] _ (args, st) = (reverse args, st)
 makeStackFrame (actual : actuals) (formal : formals) funs (frames, st) = 
   case snd formal of 
