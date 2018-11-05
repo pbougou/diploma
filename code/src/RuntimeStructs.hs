@@ -6,7 +6,9 @@ module RuntimeStructs (
     Value(..),
     Susp(..),
     FunctionsMap(..),
+    Mem(..),
     NRFrames,
+    push,
     showStack
 ) where
 import Grammar 
@@ -48,7 +50,19 @@ instance Show FrameArg where
       Just val -> error $ "Corrupt lazy argument: forgot its memoized value " ++ (show val)
 
 type FrameId = Int
-type Memory = Map.Map FrameId Frame
+data Mem = Mem { memFrames :: Map.Map FrameId Frame, lastFrameId :: FrameId }
+
+push :: Mem -> Frame -> Mem
+push mem f =
+  let lastId = (lastFrameId mem) + 1
+      frames' = Map.insert lastId f (memFrames mem)
+  in  Mem { memFrames = frames', lastFrameId = lastId }
+
+getFrame :: Mem -> FrameId -> Frame
+getFrame mem i =
+  case Map.lookup i (memFrames mem) of
+    Just frame -> frame
+    Nothing -> error $ "Internal error: no frame in memory for id " ++ (show i)
 
 type Depth = Int
 type FunctionsMap = Map.Map String ([Formal], Expr, Depth)

@@ -32,18 +32,21 @@ import System.IO.Unsafe
 
 -- The state of a call: its stack, the frames counter, and a helper
 -- integer for pretty printing.
-type CallState = (CallStack, NRFrames, Int)
+type CallState = (Mem, CallStack, NRFrames, Int)
 
 -- Programs are considered type safe  ===  (No type check)
 -- Also do not name your functions cons 
 run :: Program -> (Value, CallStack, NRFrames)
 run ast = 
     let functions = functionMap ast Map.empty
+        frame0 :: Frame
         frame0 = Frame "main" [] []
-        state0 = ([frame0], 1, 0)
+        mem0 :: Mem
+        mem0 = push (Mem Map.empty 0) frame0
+        state0 = (mem0, [frame0], 1, 0)
     in  case Map.lookup "main" functions of
             Nothing              -> error "main not found"
-            Just (actuals, expr, _) -> let (v, (s0, s1, _)) = runState (eval expr functions) state0
+            Just (actuals, expr, _) -> let (v, (_, s0, s1, _)) = runState (eval expr functions) state0
                                        in  (v, s0, s1)
 
 eval :: Expr                        -- expression to be evaluated
@@ -51,7 +54,7 @@ eval :: Expr                        -- expression to be evaluated
     ->  State CallState             -- State: execution stack, number of stackframes allocated
               Value                 -- Value: evaluation result
 eval e funs = do
-  st@(stack, nFrames, indent) <- get
+  st@(mem, stack, nFrames, indent) <- get
   let debugPrefix = (show nFrames) ++ ". " ++ (L.replicate (indent*4) ' ')
   trace (debugPrefix ++ "expr = " ++ show e ++ ", stack:\n" ++ (showStack stack)) $
     case e of
@@ -94,13 +97,13 @@ eval e funs = do
                 else  case stArgs !! i of
                         StrictArg v   -> (v, Nothing)
                         ByNameArg e   -> 
-                          let (v, s) = runState (eval e funs) (tail stack, nFrames, indent)
+                          let (v, s) = runState (eval e funs) (mem, tail stack, nFrames, indent)
                           in  (v, Just s)
                         LazyArg e b val -> 
                             if b then (fromJust val, Nothing)
-                                  else  let (v', (newSt, n', _)) = runState (eval e funs) (tail stack, nFrames, indent)
+                                  else  let (v', (newMem, newSt, n', _)) = runState (eval e funs) (mem, tail stack, nFrames, indent)
                                             stArgs' = replaceNth i (LazyArg e True (Just v')) stArgs
-                                        in  (v', Just ((Frame funName stArgs' susps) : newSt, n', indent))
+                                        in  (v', Just (mem, (Frame funName stArgs' susps) : newSt, n', indent))
           case s of
               Just s' -> put s'
               Nothing -> modify id
@@ -112,10 +115,10 @@ eval e funs = do
               case Map.lookup funName funs of
                 Nothing     -> error $ "Call function: " ++ funName ++ " does not exist"
                 Just fData  -> fData
-            (stackFrame, (stack', stNum', _)) = makeFrame actuals formals funs ([], st)
+            (stackFrame, (mem', stack', stNum', _)) = makeFrame actuals formals funs ([], st)
             -- Add frame to stack
             newSt = (Frame funName stackFrame []) : stack'
-        put (newSt, stNum' + 1, indent)
+        put (mem, newSt, stNum' + 1, indent)
         eval funBody funs
       -------------------------------------------------
       --------------DATA DECONSTRUCTION----------------
@@ -127,7 +130,7 @@ eval e funs = do
       -------------------------------------------------
       CaseF cid e cases -> do
         -- TODO: review (it will go with more refactoring)
-        let (evalE, st@((Frame fn0 args0 susps) : st', n, _)) = runState (eval e funs) (stack, nFrames, indent + 1)
+        let (evalE, st@(mem', (Frame fn0 args0 susps) : st', n, _)) = runState (eval e funs) (mem, stack, nFrames, indent + 1)
         put st
         let 
           -- nextST: next stack state
@@ -142,7 +145,7 @@ eval e funs = do
                           patterns = L.map fst cases
                           pattIndex = indexOfPattern cn patterns 0
                           (_, ne) = cases !! pattIndex
-                          st'' = ((Frame fn0 args0 ((cid, c) : susps)) : st', n, indent)
+                          st'' = (mem', (Frame fn0 args0 ((cid, c) : susps)) : st', n, indent)
                       in  (ne, st'')
         put nextST
         eval nextE funs
@@ -158,7 +161,7 @@ eval e funs = do
             nextE = 
               if cpos >= len then ConstrF "Nil" [] 
               else el !! cpos
-            (val, (stSusp', nFrames', _)) = runState (eval nextE funs) (stSusp, nFrames, indent)
+            (val, (mem', stSusp', nFrames', _)) = runState (eval nextE funs) (mem, stSusp, nFrames, indent)
             -- TODO: review the following
             el' = 
               case val of
@@ -166,7 +169,7 @@ eval e funs = do
                 VC c -> el -- error $ "Constructor " ++ show c
             newSusp = Susp (cn, el') stSusp'
             newSusps = updateL cid newSusp susps
-        put ((Frame fn args newSusps) : tail stack, nFrames', indent)
+        put (mem', (Frame fn args newSusps) : tail stack, nFrames', indent)
         stack <- get
         -- trace ("CProj: val = " ++ show val ++ ", \nsusp = " ++ show newSusp ++ ",\nsusps = " ++ show susps) $
         return val
