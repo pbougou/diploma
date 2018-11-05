@@ -4,12 +4,13 @@ module Parser (
   program,
   sequenceOfFns,
   correctCaseP,
-  scopingP
+  scopingP,
+  wrapConsP
  ) where
 
 import Debug.Trace
 
-import Grammar
+import Grammar as G
 import Lexer
 
 import Data.List(map, elemIndex, lookup, foldr)
@@ -213,11 +214,11 @@ correctCaseEs (e : es) acc n =
   let (e', n') = runState (correctCaseE e) n 
   in  correctCaseEs es (e' : acc) n' 
 
-correctCaseP :: Program -> Integer -> Program
-correctCaseP []             _ = [] 
-correctCaseP (fdef : fdefs) n =
+correctCaseP :: Program -> Program
+correctCaseP []             = []
+correctCaseP (fdef : fdefs) =
   let Fun x y e = fdef 
-      (e', s')  = ST.runState (correctCaseE e) n
+      (e', s')  = ST.runState (correctCaseE e) 0
       fdef'     = Fun x y e'
   in  fdef' : correctCaseP fdefs s'
 
@@ -277,4 +278,31 @@ scopingP (fdef : fdefs) = scopingF fdef : scopingP fdefs
             in  CaseF id (scopingE scopes e) cases'
               -- CaseF id e (L.map (fst &&& (scopingE scopes . snd)) cases) 
         CProj _ _ -> error "CProj: This should be unreached"
+
+
+wrapConsP :: Program -> Program
+wrapConsP [] = [] ++ builtinConstrs
+wrapConsP (fdef : fdefs) = wrapConsF fdef : wrapConsP fdefs
+  where
+    wrapConsF (Fun fn frmls expr) = Fun fn frmls (wrapConsE expr)
+    wrapConsE e =
+      case e of
+        ConstrF tag exprs -> Call (wrapTag tag) $ L.map wrapConsE exprs
+        c@(EInt _) -> c
+        v@(EVar _) -> v
+        cp@CProj{} -> cp
+        UnaryOp unaryArithm e -> UnaryOp unaryArithm $ wrapConsE e
+        BinaryOp binArithm el er -> BinaryOp binArithm (wrapConsE el) (wrapConsE er)
+        Eif c thenE elseE -> Eif (wrapConsE c) (wrapConsE thenE) (wrapConsE elseE)
+        Call fn actuals -> Call fn $ L.map wrapConsE actuals
+        CaseF id e cases -> CaseF id (wrapConsE e) $ L.map wrapConsBr cases
+        _ -> error ("Not handled: " ++ show e)
+    wrapConsBr (pat, expr) = (pat, wrapConsE expr)
+    wrapTag c = '#' : c
+
+builtinConstrs :: Program
+builtinConstrs =
+  [ Fun "#Cons" [("cons$0", G.Lazy), ("cons$1", G.Lazy)] (ConstrF "Cons" [EVar "cons$0", EVar "cons$1"])
+  , Fun "#Nil" [] (ConstrF "Nil" [])
+  ]
 

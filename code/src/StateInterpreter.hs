@@ -165,7 +165,7 @@ step expr env = do
                   newEnv' = (vn, val) : newEnv
                   newAR' = val : newAR
               in  buildArgsEnv fs as (newEnv', newAR')
-            
+          
             (env', ar) = 
               case actuals of
                 [] -> ([], []) 
@@ -435,15 +435,12 @@ eval e funs = do
       ---------------------------------------------
       st@(oldSt@(fSt : st'), n) <- get
       let (callerName, stArgs) = fSt
-
           (callerFormals, _) = case Map.lookup callerName funs of
                                   Nothing     -> error $ "Call function: " ++ callerName ++ " does not exist"
                                   Just (f, e) -> (f, e)
-
           (formals, funBody) = case Map.lookup funName funs of
                                   Nothing     -> error $ "Call function: " ++ funName ++ " does not exist"
                                   Just (f, e) -> (f, e)
-
           -- Runtime check if mutation is possible and mutate
           checkMutate :: [Expr]                 -- list of actual parameters
                         -> [Formal]             -- callee's formal parameters
@@ -455,7 +452,6 @@ eval e funs = do
                   let (args', (s : ss, frNum)) = makeStackFrame actuals formals funs ([], st)
                       frame' = (funName, args')
                   in  (frame' : ss, frNum)   -- make stack frame and throw old
-
             --------------------------------------------------------------
             -- Case 2: If all actuals are variables (or values-integers)
             --  Case 2a, 2b are handled in mutate
@@ -466,11 +462,8 @@ eval e funs = do
               let (args', nextST)    = mutate callerFormals formals args 0 funs actuals ([], st)
                   (newStack, newNum) = nextST
               in  ((funName, args') : tail newStack, newNum)
-
       put (checkMutate actuals formals stArgs)
-
       eval funBody funs
-
 --  case 2a, case 2b mutation
 mutate :: [Formal]                                  -- caller's formals
         -> [Formal]                                 -- callee's formals
@@ -515,14 +508,12 @@ mutate callerFs calleeFs args ix funs (a : as) (args', st)  =
                                               in  (LazyArg e False Nothing, st)  
                                   G.Lazy  ->  (arg, st) 
           in  mutate callerFs calleeFs args (ix + 1) funs as (arg' : args', st')                 
-
         EInt n -> 
           let arg' = case tp of 
                         CBV     -> StrictArg { val = n } 
                         CBN     -> ByNameArg { expr = a }
                         G.Lazy  -> LazyArg { expr = a, isEvaluated = False, cachedVal = Nothing } 
           in  mutate callerFs calleeFs args (ix + 1) funs as (arg' : args', st)
-
 -- Case 3: We know if it is an expression, it should be in CBV position
         _      ->
           let (v', st') = runState (eval a funs) st
