@@ -155,14 +155,14 @@ eval e funs = do
             nextE = 
               if cpos >= len then ConstrF "Nil" [] 
               else el !! cpos
-            (val, (stSusp', n', _)) = runState (eval nextE funs) (stSusp, 0, indent)
+            (val, (stSusp', nFrames', _)) = runState (eval nextE funs) (stSusp, nFrames, indent)
             el' = 
               case val of
                 VI v -> replaceNth cpos (EInt v) el
                 VC c -> el -- error $ "Constructor " ++ show c
             newSusp = Susp (cn, el') stSusp'
             newSusps = updateL cid newSusp susps
-        put ((ar, newSusps) : tail stack, nFrames + n', indent)
+        put ((ar, newSusps) : tail stack, nFrames', indent)
         stack <- get
         trace ("CProj: val = " ++ show val ++ ", \nsusp = " ++ show newSusp ++ ",\nsusps = " ++ show susps) $ 
           return val 
