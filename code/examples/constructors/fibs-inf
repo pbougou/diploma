@@ -6,9 +6,9 @@ fun next !l =
                 Nil -> Nil
                 Cons b d -> Cons (a + b) (call next t));
 fun fibs = Cons 0 (Cons 1 (call next (call fibs)));
-fun main = call take 2 (call fibs);
-fun take !n !l = 
+fun main = call idx 0 (call fibs);
+fun idx !n !l =
     case l of 
         Nil -> -2
         Cons a b -> 
-            if n then call take (n-1) b else a
+            if n then call idx (n-1) b else a

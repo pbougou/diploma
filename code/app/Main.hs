@@ -14,10 +14,11 @@ main :: IO ()
 main = do
     s <- getContents
     p <- parseProgram s         -- :: IO Program
-    let p'  = correctCaseP p 0  -- annotate case with ids 
-        p'' = scopingP p'       -- transform to CProj
+    let p'   = correctCaseP p 0 -- annotate case with ids 
+        p''  = scopingP p'      -- transform to CProj
+        p''' = wrapConsP p''    -- transform constructors
         -- Evaluation 
-        (result, stack, framesNum)    = run p''
+        (result, stack, framesNum)    = run p'''
         -- ap                         = spotTCs p
         -- (result', stack', framesNum') = run ap
 
