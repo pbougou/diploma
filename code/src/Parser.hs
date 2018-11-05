@@ -185,13 +185,13 @@ correctCaseEs (e : es) acc n =
   let (e', n') = runState (correctCaseE e) n 
   in  correctCaseEs es (e' : acc) n' 
 
-correctCaseP :: Program -> Integer -> Program
-correctCaseP []             _ = [] 
-correctCaseP (fdef : fdefs) n =
+correctCaseP :: Program -> Program
+correctCaseP []             = []
+correctCaseP (fdef : fdefs) =
   let Fun x y e = fdef 
-      (e', s')  = ST.runState (correctCaseE e) n
+      (e', s')  = ST.runState (correctCaseE e) 0
       fdef'     = Fun x y e'
-  in  fdef' : correctCaseP fdefs (n + 1)
+  in  fdef' : correctCaseP fdefs
 
 -- A variable might belong to:
 --    a. formals --> stack frame --> Eval: 

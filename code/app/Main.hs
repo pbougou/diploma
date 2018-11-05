@@ -14,7 +14,7 @@ main :: IO ()
 main = do
     s <- getContents
     p <- parseProgram s         -- :: IO Program
-    let p'   = correctCaseP p 0 -- annotate case with ids 
+    let p'   = correctCaseP p   -- annotate case with ids
         p''  = scopingP p'      -- transform to CProj
         p''' = wrapConsP p''    -- transform constructors
         -- Evaluation 
