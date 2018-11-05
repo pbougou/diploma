@@ -6,7 +6,8 @@ module RuntimeStructs (
     Context(..),
     Susp(..),
     FunctionsMap(..),
-    NRFrames
+    NRFrames,
+    showStack
 ) where
 import Grammar 
 import Data.List(map, elemIndex, lookup, foldr)
@@ -26,10 +27,20 @@ type StackFrame = (FN, [StackFrameArg])
 data StackFrameArg = StrictArg { val :: Value }
                    | ByNameArg { expr :: Expr }
                    | LazyArg   { expr :: Expr, isEvaluated :: Bool, cachedVal :: Maybe Value }
-    deriving Show
+
+instance Show StackFrameArg where
+  show (StrictArg val) = show val
+  show (ByNameArg e) = show e
+  show (LazyArg e True cachedVal) =
+    case cachedVal of
+      Just val -> "{cached : " ++ show cachedVal ++ " }"
+      Nothing -> error $ "Corrupt lazy argument of expression: " ++ (show e)
+  show (LazyArg expr False cachedVal) =
+    case cachedVal of
+      Nothing -> "{ unevaluated : " ++ show expr ++ " }"
+      Just val -> error $ "Corrupt lazy argument: forgot its memoized value " ++ (show val)
 
 type FunctionsMap = Map.Map String ([Formal], Expr)
-
 
 -- cactus stack = stack + heap
 type Context = (StackFrame, [(CaseID, Susp)])
@@ -50,3 +61,21 @@ instance Show Susp where
         . (show st ++)
         . (" | " ++)
         . (" ] " ++)
+
+-- Pretty printer for context
+showContext :: Context -> String
+showContext (ar, susps) =
+    "====================================================================\nActivation record\n" ++
+    show ar ++
+    "\nSuspensions\n" ++
+    show susps  ++
+    "\n"
+
+-- Pretty printer for callstack
+showStack :: CallStack -> String
+showStack = L.foldr (\s acc -> acc ++ showContext s) ""
+
+showStackFrame :: StackFrame -> String
+showStackFrame (fn, args) =
+  "** Stack frame [" ++ fn ++ "] **\n" ++ concatMap (\s -> show s ++ "\n") args
+  

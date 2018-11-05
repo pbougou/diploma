@@ -50,7 +50,8 @@ eval :: Expr                        -- expression to be evaluated
               Value                 -- Value: evaluation result
 eval e funs = do
   st@(stack, nFrames, indent) <- get
-  trace ((show nFrames) ++ ". " ++ (L.replicate (indent*4) ' ') ++ "expr = " ++ show e ++ " [ stack : " ++ show stack ++ " ]") $
+  let debugPrefix = (show nFrames) ++ ". " ++ (L.replicate (indent*4) ' ')
+  trace (debugPrefix ++ "expr = " ++ show e ++ ", stack:\n" ++ (showStack stack)) $
     case e of
       EInt n -> 
         return (VI n)
@@ -102,7 +103,8 @@ eval e funs = do
           case s of
               Just s' -> put s'
               Nothing -> modify id
-          return v
+          trace (debugPrefix ++ "Variable [" ++ var ++ "] lookup: " ++ (show v) ++ "\n") $
+            return v
       Call funName actuals -> do
         let (ar, susps) : _ = stack
             (formals, funBody) =
@@ -164,8 +166,8 @@ eval e funs = do
             newSusps = updateL cid newSusp susps
         put ((ar, newSusps) : tail stack, nFrames', indent)
         stack <- get
-        trace ("CProj: val = " ++ show val ++ ", \nsusp = " ++ show newSusp ++ ",\nsusps = " ++ show susps) $ 
-          return val 
+        -- trace ("CProj: val = " ++ show val ++ ", \nsusp = " ++ show newSusp ++ ",\nsusps = " ++ show susps) $
+        return val
 
 
 {-
