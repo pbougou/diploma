@@ -238,6 +238,40 @@ step expr env = do
             (heap', addr) = hAlloc h (Cons fvars tag fvalues)
         put VMSTate { globals = g, heap = heap', stack = s, nrFrames = n } 
         return (VAddr addr)
+      CaseF cid e cases -> do
+        let (evalE, st) = runState (step e env) state
+          -- nextST: next stack state
+          -- nextE:  expression to be evaluated next
+            (nextE, nextST) = 
+              case evalE of
+          -- 1. evalE is an expression 
+                VInt i -> 
+                  let nextE = fromMaybe (error "Case: Patterns must be integers") (L.lookup (IPat i) cases)
+                  in  (nextE, st)
+          -- 2. evalE is a constructor 
+                VAddr c ->  let Cons varsf tag fvalues = 
+                                  case hLookup h c of
+                                    Left l -> l
+                                    Right r -> error ("Case: " ++ r)
+                                patterns = L.map fst cases
+                                pattIndex = indexOfPattern tag patterns 0
+                                (patt, ne) = cases !! pattIndex
+
+                                -- bindPatVars :: Pattern -> [(VN, VMValue)]
+                                -- bindPatVars pat = 
+                                --   case pat of
+                                --     IPat _ -> error "Constructor pattern: Integer literal"
+                                --     CPat tag vars -> L.map bindPatVar vars
+                                -- bindPatVar :: VN -> VMValue
+                                -- bindPatVar var = 
+                                --   case Map.lookup var env of
+                                --     Just val -> val
+                                --     Nothing -> error ""
+
+                                -- st'' = ((ar, (cid, c) : susps) : st', n) 
+                            in  (ne, state)
+        put nextST
+        step nextE env
 
 fst3 (_, _, x) = x
 

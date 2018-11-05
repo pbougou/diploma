@@ -1,0 +1,2 @@
+fun main = call aux 6;
+fun aux !m = if m then m * (call aux (m-1)) else 1
