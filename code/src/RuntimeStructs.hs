@@ -1,9 +1,9 @@
 module RuntimeStructs (
-    StackFrame(..),
-    StackFrameArg(..),
+    Frame(..),
+    FrameArg(..),
     CallStack(..),
+    Depth,
     Value(..),
-    Context(..),
     Susp(..),
     FunctionsMap(..),
     NRFrames,
@@ -23,12 +23,19 @@ data Value =  VI Integer
             | VC Susp 
     deriving Show
 
-type StackFrame = (FN, [StackFrameArg])
-data StackFrameArg = StrictArg { val :: Value }
-                   | ByNameArg { expr :: Expr }
-                   | LazyArg   { expr :: Expr, isEvaluated :: Bool, cachedVal :: Maybe Value }
+data Frame = Frame FN [FrameArg] [(CaseID, Susp)]
 
-instance Show StackFrameArg where
+instance Show Frame where
+  show (Frame fn args susps) =
+    "Activation record [ " ++ show fn ++ "]\n" ++
+    "Args:\n" ++ (concatMap showLine args) ++
+    "Suspensions:\n" ++ (concatMap showLine susps)
+
+data FrameArg = StrictArg { val :: Value }
+              | ByNameArg { expr :: Expr }
+              | LazyArg   { expr :: Expr, isEvaluated :: Bool, cachedVal :: Maybe Value }
+
+instance Show FrameArg where
   show (StrictArg val) = show val
   show (ByNameArg e) = show e
   show (LazyArg e True cachedVal) =
@@ -40,11 +47,14 @@ instance Show StackFrameArg where
       Nothing -> "{ unevaluated : " ++ show expr ++ " }"
       Just val -> error $ "Corrupt lazy argument: forgot its memoized value " ++ (show val)
 
-type FunctionsMap = Map.Map String ([Formal], Expr)
+type FrameId = Int
+type Memory = Map.Map FrameId Frame
+
+type Depth = Int
+type FunctionsMap = Map.Map String ([Formal], Expr, Depth)
 
 -- cactus stack = stack + heap
-type Context = (StackFrame, [(CaseID, Susp)])
-type CallStack = [Context]
+type CallStack = [Frame]
 
 data Susp = Susp (CN, [Expr]) CallStack  -- Constructor carry the environment so far
 
@@ -62,20 +72,13 @@ instance Show Susp where
         . (" | " ++)
         . (" ] " ++)
 
--- Pretty printer for context
-showContext :: Context -> String
-showContext (ar, susps) =
-    "====================================================================\nActivation record\n" ++
-    show ar ++
-    "\nSuspensions\n" ++
-    show susps  ++
-    "\n"
-
 -- Pretty printer for callstack
 showStack :: CallStack -> String
-showStack = L.foldr (\s acc -> acc ++ showContext s) ""
+showStack = L.foldr (\s acc -> acc ++ show s) ""
 
-showStackFrame :: StackFrame -> String
-showStackFrame (fn, args) =
-  "** Stack frame [" ++ fn ++ "] **\n" ++ concatMap (\s -> show s ++ "\n") args
-  
+showList :: String -> [String] -> String
+showList delim l =
+  concat $ L.intersperse delim l
+
+showLine :: (Show s) => s -> String
+showLine s = show s ++ "\n"

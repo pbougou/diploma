@@ -30,14 +30,14 @@ main = do
     putStrLn "================================="
     putStrLn "===========Interpeter============"
     putStrLn "================================="
-    putStrLn $ "Result is: " ++ show result ++ ", StackFrames used: " ++ show framesNum 
+    putStrLn $ "Result is: " ++ show result ++ ", frames used: " ++ show framesNum 
 
 {-
   print ap  -- TC annotated AST
   
-  print $ "Result is: " ++ show result ++ ", StackFrames used: " ++ show framesNum 
+  print $ "Result is: " ++ show result ++ ", frames used: " ++ show framesNum 
   print $ "CallStack: " ++ show stack'
-  print $ "Result' is: " ++ show result' ++ ", StackFrames' used: " ++ show framesNum' 
+  print $ "Result' is: " ++ show result' ++ ", frames' used: " ++ show framesNum' 
   print $ "CallStack: " ++ show stack
 -}
 

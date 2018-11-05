@@ -60,7 +60,7 @@ spotTCs fdefs =
                         -- EMod e1 e2     -> EMod (annotateE False e1) (annotateE False e2)
                         Eif c e1 e2    -> Eif (annotateE False c) (annotateE b e1) (annotateE b e2)
                         Call n actuals -> 
-                            if b then   let Just(fsCallee, _) = Map.lookup n funsMap
+                            if b then   let Just(fsCallee, _, _) = Map.lookup n funsMap
 
                                             b'  = isVar actuals -- if true all actuals are variables
                                                 
