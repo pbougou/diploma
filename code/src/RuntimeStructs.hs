@@ -8,7 +8,7 @@ module RuntimeStructs (
     FunctionsMap(..),
     Mem(..),
     NRFrames,
-    cTOP_FRAME_ID,
+    cTOPFRAMEID,
     getFrame,
     push,
     showStack,
@@ -22,6 +22,7 @@ import Data.Map.Strict
 import qualified Data.Map.Strict as Map
 
 import Text.Read
+import Data.Maybe
 
 -- Runtime data structures
 data Value =  VI Integer 
@@ -33,9 +34,9 @@ data Frame = Frame { fName :: FN, fArgs :: [FrameArg], fSusps :: [(CaseID, Susp)
 
 instance Show Frame where
   show (Frame fn args susps prev) =
-    "* Activation record [ function: " ++ show fn ++ ", previous frame: " ++ (show prev) ++ " ]\n" ++
-    "Args:\n" ++ (concatMap showLine args) ++
-    "Suspensions:\n" ++ (concatMap showLine susps)
+    "* Activation record [ function: " ++ show fn ++ ", previous frame: " ++ show prev ++ " ]\n" ++
+    "Args:\n" ++ concatMap showLine args ++
+    "Suspensions:\n" ++ concatMap showLine susps
 
 data FrameArg = StrictArg { val :: Value }
               | ByNameArg { expr :: Expr }
@@ -47,50 +48,44 @@ instance Show FrameArg where
   show (LazyArg e True cachedVal) =
     case cachedVal of
       Just val -> "{ cached : " ++ show cachedVal ++ " }"
-      Nothing -> error $ "Corrupt lazy argument of expression: " ++ (show e)
+      Nothing -> error $ "Corrupt lazy argument of expression: " ++ show e
   show (LazyArg expr False cachedVal) =
     case cachedVal of
       Nothing -> "{ unevaluated : '" ++ show expr ++ "' }"
-      Just val -> error $ "Corrupt lazy argument: forgot its memoized value " ++ (show val)
+      Just val -> error $ "Corrupt lazy argument: forgot its memoized value " ++ show val
 
 data Mem = Mem { memFrames :: Map.Map FrameId Frame, lastFrameId :: FrameId }
 
 instance Show Mem where
   show (Mem frames frameId) =
-    let fStrings = L.concatMap (\(k, v) -> (show k) ++ " -> " ++ (show v) ++ "\n") $ Map.assocs frames
-    in  "***** Memory ******\n" ++ "* Last frame ID : " ++ (show frameId) ++ "\n" ++ fStrings
+    let fStrings = L.concatMap (\(k, v) -> show k ++ " -> " ++ show v ++ "\n") $ Map.assocs frames
+    in  "***** Memory ******\n" ++ "* Last frame ID : " ++ show frameId ++ "\n" ++ fStrings
 
 push :: Mem -> Frame -> Mem
 push mem f =
-  let lastId = (lastFrameId mem) + 1
+  let lastId = lastFrameId mem + 1
       frames' = Map.insert lastId f (memFrames mem)
   in  Mem { memFrames = frames', lastFrameId = lastId }
 
 getFrame :: Mem -> FrameId -> Frame
-getFrame mem i =
-  case Map.lookup i (memFrames mem) of
-    Just frame -> frame
-    Nothing -> error $ "Internal error: no frame in memory for id " ++ (show i)
+getFrame mem i = fromMaybe (error $ "Internal error: no frame in memory for id " ++ show i) (Map.lookup i (memFrames mem))
 
 updFrame :: Mem -> FrameId -> Frame -> Mem
 updFrame mem frameId frame =
   mem{memFrames = Map.insert frameId frame (memFrames mem)}
 
-cTOP_FRAME_ID :: FrameId
-cTOP_FRAME_ID = 0
+cTOPFRAMEID :: FrameId
+cTOPFRAMEID = 0
 
 frameTrace :: Mem -> FrameId -> [Frame]
 frameTrace mem fId =
   case Map.lookup fId (memFrames mem) of
-    Just frame@(Frame _ _ _ prevId) -> frame : (frameTrace mem prevId)
+    Just frame@(Frame _ _ _ prevId) -> frame : frameTrace mem prevId
     Nothing ->
-      if fId == cTOP_FRAME_ID then [] else error $ "Frame trace error for id " ++ (show fId)
+      if fId == cTOPFRAMEID then [] else error $ "Frame trace error for id " ++ show fId
 
 type Depth = Int
 type FunctionsMap = Map.Map String ([Formal], Expr, Depth)
-
--- cactus stack = stack + heap
--- type CallStack = [Frame]
 
 data Susp = Susp (CN, [Expr]) FrameId  -- Constructor carry the environment so far
 
@@ -112,7 +107,7 @@ showStack :: Mem -> FrameId -> String
 showStack mem fId = L.foldr (\s acc -> acc ++ show s) "" $ frameTrace mem fId
 
 showList :: String -> [String] -> String
-showList delim l = concat $ L.intersperse delim l
+showList = L.intercalate
 
 showLine :: (Show s) => s -> String
 showLine s = show s ++ "\n"

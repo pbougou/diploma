@@ -261,13 +261,13 @@ wrapConsP (fdef : fdefs) = wrapConsF fdef : wrapConsP fdefs
         ConstrF tag exprs -> Call (wrapTag tag) $ L.map wrapConsE exprs
         c@(EInt _) -> c
         v@(EVar _) -> v
-        cp@(CProj{}) -> cp
+        cp@CProj{} -> cp
         UnaryOp unaryArithm e -> UnaryOp unaryArithm $ wrapConsE e
         BinaryOp binArithm el er -> BinaryOp binArithm (wrapConsE el) (wrapConsE er)
         Eif c thenE elseE -> Eif (wrapConsE c) (wrapConsE thenE) (wrapConsE elseE)
         Call fn actuals -> Call fn $ L.map wrapConsE actuals
         CaseF id e cases -> CaseF id (wrapConsE e) $ L.map wrapConsBr cases
-        _ -> error ("Not handled: " ++ (show e))
+        _ -> error ("Not handled: " ++ show e)
     wrapConsBr (pat, expr) = (pat, wrapConsE expr)
     wrapTag c = '#' : c
 

@@ -51,6 +51,7 @@ data Expr =
   | EVar VN
   | EInt Integer
   | ConstrF Tag [Expr]
+  | Nil
   | CaseF CaseID Scrutinee [Branch]
   | CProj CaseID CPos     -- bound variables from case
   | UnaryOp UnaryArithm Expr

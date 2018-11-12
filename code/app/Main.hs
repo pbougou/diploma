@@ -19,7 +19,7 @@ main = do
         p''' = wrapConsP p''    -- transform constructors
         -- Evaluation 
         (result, stack, framesNum)    = run p'''
-        -- ap                         = spotTCs p
+        ap                         = spotTCs p
         -- (result', stack', framesNum') = run ap
 
     -- print p'   -- ast 
@@ -31,6 +31,10 @@ main = do
     putStrLn "===========Interpeter============"
     putStrLn "================================="
     putStrLn $ "Result is: " ++ show result ++ ", frames used: " ++ show framesNum 
+    putStrLn "================================="
+    putStrLn "==========TC-POSITIONS==========="
+    putStrLn "================================="
+    print ap
 
 {-
   print ap  -- TC annotated AST

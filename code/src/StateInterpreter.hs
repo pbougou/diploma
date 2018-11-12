@@ -4,7 +4,7 @@ module StateInterpreter (
   FunctionsMap(..),
   run,
   eval,
-  -- makeFrame,
+  makeFrameArgs,
   replaceNth,
   updateL,
   functionMap
@@ -39,7 +39,7 @@ run :: Program -> (Value, FrameId, NRFrames)
 run ast = 
     let functions = functionMap ast Map.empty
         frame0 :: Frame
-        frame0 = Frame "main" [] [] cTOP_FRAME_ID
+        frame0 = Frame "main" [] [] cTOPFRAMEID
         mem0 :: Mem
         mem0 = push (Mem Map.empty 0) frame0
         state0 = (mem0, lastFrameId mem0, 1, 0)
@@ -55,8 +55,8 @@ eval :: Expr                        -- expression to be evaluated
 eval e funs = do
   st@(mem, frameId, nFrames, indent) <- get
   let thisFrame@(Frame funName funArgs susps prevFrameId) = getFrame mem frameId
-  let debugPrefix = (show nFrames) ++ ". " ++ (L.replicate (indent*4) ' ')
-  trace (debugPrefix ++ "expr = " ++ show e ++ ", frame#" ++ (show frameId) ++ ":\n" ++ (showStack mem frameId)) $
+  let debugPrefix = show nFrames ++ ". " ++ L.replicate (indent*4) ' '
+  trace (debugPrefix ++ "expr = " ++ show e ++ ", frame#" ++ show frameId ++ ":\n" ++ showStack mem frameId) $
     case e of
       EInt n -> 
         return (VI n)
@@ -90,7 +90,7 @@ eval e funs = do
                     Nothing -> error "No function definition found"
                     Just (formals, _, _) -> 
                       let justVars = Data.List.map fst formals
-                      in  fromMaybe (error $ "variable not in formals: Var = " ++ var ++ ", memory dump: \n" ++ (show mem)) (elemIndex var justVars)
+                      in  fromMaybe (error $ "variable not in formals: Var = " ++ var ++ ", memory dump: \n" ++ show mem) (elemIndex var justVars)
               (v, s) = 
                 if i > length funArgs then error "i: out of bounds"
                 else  case funArgs !! i of
@@ -107,13 +107,10 @@ eval e funs = do
           case s of
               Just s' -> put s'
               Nothing -> modify id
-          trace (debugPrefix ++ "Variable [" ++ var ++ "] lookup: " ++ (show v) ++ "\n") $
+          trace (debugPrefix ++ "Variable [" ++ var ++ "] lookup: " ++ show v ++ "\n") $
             return v
       Call funName actuals -> do
-        let (formals, funBody, depth) =
-              case Map.lookup funName funs of
-                Nothing     -> error $ "Call function: " ++ funName ++ " does not exist"
-                Just fData  -> fData
+        let (formals, funBody, depth) = fromMaybe (error $ "Call function: " ++ funName ++ " does not exist") (Map.lookup funName funs)
             (stackFrame, (mem', _, stNum', _)) = makeFrameArgs actuals formals funs ([], st)
             -- Push frame and enter (use its frame id)
             mem'' = push mem' (Frame funName stackFrame [] frameId)
@@ -147,13 +144,10 @@ eval e funs = do
                       in  (ne, st')
         put nextST
         eval nextE funs
-      ConstrF tag exprs -> do 
-        return $ VC (Susp (tag, exprs) frameId)
+      ConstrF tag exprs -> return (VC (Susp (tag, exprs) frameId))
       CProj cid cpos -> do 
-        let susp@(Susp (_, el) savedFrameId) =
-              case L.lookup cid susps of 
-                Nothing -> error $ "CProj - not in susps, susps = " ++ show susps ++ ", memory dump: \n" ++ (show mem)
-                Just susp -> susp
+        let susp@(Susp (_, el) savedFrameId) = 
+              fromMaybe (error $ "CProj - not in susps, susps = " ++ show susps ++ ", memory dump: \n" ++ show mem) (L.lookup cid susps)
             nextE =
               -- TODO: must be fixed in the grammar
               if cpos >= length el then ConstrF "Nil" []
@@ -302,7 +296,9 @@ makeFrameArgs (actual : actuals) (formal : formals) funs (frames, st) =
     G.Lazy ->
       let frames' = LazyArg { expr = actual, isEvaluated = False, cachedVal = Nothing } : frames
       in  makeFrameArgs actuals formals funs (frames', st)
-
+-- TODO: Fix Nil
+makeFrameArgs actuals@_ formals@_ funs st = makeFrameArgs [ConstrF "Nil" []] formals funs st
+  -- error ("makeFrameArgs: Inexhaustive patterns actuals = " ++ show actuals ++ ", formals = " ++ show formals)
 
 
 -- construct dictionary(map) where 
@@ -323,11 +319,11 @@ functionMap program _map =
 
 calcDepth :: Expr -> Depth
 calcDepth (Call fn actuals) = calcDepthMax actuals
-calcDepth (EVar {}) = 0
-calcDepth (EInt {}) = 0
+calcDepth EVar {} = 0
+calcDepth EInt {} = 0
 calcDepth (ConstrF _ el) = calcDepthMax el
-calcDepth (CaseF _ e brs) = calcDepthMax $ e : (L.map snd brs)
-calcDepth (CProj {}) = 0
+calcDepth (CaseF _ e brs) = calcDepthMax (e : L.map snd brs)
+calcDepth CProj {} = 0
 calcDepth (UnaryOp _ e) = calcDepth e
 calcDepth (BinaryOp _ e1 e2) = calcDepthMax [e1, e2]
 calcDepth (Eif e0 e1 e2) = calcDepthMax [e0, e1, e2]
