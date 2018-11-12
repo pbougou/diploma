@@ -48,16 +48,10 @@ spotTCs fdefs =
                     case expr of
                         EVar v         -> EVar v
                         EInt n         -> EInt n
-                        UnaryOp unaryArithm e -> UnaryOp unaryArithm (annotateE False e)
-                        -- EUnPlus e      -> EUnPlus (annotateE False e)
-                        -- EUnMinus e     -> EUnMinus (annotateE False e)
-                        BinaryOp binArithm e1 e2 -> 
-                            BinaryOp binArithm (annotateE False e1) (annotateE False e2)
-                        -- EAdd e1 e2     -> EAdd (annotateE False e1) (annotateE False e2)
-                        -- ESub e1 e2     -> ESub (annotateE False e1) (annotateE False e2)
-                        -- EMul e1 e2     -> EMul (annotateE False e1) (annotateE False e2)
-                        -- EDiv e1 e2     -> EDiv (annotateE False e1) (annotateE False e2)
-                        -- EMod e1 e2     -> EMod (annotateE False e1) (annotateE False e2)
+                        UnaryOp ua e -> 
+                            UnaryOp ua (annotateE False e)
+                        BinaryOp ba e1 e2 -> 
+                            BinaryOp ba (annotateE False e1) (annotateE False e2)
                         Eif c e1 e2    -> Eif (annotateE False c) (annotateE b e1) (annotateE b e2)
                         Call n actuals -> 
                             if b then   let Just(fsCallee, _, _) = Map.lookup n funsMap

@@ -38,9 +38,7 @@ type CallState = (Mem, FrameId, NRFrames, Int)
 run :: Program -> (Value, FrameId, NRFrames)
 run ast = 
     let functions = functionMap ast Map.empty
-        frame0 :: Frame
         frame0 = Frame "main" [] [] cTOPFRAMEID
-        mem0 :: Mem
         mem0 = push (Mem Map.empty 0) frame0
         state0 = (mem0, lastFrameId mem0, 1, 0)
     in  case Map.lookup "main" functions of
@@ -90,23 +88,26 @@ eval e funs = do
                     Nothing -> error "No function definition found"
                     Just (formals, _, _) -> 
                       let justVars = Data.List.map fst formals
-                      in  fromMaybe (error $ "variable not in formals: Var = " ++ var ++ ", memory dump: \n" ++ show mem) (elemIndex var justVars)
+                          errorFun = "function = " ++ funName
+                          errorVar = "\nvariable not in formals: Var = " ++ var
+                          errorVars = "\nformals = " ++ show justVars 
+                          errorMem = "\nmemory dump: \n" ++ show mem
+                          errorMsg = error (errorFun ++ errorVar ++ errorVars ++ errorMem)
+                      in  fromMaybe errorMsg (elemIndex var justVars)
               (v, s) = 
                 if i > length funArgs then error "i: out of bounds"
                 else  case funArgs !! i of
-                        StrictArg v   -> (v, Nothing)
+                        StrictArg v   -> (v, st)
                         ByNameArg e   -> 
-                          let (v, s) = runState (eval e funs) (mem, prevFrameId, nFrames, indent)
-                          in  (v, Just s)
+                          let (v, _) = runState (eval e funs) (mem, prevFrameId, nFrames, indent)
+                          in  (v, st)
                         LazyArg e b val -> 
-                            if b then (fromJust val, Nothing)
+                            if b then (fromJust val, st)
                                   else  let (v', (mem', _, n', _)) = runState (eval e funs) (mem, prevFrameId, nFrames, indent)
                                             funArgs' = replaceNth i (LazyArg e True (Just v')) funArgs
-                                            frame' = thisFrame{fArgs = funArgs'}
-                                        in  (v', Just (updFrame mem' frameId frame', frameId, n', indent))
-          case s of
-              Just s' -> put s'
-              Nothing -> modify id
+                                            frame' = thisFrame { fArgs = funArgs' }
+                                        in  (v', (updFrame mem' frameId frame', frameId, n', indent))
+          put s
           trace (debugPrefix ++ "Variable [" ++ var ++ "] lookup: " ++ show v ++ "\n") $
             return v
       Call funName actuals -> do
