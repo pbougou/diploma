@@ -56,44 +56,44 @@ spec =
 
             context "fun main = 1" $
                 it "should be 1" $ 
-                    fst3 (run [Fun "main" [] (EInt 1)]) `shouldBe` 1
+                    fromValue (fst3 (run [Fun "main" [] (EInt 1)])) `shouldBe` 1
 
             context "fun main = if 1 then 42 else 0" $
                 it "should be 42" $
-                    fst3 (run [Fun "main" [] (Eif (EInt 1) (EInt 42) (EInt 0))]) `shouldBe` 42
+                    fromValue (fst3 (run [Fun "main" [] (Eif (EInt 1) (EInt 42) (EInt 0))])) `shouldBe` 42
             
 
             context factByVal $
                 it "should be 3628800" $
-                    fst3 (run p) `shouldBe` 3628800
+                    fromValue (fst3 (run p)) `shouldBe` 3628800
 
             context gcdByVal $
                 it "should be 7" $
-                    fst3 (run astGcd) `shouldBe` 7
+                    fromValue (fst3 (run astGcd)) `shouldBe` 7
 
             context factTCbyVal $
                 it "should be 3628800" $
-                    fst3 (run astFactTC) `shouldBe` 3628800
+                    fromValue (fst3 (run astFactTC)) `shouldBe` 3628800
 
             context factByName $
                 it "should be 720" $
-                    fst3 (run astFactBN) `shouldBe` 720
+                    fromValue (fst3 (run astFactBN)) `shouldBe` 720
 
             context gcdByName $
                 it "should be 7" $
-                    fst3 (run astGcdBN) `shouldBe` 7
+                    fromValue (fst3 (run astGcdBN)) `shouldBe` 7
 
             context factLazy $ 
                 it "should be 6" $
-                    fst3 (run astFactLazy) `shouldBe` 6
+                    fromValue (fst3 (run astFactLazy)) `shouldBe` 6
             
             context gcdLazy $
                 it "should be 7" $
-                    fst3 (run astGcdLazy) `shouldBe` 7
+                    fromValue (fst3 (run astGcdLazy)) `shouldBe` 7
 
             context lazy1 $
                 it "should be 7" $
-                    fst3 (run astLazy1) `shouldBe` 7
+                    fromValue (fst3 (run astLazy1)) `shouldBe` 7
 
             
 

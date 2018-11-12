@@ -56,4 +56,4 @@ tcoSpec =
         
         context (show $ spotTCs p) $
             it "should be 3628800" $
-                fst3 (run (spotTCs p)) `shouldBe` 3628800
+                fromValue (fst3 (run (spotTCs p))) `shouldBe` 3628800
