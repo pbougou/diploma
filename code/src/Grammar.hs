@@ -8,7 +8,7 @@ module Grammar (
     Pattern(..),
     ArithmOp(..),
     UnaryArithm(..),
-    CaseID, VN, FN, CN, CPos, Tag, Scrutinee, Branch
+    CaseID, VN, FN, CN, CPos, Tag, Scrutinee, Branch, Actual
   ) where
 
 import Data.List(map, elemIndex, lookup, foldr)
@@ -40,7 +40,7 @@ type Branch = (Pattern, Expr)
 data Pattern = CPat { tag :: CN, vars :: [VN] }
              | IPat { pattVal :: Integer }
     deriving Eq
-
+type Actual = Expr
 data ArithmOp = EAdd | ESub | EMul | EDiv | EMod
     deriving Eq
 data UnaryArithm = EUnMinus | EUnPlus

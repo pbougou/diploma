@@ -21,6 +21,18 @@ actualsFS :: [Formal]
             -> Bool
 actualsFS fsCaller = L.foldr (\e acc -> searchFS fsCaller e && acc) True
 
+-- TailCall FN [Expr]    -- used for tco
+-- | Call FN [Expr] 
+-- | EVar VN
+-- | EInt Integer
+-- | ConstrF Tag [Expr]
+-- | Nil
+-- | CaseF CaseID Scrutinee [Branch]
+-- | CProj CaseID CPos     -- bound variables from case
+-- | UnaryOp UnaryArithm Expr
+-- | BinaryOp ArithmOp Expr Expr
+-- | Eif Expr Expr Expr
+
 searchFS :: [Formal]    -- caller's formals
             -> Expr     -- actual processed
             -> Bool     -- True if it is not dependent by caller's formals
@@ -39,7 +51,13 @@ searchFS fsCaller actual =
                         searchFS fsCaller e2
         Call _ acts  ->
             L.foldr (\a b -> searchFS fsCaller a && b) True acts
+        ConstrF tag exprs -> 
+            L.foldr (\a b -> searchFS fsCaller a && b) True exprs
+        CaseF {} -> error "Analysis: Case expression in actuals"
+        -- TODO: Bound by a case, are they dependent?
+        CProj {} -> error "CProj: How to find if it is dependent?"
         TailCall _ _ -> error "Tail Call: This should be unreached"
+        other@_ -> error ("expr not handled: " ++ show other)
 
 isCBV :: Expr 
         -> [Expr] 

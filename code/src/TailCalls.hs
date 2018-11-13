@@ -44,30 +44,38 @@ spotTCs fdefs =
         annotateL (Fun funName formals body) = Fun funName formals (annotateE True body) 
             where
                 annotateE :: Bool -> Expr -> Expr
-                annotateE b expr =
-                    case expr of
-                        EVar v         -> EVar v
-                        EInt n         -> EInt n
-                        UnaryOp ua e -> 
-                            UnaryOp ua (annotateE False e)
-                        BinaryOp ba e1 e2 -> 
-                            BinaryOp ba (annotateE False e1) (annotateE False e2)
-                        Eif c e1 e2    -> Eif (annotateE False c) (annotateE b e1) (annotateE b e2)
-                        Call n actuals -> 
-                            if b then   let Just(fsCallee, _, _) = Map.lookup n funsMap
+                annotateE _ (EVar v) = EVar v
+                annotateE _ (EInt n) = EInt n
+                annotateE _ (UnaryOp ua e) = UnaryOp ua (annotateE False e)
+                annotateE _ (BinaryOp ba e1 e2) = BinaryOp ba (annotateE False e1) (annotateE False e2)
+                annotateE b (Eif c e1 e2) = Eif (annotateE False c) (annotateE b e1) (annotateE b e2)
+                annotateE True (Call n actuals) = 
+                    let Just(fsCallee, _, _) = Map.lookup n funsMap
 
-                                            b'  = isVar actuals -- if true all actuals are variables
-                                                
-                                            b'' = L.foldr (\e acc -> 
-                                                            let isDependent = searchFS formals e
-                                                                cbv = isCBV e actuals fsCallee
-                                                            in  (cbv || isDependent) && acc) True actuals
+                        b'  = isVar actuals -- if true all actuals are variables
+                            
+                        b'' = L.foldr (\e acc -> 
+                                        let isDependent = searchFS formals e
+                                            cbv = isCBV e actuals fsCallee
+                                        in  (cbv || isDependent) && acc) True actuals
 
-                                        in  if b' || b'' 
-                                            then TailCall n actuals
-                                            else Call n actuals
-                            else Call n actuals
-                        TailCall _ _ -> error "Tail Call: This should be unreached"
+                    in  if b' || b'' 
+                        then TailCall n actuals
+                        else Call n actuals
+                annotateE b (CaseF cid scrutinee branches) = 
+                    CaseF cid (annotateE False scrutinee) (annotateBs b branches)
+                -- TODO: Modulo cons case
+                annotateE _ cons@ConstrF {} = cons
+                annotateE _ cproj@CProj {} = cproj
+                annotateE False funcall@(Call n actuals) = funcall 
+                annotateE _ (TailCall _ _) = error "Tail Call: This should be unreached" 
+                annotateE _ exprs@_ = error ("Unhandled expressions = " ++ show exprs)
+
+                annotateB :: Bool -> Branch -> Branch 
+                annotateB b (patt, expr) = (patt, annotateE b expr)
+                
+                annotateBs :: Bool -> [Branch] -> [Branch]
+                annotateBs b = L.map (annotateB b)
 
     in  L.map annotateL fdefs
 
