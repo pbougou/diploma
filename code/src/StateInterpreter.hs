@@ -189,7 +189,7 @@ eval e funs = do
               let errorFn = "Call function: " ++ calleeName ++ " does not exist"
               in  fromMaybe (error errorFn) (Map.lookup calleeName funs)
 
-        -- put (checkMutate actuals formals stArgs)
+        put (checkMutate actuals formals calleeName funs stArgs st)
         eval funBody funs
 
 -- Runtime check if mutation is possible and mutate
