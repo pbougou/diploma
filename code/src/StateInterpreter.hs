@@ -102,11 +102,12 @@ eval e funs = do
                           let (v, _) = runState (eval e funs) (mem, prevFrameId, nFrames, indent)
                           in  (v, st)
                         LazyArg e b val -> 
-                            if b then (fromJust val, st)
-                                  else  let (v', (mem', _, n', _)) = runState (eval e funs) (mem, prevFrameId, nFrames, indent)
-                                            funArgs' = replaceNth i (LazyArg e True (Just v')) funArgs
-                                            frame' = thisFrame { fArgs = funArgs' }
-                                        in  (v', (updFrame mem' frameId frame', frameId, n', indent))
+                            if b  then (fromJust val, st)
+                                  else  
+                                    let (v', (mem', _, n', _)) = runState (eval e funs) (mem, prevFrameId, nFrames, indent)
+                                        funArgs' = replaceNth i (LazyArg e True (Just v')) funArgs
+                                        frame' = thisFrame { fArgs = funArgs' }
+                                    in  (v', (updFrame mem' frameId frame', frameId, n', indent))
           put s
           trace (debugPrefix ++ "Variable [" ++ var ++ "] lookup: " ++ show v ++ "\n") $
             return v
@@ -163,71 +164,76 @@ eval e funs = do
         put (mem', frameId, nFrames', indent)
         -- trace ("CProj: val = " ++ show val ++ ", \nsusp = " ++ show newSusp ++ ",\nsusps = " ++ show susps) $
         return val
+      TailCall calleeName actuals -> do
+        ---------------------------------------------
+        -- funName: callee's function name          |
+        -- actuals: callee's actual parameters      |
+        -- formals: callee's formal parameters      |
+        -- callerName: caller's name                |
+        -- callerFormals: caller's formals          |
+        ---------------------------------------------
+        -- st:    state (callstack, e.r. in monad)  |
+        -- oldSt: current call stack                |
+        -- fSt:   top frame                         |
+        -- st':   next frames                       |
+        -- n:     number of stackFrames used so far |
+        ---------------------------------------------
+        let callerName = funName 
+            stArgs = funArgs
 
+            (callerFormals, _, _) = 
+              let errorFn = "Call function: " ++ callerName ++ " does not exist"
+              in  fromMaybe (error errorFn) (Map.lookup callerName funs)
 
-{-
-    
-    TailCall funName actuals -> do
-      ---------------------------------------------
-      -- funName: callee's function name          |
-      -- actuals: callee's actual parameters      |
-      -- formals: callee's formal parameters      |
-      -- callerName: caller's name                |
-      -- callerFormals: caller's formals          |
-      ---------------------------------------------
-      -- st:    state (callstack, e.r. in monad)  |
-      -- oldSt: current call stack                |
-      -- fSt:   top frame                         |
-      -- st':   next frames                       |
-      -- n:     number of stackFrames used so far |
-      ---------------------------------------------
-      st@(oldSt@(fSt : st'), n) <- get
-      let (callerName, stArgs) = fSt
+            (formals, funBody, _) = 
+              let errorFn = "Call function: " ++ calleeName ++ " does not exist"
+              in  fromMaybe (error errorFn) (Map.lookup calleeName funs)
 
-          (callerFormals, _) = case Map.lookup callerName funs of
-                                  Nothing     -> error $ "Call function: " ++ callerName ++ " does not exist"
-                                  Just (f, e) -> (f, e)
+        -- put (checkMutate actuals formals stArgs)
+        eval funBody funs
 
-          (formals, funBody) = case Map.lookup funName funs of
-                                  Nothing     -> error $ "Call function: " ++ funName ++ " does not exist"
-                                  Just (f, e) -> (f, e)
+-- Runtime check if mutation is possible and mutate
+checkMutate :: [Expr]            -- list of actual parameters
+              -> [Formal]        -- callee's formal parameters
+              -> FN
+              -> FunctionsMap
+              -> [FrameArg]      -- previous stackframe to be mutated
+              -> CallState       
+              -> CallState
+checkMutate actuals@(a : as) formals@(f : fs) calleeName funs args thisState = 
+  let (mem, frameId, nFrames, indent) = thisState
+      thisFrame@(Frame fn fnArgs susps prevFrameId) = getFrame mem frameId
+      (callerFormals, _, _) = fromMaybe (error $ "Function " ++ fn ++ " not found") (Map.lookup fn funs)
+  in  
+      -- Case 1: True if actuals not dependent by caller's formals
+      if actualsFS formals actuals 
+          then  let (args', nextState) = makeFrameArgs actuals formals funs ([], thisState)
+                    (mem', frameId', n, ident') = nextState
+                    newFrame = Frame calleeName args' susps prevFrameId 
+                    nextState' = (updFrame mem' frameId newFrame, frameId, n, indent)
+                in  nextState'
 
-          -- Runtime check if mutation is possible and mutate
-          checkMutate :: [Expr]                 -- list of actual parameters
-                        -> [Formal]             -- callee's formal parameters
-                        -> [FrameArg]      -- previous stackframe to be mutated
-                        -> (CallStack, Integer) -- new stack
-          checkMutate actuals@(a : as) formals@(f : fs) args 
-            -- Case 1: True if actuals not dependent by caller's formals
-            | actualsFS callerFormals actuals =
-                  let (args', (s : ss, frNum)) = makeFrame actuals formals funs ([], st)
-                      frame' = (funName, args')
-                  in  (frame' : ss, frNum)   -- make stack frame and throw old
+--   --------------------------------------------------------------
+--   -- Case 2: If all actuals are variables (or values-integers)
+--   --  Case 2a, 2b are handled in mutate
+--   --------------------------------------------------------------
+--   -- Case 3: Actual parameter is expr in CBV position
+--   --------------------------------------------------------------
+          else  let (args', nextState)    = mutate callerFormals formals args 0 funs actuals ([], thisState)
+                    (mem', frameId, nFrames', indent') = thisState
+                    newFrame = Frame calleeName args' susps prevFrameId
+                in  (updFrame mem' frameId newFrame, frameId, nFrames', indent')
 
-            --------------------------------------------------------------
-            -- Case 2: If all actuals are variables (or values-integers)
-            --  Case 2a, 2b are handled in mutate
-            --------------------------------------------------------------
-            -- Case 3: Actual parameter is expr in CBV position
-            --------------------------------------------------------------
-            | otherwise =  
-              let (args', nextST)    = mutate callerFormals formals args 0 funs actuals ([], st)
-                  (newStack, newNum) = nextST
-              in  ((funName, args') : tail newStack, newNum)
-
-      put (checkMutate actuals formals stArgs)
-
-      eval funBody funs
 
 --  case 2a, case 2b mutation
-mutate :: [Formal]                                  -- caller's formals
-        -> [Formal]                                 -- callee's formals
-        -> [FrameArg]                          -- current stack frame
-        -> Int                                      -- index in actuals
-        -> FunctionsMap                             -- map K: function name, V: (formals, body)
-        -> [Expr]                                   -- actuals
-        -> ([FrameArg], (CallStack, Integer))  -- acc (stackFrame, state)
-        -> ([FrameArg], (CallStack, Integer))  -- new (stackFrame, state)
+mutate :: [Formal]                 -- caller's formals
+        -> [Formal]                -- callee's formals
+        -> [FrameArg]              -- current stack frame
+        -> Int                     -- index in actuals
+        -> FunctionsMap            -- map K: function name, V: (formals, body)
+        -> [Expr]                  -- actuals
+        -> ([FrameArg], CallState) -- acc (stackFrame, state)
+        -> ([FrameArg], CallState) -- new (stackFrame, state)
 mutate _        _        _    _  _    []       (args', st') = (reverse args', st')
 mutate callerFs calleeFs args ix funs (a : as) (args', st)  =
   let (_, tp) = calleeFs !! ix 
@@ -251,14 +257,20 @@ mutate callerFs calleeFs args ix funs (a : as) (args', st)  =
                                                       in  (StrictArg v, st')
                       CBN    -> case tp' of
                                   CBV   ->  let StrictArg v = arg 
-                                            in  (ByNameArg (EInt v), st)
+                                            in  case v of 
+                                                  VI v' -> (ByNameArg (EInt v'), st)
+                                                  VC c  -> error ("TCO: CBN - CBV, constructor = " ++ show c)
                                   CBN    -> (arg, st)  
                                   G.Lazy -> let LazyArg e b v = arg 
-                                            in  if b then (ByNameArg (EInt (fromJust v)), st)  
-                                                else (ByNameArg e, st)  
+                                            in  if b 
+                                                  then  case fromJust v of
+                                                          VI v' -> (ByNameArg (EInt v'), st) 
+                                                          VC c  -> error ("TCO: CBN - Lazy, constructor = " ++ show c)
+                                                  else (ByNameArg e, st)  
                       G.Lazy -> case tp' of
-                                  CBV     ->  let StrictArg v = arg 
-                                              in  (LazyArg (EInt v) True (Just v), st)  
+                                  CBV     ->  error "TCO Lazy-CBV ????"
+                                              -- let StrictArg v = arg 
+                                              -- in  (LazyArg (EInt v) True (Just v), st)  
                                   CBN     ->  let ByNameArg e = arg 
                                               in  (LazyArg e False Nothing, st)  
                                   G.Lazy  ->  (arg, st) 
@@ -266,7 +278,7 @@ mutate callerFs calleeFs args ix funs (a : as) (args', st)  =
 
         EInt n -> 
           let arg' = case tp of 
-                        CBV     -> StrictArg { val = n } 
+                        CBV     -> StrictArg { val = VI n } 
                         CBN     -> ByNameArg { expr = a }
                         G.Lazy  -> LazyArg { expr = a, isEvaluated = False, cachedVal = Nothing } 
           in  mutate callerFs calleeFs args (ix + 1) funs as (arg' : args', st)
@@ -277,9 +289,8 @@ mutate callerFs calleeFs args ix funs (a : as) (args', st)  =
               arg'           = StrictArg v'
           in  mutate callerFs calleeFs args (ix + 1) funs as (arg' : args', st')
           -- error $ "It should not be an expression: " ++ show a 
--}  
 
-makeFrameArgs :: [Expr]
+makeFrameArgs :: [Actual]
               -> [Formal]
               -> FunctionsMap
               -> ([FrameArg], CallState)
