@@ -34,7 +34,6 @@ import System.IO.Unsafe
 type CallState = (Mem, FrameId, NRFrames, Int)
 
 -- Programs are considered type safe  ===  (No type check)
--- Also do not name your functions cons 
 run :: Program -> (Value, FrameId, NRFrames)
 run ast = 
     let functions = functionMap ast Map.empty
@@ -146,21 +145,13 @@ eval e funs = do
                       in  (ne, st')
         put nextST
         eval nextE funs
+      Nil -> return (VC (Susp ("Nil", []) frameId))
       ConstrF tag exprs -> return (VC (Susp (tag, exprs) frameId))
       CProj cid cpos -> do 
         let susp@(Susp (_, el) savedFrameId) = 
               fromMaybe (error $ "CProj - not in susps, susps = " ++ show susps ++ ", memory dump: \n" ++ show mem) (L.lookup cid susps)
-            nextE =
-              -- TODO: must be fixed in the grammar
-              if cpos >= length el then ConstrF "Nil" []
-              else el !! cpos
+            nextE = el !! cpos
             (val, (mem', _, nFrames', _)) = runState (eval nextE funs) (mem, savedFrameId, nFrames, indent)
-            -- TODO: review the following
-            -- el' =
-            --   case val of
-            --     VI v -> replaceNth cpos (EInt v) el
-            --     VC c -> el -- error $ "Constructor " ++ show c
-            -- newSusp = Susp (cn, el') savedFrameId'
         put (mem', frameId, nFrames', indent)
         -- trace ("CProj: val = " ++ show val ++ ", \nsusp = " ++ show newSusp ++ ",\nsusps = " ++ show susps) $
         return val

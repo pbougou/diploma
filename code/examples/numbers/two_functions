@@ -1,0 +1,4 @@
+fun fun1 #a = call fun2 (a-1);
+fun fun2 !a = a;
+fun main = (call fun1 17) + (call fun2 25)
+

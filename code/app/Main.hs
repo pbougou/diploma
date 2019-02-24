@@ -6,7 +6,8 @@ import qualified Data.Map.Strict as Map
 import Parser
 import Grammar
 import StateInterpreter
-import TailCalls
+import IntermediateTrans
+-- import TailCalls
 
 import Text.Parsec.String
 
@@ -18,8 +19,8 @@ main = do
         p''  = scopingP p'                      -- transform to CProj
         p''' = wrapConsP p''                    -- transform constructors 
         (result, stack, framesNum) = run p'''   -- Evaluation
-        ap = spotTCs p                          -- trace tail call positions
-        (result', stack', framesNum') = run ap  
+        -- ap = spotTCs p                          -- trace tail call positions
+        -- (result', stack', framesNum') = run ap  
 
     -- print p'   -- ast 
     putStrLn "================================="
@@ -30,14 +31,14 @@ main = do
     putStrLn "===========Interpeter============"
     putStrLn "================================="
     putStrLn $ "Result is: " ++ show result ++ ", frames used: " ++ show framesNum 
-    putStrLn "================================="
-    putStrLn "==========TC-POSITIONS==========="
-    putStrLn "================================="
-    print ap
-    putStrLn "================================="
-    putStrLn "===========InterpetTC============"
-    putStrLn "================================="
-    putStrLn $ "Result is: " ++ show result' ++ ", frames used: " ++ show framesNum'
+    -- putStrLn "================================="
+    -- putStrLn "==========TC-POSITIONS==========="
+    -- putStrLn "================================="
+    -- print ap
+    -- putStrLn "================================="
+    -- putStrLn "===========InterpetTC============"
+    -- putStrLn "================================="
+    -- putStrLn $ "Result is: " ++ show result' ++ ", frames used: " ++ show framesNum'
 
 {-
   print ap  -- TC annotated AST

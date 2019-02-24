@@ -55,6 +55,7 @@ library:
   - TailCalls
   - Lexer
   - Parser
+  - IntermediateTrans
 
 executables:
   code-exe:

@@ -1,0 +1,4 @@
+fun f x !y #z = call g (call h y z x) (x + y);
+fun g !k !l = k * k - k;
+fun h !x y z = x + y + z;
+fun main = call f 1 2 3

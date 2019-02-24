@@ -51,7 +51,7 @@ data Expr =
   | EVar VN
   | EInt Integer
   | ConstrF Tag [Expr]
-  | Nil
+  | Nil                   -- Nil constructor
   | CaseF CaseID Scrutinee [Branch]
   | CProj CaseID CPos     -- bound variables from case
   | UnaryOp UnaryArithm Expr
@@ -92,18 +92,17 @@ instance Show Expr where
             EMul -> showsPrec 1 x . (" * " ++) . showsPrec 1 y 
             EDiv -> showsPrec 1 x . (" / " ++) . showsPrec 1 y
             EMod -> showsPrec 1 x . (" % " ++) . showsPrec 1 y
+    showsPrec p Nil = (" Nil " ++)
     showsPrec p (ConstrF tag exps) = 
-        let ending = if length exps < 2 then " Nil" else ""
-        in  showParen (p > 0) $
-                case exps of { [] -> (tag ++); _ -> (tag ++) . (" " ++) . showList exps . (ending ++)}
+        (tag ++) . (" " ++) . showList exps
     showsPrec p (CaseF caseID e lines) =
         showParen (p > 0) $
-            ("case <" ++) . (show caseID  ++) . ("> " ++) . shows e . (" of " ++) . ("{ " ++) . showLines lines . (" }" ++)
+            ("case <" ++) . (show caseID  ++) . ("> " ++) . shows e . (" of " ++) . 
+            ("{ " ++) . showLines lines . (" }" ++)
             where   showLines [] = ("" ++)
                     showLines [line] =  shows (fst line) .  
                                         showsPrec 1 (snd line)
                     showLines (line : lines) =  shows (fst line) . 
-                                                (" -> " ++) . 
                                                 shows (snd line) . 
                                                 ("; " ++) . 
                                                 showLines lines
@@ -133,7 +132,8 @@ instance Show Pattern where
         case patt of
             IPat val -> (show val ++)
             CPat cn vars -> 
-                (cn ++) 
-                . (" " ++) 
-                . (show vars ++) 
-                . (" -> " ++)
+                (case cn of
+                    "Nil" -> ("Nil" ++)
+                    "Cons" -> (cn ++) 
+                            . (" " ++) 
+                            . (show vars ++)) . (" -> " ++)
