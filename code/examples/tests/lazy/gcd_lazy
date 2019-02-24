@@ -1,0 +1,2 @@
+fun gcd a b = if b then call gcd b (a % b) else a;
+fun main = call gcd 42 35

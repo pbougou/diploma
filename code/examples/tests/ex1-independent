@@ -1,0 +1,4 @@
+fun foo x y z = call goo 7 (call h 7);
+fun goo !y !z = z - y;
+fun h !x = x * x;
+fun main = call foo 1 2 3

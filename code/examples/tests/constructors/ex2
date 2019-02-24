@@ -1,0 +1,5 @@
+fun main = call f 3 Nil;
+fun f n acc =
+    if n 
+        then call f (n - 1) (Cons n acc)
+        else acc

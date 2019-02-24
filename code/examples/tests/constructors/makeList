@@ -1,0 +1,19 @@
+fun makeList !n = if n then Cons n (call makeList (n-1)) else Nil;
+
+fun take !n #l = 
+    case l of 
+        Nil -> -2
+        Cons a b -> 
+            if n then call take (n-1) b else a;
+
+fun test n = 
+    case (call makeList n) of
+        Cons a b -> 
+            (case (Cons 42 b) of
+                Cons d b -> (case b of
+                                Cons c b -> c
+                                Nil -> d)
+                Nil -> a)
+        Nil -> -1;
+        
+fun main = call test 42

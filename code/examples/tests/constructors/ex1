@@ -1,0 +1,8 @@
+fun main = call f 1 2;
+fun f n m = 
+    1 + (case n of
+        0 -> n
+        1 -> (case m-1 of
+                1 -> n + 1
+                2 -> n + 2)
+        2 -> n + 2)

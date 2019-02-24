@@ -1,0 +1,3 @@
+fun even x = if x then call odd (x - 1) else 1;
+fun odd x = if x then call even(x - 1) else 0;
+fun main = call even 10

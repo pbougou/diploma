@@ -1,0 +1,16 @@
+fun main = call f (Cons 1 (Cons 43 (Cons 42 Nil)));
+fun f e = 
+    case e of
+        -- a = 42, b = Cons 43 Nil
+        Cons a b ->
+            (case b of
+                -- c = 43, d = Nil
+                Cons c d -> 
+                    (case d of
+                        Nil -> c -- 43
+                        Cons a b -> a + a + c)
+
+                Nil -> a)
+        Nil -> 17
+
+-- Result is 42
