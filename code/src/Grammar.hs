@@ -10,13 +10,10 @@ module Grammar (
     UnaryArithm(..),
     CaseID, VN, FN, CN, CPos, Tag, Scrutinee, Branch, Actual
   ) where
-
 import Data.List(map, elemIndex, lookup, foldr)
 import qualified Data.List as L
-
 import Data.Map.Strict
 import qualified Data.Map.Strict as Map
-
 import Text.Read
 
 type CN = String -- constructor name

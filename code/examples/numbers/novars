@@ -1,4 +1,0 @@
-fun g = 42;
-fun h = call g;
-fun main = (if call g then call h else 96)
-

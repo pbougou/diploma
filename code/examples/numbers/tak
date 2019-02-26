@@ -1,3 +1,0 @@
-fun cbv !a !b = a;
-fun cbn #a #b = a;
-fun main = (call cbn (3+4) (4+5)) + (call cbv (3+4) (4+5))

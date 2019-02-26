@@ -1,6 +1,0 @@
-fun goo n = n;
-fun foo x = 
-    case x of
-        0 -> x + x
-        1 -> x * (x+1);
-fun main = call foo 1

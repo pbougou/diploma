@@ -1,4 +1,0 @@
-fun qsort l = 
-    case l of
-        Nil -> Nil
-        Cons a b -> call qsort (call small a b) 

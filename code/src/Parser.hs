@@ -4,26 +4,19 @@ module Parser (
   program,
   sequenceOfFns,
  ) where
-
 import Debug.Trace
-
 import Grammar as G
 import Lexer
-
 import Data.List(map, elemIndex, lookup, foldr)
 import qualified Data.List as L
-
 import Text.Parsec.Expr
 import Text.Parsec
 import Text.Parsec.String
-
 import Data.Functor
 import Control.Applicative ( (<$>), (<*>), (<*), (*>) )
 import Control.Monad
-
 import Control.Monad.State
 import qualified Control.Monad.State as ST
-
 import Control.Arrow
 
 eint = EInt <$> integer

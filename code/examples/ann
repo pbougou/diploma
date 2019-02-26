@@ -1,2 +1,0 @@
-fun main = call f 3;
-fun f x = x

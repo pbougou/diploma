@@ -1,0 +1,28 @@
+fun head2 hl = 
+    case hl of 
+        Cons cons_0 cons_1 -> cons_0 
+        Nil -> -42;
+
+fun tail2 tl = 
+    case tl of 
+        Cons cons_0 cons_1 -> cons_1 
+        Nil -> -43;
+
+fun append1 xs ys =
+  case xs of
+    Nil -> ys
+    Cons a b -> Cons a (call append1 b ys) ;
+
+fun reverse1 xs = call rev2 xs Nil;
+
+fun rev2 xs !ys =
+  case xs of
+    Nil -> ys
+    Cons cons_0 cons_1 -> call rev2 cons_1 (Cons cons_0 ys);
+
+fun createlist n = if n then (Cons n (call createlist (n-1))) else Nil;
+
+fun main = 
+  call head2 (
+    call reverse1 (
+      call reverse1 (call createlist 50)))

@@ -9,24 +9,16 @@ module StateInterpreter (
   updateL,
   functionMap
 ) where
-
 import Grammar as G
 import RuntimeStructs
-
 import AuxAnalysis
-
 import Debug.Trace
-
 import Data.Maybe
-
 import Data.List(map, elemIndex, lookup, foldr)
 import qualified Data.List as L
-
 import Data.Map.Strict hiding(foldr)
 import qualified Data.Map.Strict as Map
-
 import Control.Monad.State
-
 import System.IO.Unsafe
 
 -- The state of a call: its stack, the frames counter, and a helper

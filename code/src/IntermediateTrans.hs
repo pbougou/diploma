@@ -6,12 +6,9 @@ module IntermediateTrans (
     wrapConsP,
     builtinConstrs,
 ) where
-
 import Grammar as G
-
 import Data.List(map, elemIndex, lookup, foldr)
 import qualified Data.List as L
-
 import Control.Monad.State
 import qualified Control.Monad.State as ST
 

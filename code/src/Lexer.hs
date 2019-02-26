@@ -13,7 +13,6 @@ module Lexer
   semi,
   lexer
 ) where
-
 import Text.Parsec
 import qualified Text.Parsec.Token as Token
 import Text.Parsec.Language

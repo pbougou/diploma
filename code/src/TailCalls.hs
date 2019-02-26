@@ -1,32 +1,13 @@
-{-
---  annotate: Add annotation to AST nodes 
---  for tail call positions
---}
-module TailCalls (
-    -- AP(..),        -- annotated program 
-    -- A(..),         -- annotated expression 
-    -- annotateP, 
-    spotTCs,
-) where
-
-import Grammar
-import AuxAnalysis
-
-import StateInterpreter(replaceNth, functionMap)
-
-import Data.Maybe(fromJust, fromMaybe)
-
-import Data.List(map, elemIndex, lookup, foldr)
-import qualified Data.List as L
-
-import Data.Map.Strict
-import qualified Data.Map.Strict as Map
-
-import Debug.Trace(trace)
-
 ---------------------------------------------------------------------
--- Intraprocedural analysis:
+--  Analysis to spot tail call positions
+--      New AST node: TailCall
+-- TailCall does not allocate new frame. Instead, it uses the current
+--      frame. 
+---------------------------------------------------------------------
+---------------------------------------------------------------------
+-- Intraprocedural analysis(spotTCs):
 --  Spot tail calls locally in function' s body
+--  This analysis reveals tc-positions with *good* potential.
 --------------------------------------------------------------------- 
 --      Rules about tail calls in language with CBV, CBN, Lazy:
 --          1. actuals are expressions not dependent by the formals
@@ -36,6 +17,19 @@ import Debug.Trace(trace)
 --          3. actuals are expressions dependent by the formals
 --             in cbv position(cbn, lazy are forbidden)
 ---------------------------------------------------------------------
+module TailCalls (
+    spotTCs
+) where
+import Grammar
+import AuxAnalysis
+import StateInterpreter(replaceNth, functionMap)
+import Data.Maybe(fromJust, fromMaybe)
+import Data.List(map, elemIndex, lookup, foldr)
+import qualified Data.List as L
+import Data.Map.Strict
+import qualified Data.Map.Strict as Map
+import Debug.Trace(trace)
+
 spotTCs :: Program -> Program
 spotTCs fdefs = 
     let funsMap = functionMap fdefs Map.empty 
@@ -64,10 +58,11 @@ spotTCs fdefs =
                         else Call n actuals
                 annotateE b (CaseF cid scrutinee branches) = 
                     CaseF cid (annotateE False scrutinee) (annotateBs b branches)
-                -- TODO: Modulo cons case
-                annotateE _ cons@ConstrF {} = cons
+                annotateE b (ConstrF tag (h : t)) = 
+                    ConstrF tag (annotateE b h : L.map (annotateE False) t)
+                annotateE _ funcall@Call {} = funcall
+                annotateE _ Nil = Nil
                 annotateE _ cproj@CProj {} = cproj
-                annotateE False funcall@(Call n actuals) = funcall 
                 annotateE _ (TailCall _ _) = error "Tail Call: This should be unreached" 
                 annotateE _ exprs@_ = error ("Unhandled expressions = " ++ show exprs)
 
@@ -78,6 +73,7 @@ spotTCs fdefs =
                 annotateBs b = L.map (annotateB b)
 
     in  L.map annotateL fdefs
+
 
 
 --------------------------------------------------------------------------------------------------    

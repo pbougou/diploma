@@ -1,7 +1,0 @@
-fun step n s = Cons n (call step (n+s) s);
-fun main = call take 101 (call step 1 2);
-fun take n l = 
-    case l of 
-        Nil -> -2 
-        Cons a b -> 
-            if n then call take (n-1) b else a

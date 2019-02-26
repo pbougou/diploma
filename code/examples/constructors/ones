@@ -1,7 +1,0 @@
-fun ones = Cons 1 (call ones);
-fun main = call take 4 (call ones);
-fun take n l = 
-    case l of 
-        Nil -> -2 
-        Cons a b -> 
-            if n then call take (n-1) b else a

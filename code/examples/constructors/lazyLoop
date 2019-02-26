@@ -1,2 +1,0 @@
-fun main = Cons (call loop 0) Nil;
-fun loop x = call loop x

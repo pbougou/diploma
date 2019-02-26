@@ -1,3 +1,0 @@
-fun f x !y #z = call g x y z;
-fun g !a #b c = if b then a else c;
-fun main = call f 1 0 2

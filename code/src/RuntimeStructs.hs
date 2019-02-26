@@ -17,10 +17,8 @@ module RuntimeStructs (
 import Grammar 
 import Data.List(map, elemIndex, lookup, foldr)
 import qualified Data.List as L
-
 import Data.Map.Strict
 import qualified Data.Map.Strict as Map
-
 import Text.Read
 import Data.Maybe
 

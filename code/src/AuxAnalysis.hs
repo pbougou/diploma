@@ -4,18 +4,15 @@ module AuxAnalysis (
     isCBV,
     isVar
 ) where
-
 import Grammar 
-
 import Data.Maybe
-
 import Data.List(map, elemIndex, lookup, foldr)
 import qualified Data.List as L
-
 import Data.Map.Strict
 import qualified Data.Map.Strict as Map
 
-
+-- Check if every actual is not dependented
+--  Calls searchFS for every formal of caller function
 actualsFS :: [Formal]
             -> [Expr]
             -> Bool
@@ -33,15 +30,20 @@ actualsFS fsCaller = L.foldr (\e acc -> searchFS fsCaller e && acc) True
 -- | BinaryOp ArithmOp Expr Expr
 -- | Eif Expr Expr Expr
 
+-- Assuming 
+--  1. renaming in variables bound by case patterns 
+--  2. case expression not in function' s actuals or constructors expressions
 searchFS :: [Formal]    -- caller's formals
-            -> Expr     -- actual processed
+            -> Expr     -- calle' s actual processed
             -> Bool     -- True if it is not dependent by caller's formals
 searchFS fsCaller actual = 
     case actual of
-        EVar v       -> case L.lookup v fsCaller of
-                            Nothing -> error "Variable must be in formals"
-                            Just _  -> False
-        EInt n       -> True
+        EVar v ->   
+            case L.lookup v fsCaller of
+                Nothing -> error ("Variable must be in formals, var = " ++ show v)
+                Just _  -> False
+        EInt n -> True
+        Nil    -> True
         UnaryOp unaryArithm e -> searchFS fsCaller e
         BinaryOp binAr e1 e2 ->
             searchFS fsCaller e1 && 
@@ -53,11 +55,10 @@ searchFS fsCaller actual =
             L.foldr (\a b -> searchFS fsCaller a && b) True acts
         ConstrF tag exprs -> 
             L.foldr (\a b -> searchFS fsCaller a && b) True exprs
-        CaseF {} -> error "Analysis: Case expression in actuals"
-        -- TODO: Bound by a case, are they dependent?
-        CProj {} -> error "CProj: How to find if it is dependent?"
+        CaseF _ scr brs -> 
+            L.foldr ((\a b -> searchFS fsCaller a && b) . snd) True brs
+        CProj {} -> False
         TailCall _ _ -> error "Tail Call: This should be unreached"
-        other@_ -> error ("expr not handled: " ++ show other)
 
 isCBV :: Expr 
         -> [Expr] 
@@ -78,4 +79,6 @@ isVar (e : es) =
     case e of
         EVar _ -> isVar es
         EInt _ -> isVar es
+        Nil    -> isVar es
+        CProj{}-> isVar es 
         _      -> False

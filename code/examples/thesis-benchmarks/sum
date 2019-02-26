@@ -1,0 +1,13 @@
+fun sum l !acc = 
+    case l of
+        Cons h t -> (call sum t (h + acc))
+        Nil -> acc
+;
+fun main = call sum (Cons 1 (Cons 2 (Cons 3 (Cons 4 Nil)))) 0
+
+{-
+Sharing variables --> Global reasoning
+1. consuming lists (and, sum, ...)
+2. constructing lists 
+3. modifying lists
+-}

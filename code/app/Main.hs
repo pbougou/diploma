@@ -7,7 +7,7 @@ import Parser
 import Grammar
 import StateInterpreter
 import IntermediateTrans
--- import TailCalls
+import TailCalls
 
 import Text.Parsec.String
 
@@ -19,22 +19,22 @@ main = do
         p''  = scopingP p'                      -- transform to CProj
         p''' = wrapConsP p''                    -- transform constructors 
         (result, stack, framesNum) = run p'''   -- Evaluation
-        -- ap = spotTCs p                          -- trace tail call positions
+        ap = spotTCs p''                        -- trace tail call positions
         -- (result', stack', framesNum') = run ap  
 
     -- print p'   -- ast 
     putStrLn "================================="
     putStrLn "=====Abstract Syntax Tree========"
     putStrLn "================================="
-    print p''
+    print p'''
     putStrLn "================================="
     putStrLn "===========Interpeter============"
     putStrLn "================================="
     putStrLn $ "Result is: " ++ show result ++ ", frames used: " ++ show framesNum 
-    -- putStrLn "================================="
-    -- putStrLn "==========TC-POSITIONS==========="
-    -- putStrLn "================================="
-    -- print ap
+    putStrLn "================================="
+    putStrLn "==========TC-POSITIONS==========="
+    putStrLn "================================="
+    print ap
     -- putStrLn "================================="
     -- putStrLn "===========InterpetTC============"
     -- putStrLn "================================="
