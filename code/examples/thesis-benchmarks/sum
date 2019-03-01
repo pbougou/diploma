@@ -3,11 +3,14 @@ fun sum l !acc =
         Cons h t -> (call sum t (h + acc))
         Nil -> acc
 ;
-fun main = call sum (Cons 1 (Cons 2 (Cons 3 (Cons 4 Nil)))) 0
+fun makeList n !acc = if n then call makeList (n-1) (Cons n acc) else acc;
+fun two_sum l = (call sum l 0) + (call sum l 0);
+fun main = call two_sum (call makeList 1 Nil)
 
 {-
-Sharing variables --> Global reasoning
-1. consuming lists (and, sum, ...)
-2. constructing lists 
-3. modifying lists
+    (Cons 1 (Cons 2 (Cons 3 (Cons 4 Nil))))
+    Sharing variables --> Global reasoning
+    1. consuming lists (and, sum, ...)
+    2. constructing lists 
+    3. modifying lists
 -}

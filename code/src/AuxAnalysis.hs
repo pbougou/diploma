@@ -2,7 +2,8 @@ module AuxAnalysis (
     actualsFS,
     searchFS,
     isCBV,
-    isVar
+    isVar,
+    areVars
 ) where
 import Grammar 
 import Data.Maybe
@@ -10,13 +11,6 @@ import Data.List(map, elemIndex, lookup, foldr)
 import qualified Data.List as L
 import Data.Map.Strict
 import qualified Data.Map.Strict as Map
-
--- Check if every actual is not dependented
---  Calls searchFS for every formal of caller function
-actualsFS :: [Formal]
-            -> [Expr]
-            -> Bool
-actualsFS fsCaller = L.foldr (\e acc -> searchFS fsCaller e && acc) True
 
 -- TailCall FN [Expr]    -- used for tco
 -- | Call FN [Expr] 
@@ -30,7 +24,14 @@ actualsFS fsCaller = L.foldr (\e acc -> searchFS fsCaller e && acc) True
 -- | BinaryOp ArithmOp Expr Expr
 -- | Eif Expr Expr Expr
 
--- Assuming 
+-- Check if every actual is not dependented
+--  Calls searchFS for every formal of caller function
+actualsFS :: [Formal]
+            -> [Expr]
+            -> Bool
+actualsFS fsCaller = L.foldr (\e acc -> searchFS fsCaller e && acc) True
+
+-- Assuming: 
 --  1. renaming in variables bound by case patterns 
 --  2. case expression not in function' s actuals or constructors expressions
 searchFS :: [Formal]    -- caller's formals
@@ -71,14 +72,17 @@ isCBV e es fs =
         CBV -> True
         _   -> False
 
--- Check if all actual parameters are values or variables
-isVar :: [Expr] -- actuals
-        -> Bool -- True if all are values or variables
-isVar []       = True 
-isVar (e : es) = 
-    case e of
-        EVar _ -> isVar es
-        EInt _ -> isVar es
-        Nil    -> isVar es
-        CProj{}-> isVar es 
+-- Check if all actuals all variables or numbers
+areVars :: [Expr] -> Bool
+areVars = L.foldr (\a b -> isVar a && b) True
+
+-- Check if an actual parameter is a value or a variable
+isVar :: Expr -- actuals
+        -> Bool -- True if is value or variable
+isVar e = 
+    case e of 
+        EVar _ -> True
+        EInt _ -> True
+        Nil    -> True
+        CProj{}-> True 
         _      -> False

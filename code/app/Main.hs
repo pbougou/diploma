@@ -19,9 +19,10 @@ main = do
         p''  = scopingP p'                      -- transform to CProj
         p''' = wrapConsP p''                    -- transform constructors 
         (result, stack, framesNum) = run p'''   -- Evaluation
-        ap = spotTCs p''                        -- trace tail call positions
-        -- (result', stack', framesNum') = run ap  
+        (ap, tcCands) = spotTCs p''                        -- trace tail call positions
+        (result', stack', framesNum') = run ap  
 
+    print tcCands
     -- print p'   -- ast 
     putStrLn "================================="
     putStrLn "=====Abstract Syntax Tree========"

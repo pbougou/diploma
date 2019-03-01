@@ -15,14 +15,16 @@ fun append1 xs ys =
 
 fun reverse1 xs = call rev2 xs Nil;
 
-fun rev2 xs !ys =
+fun rev2 xs ys =
   case xs of
     Nil -> ys
     Cons cons_0 cons_1 -> call rev2 cons_1 (Cons cons_0 ys);
 
 fun createlist n = if n then (Cons n (call createlist (n-1))) else Nil;
 
+fun rev3 x !y = call rev3 x (Cons 1 Nil);
+
 fun main = 
   call head2 (
     call reverse1 (
-      call reverse1 (call createlist 50)))
+      call reverse1 (call createlist 5)))

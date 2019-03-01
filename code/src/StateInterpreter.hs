@@ -33,14 +33,15 @@ run ast =
         mem0 = push (Mem Map.empty 0) frame0
         state0 = (mem0, lastFrameId mem0, 1, 0)
     in  case Map.lookup "main" functions of
-            Nothing              -> error "main not found"
-            Just (actuals, expr, _) -> let (v, (_, s0, s1, _)) = runState (eval expr functions) state0
-                                       in  (v, s0, s1)
+            Nothing -> error "main not found"
+            Just (actuals, expr, _) -> 
+              let (v, (_, s0, s1, _)) = runState (eval expr functions) state0
+              in  (v, s0, s1)
 
-eval :: Expr                        -- expression to be evaluated
-    ->  FunctionsMap                -- dictionary (K: function name, V: (formals, body))
-    ->  State CallState             -- State: execution stack, number of stackframes allocated
-              Value                 -- Value: evaluation result
+eval :: Expr            -- expression to be evaluated
+    ->  FunctionsMap    -- dictionary (K: function name, V: (formals, body))
+    ->  State CallState -- State: execution stack, number of stackframes allocated
+              Value     -- Value: evaluation result
 eval e funs = do
   st@(mem, frameId, nFrames, indent) <- get
   let thisFrame@(Frame funName funArgs susps prevFrameId) = getFrame mem frameId
@@ -74,7 +75,7 @@ eval e funs = do
         if vc /= 0  then eval l funs
                     else eval r funs
       EVar var -> do
-        -- Case variable is in formal parameteres of a function
+        -- Case: variable is in formal parameteres of a function
           let i = case Map.lookup funName funs of
                     Nothing -> error "No function definition found"
                     Just (formals, _, _) -> 
@@ -139,7 +140,7 @@ eval e funs = do
         eval nextE funs
       Nil -> return (VC (Susp ("Nil", []) frameId))
       ConstrF tag exprs -> return (VC (Susp (tag, exprs) frameId))
-      CProj cid cpos -> do 
+      CProj cid cpos -> do -- forces evaluation
         let susp@(Susp (_, el) savedFrameId) = 
               fromMaybe (error $ "CProj - not in susps, susps = " ++ show susps ++ ", memory dump: \n" ++ show mem) (L.lookup cid susps)
             nextE = el !! cpos
@@ -148,12 +149,14 @@ eval e funs = do
         -- trace ("CProj: val = " ++ show val ++ ", \nsusp = " ++ show newSusp ++ ",\nsusps = " ++ show susps) $
         return val
       TailCall calleeName actuals -> do
-        ---------------------------------------------
-        -- funName: callee's function name          |
-        -- actuals: callee's actual parameters      |
-        -- formals: callee's formal parameters      |
-        -- callerName: caller's name                |
-        -- callerFormals: caller's formals          |
+        ---------------------------------- |
+        -- *************CALLEE*************|
+        -- funName: function name          |
+        -- actuals: actual parameters      |
+        -- formals: formal parameters      |
+        -- *************CALLER*************|
+        -- callerName: caller's name       |
+        -- callerFormals: caller's formals |
         ---------------------------------------------
         -- st:    state (callstack, e.r. in monad)  |
         -- oldSt: current call stack                |
@@ -197,10 +200,10 @@ checkMutate actuals@(a : as) formals@(f : fs) calleeName funs args thisState =
                 in  nextState'
 
 --   --------------------------------------------------------------
---   -- Case 2: If all actuals are variables (or values-integers)
---   --  Case 2a, 2b are handled in mutate
+--   -- Case 2: If all actuals are variables (or values-integers) |
+--   --  Case 2a, 2b are handled in mutate                        |
 --   --------------------------------------------------------------
---   -- Case 3: Actual parameter is expr in CBV position
+--   -- Case 3: Actual parameter is expr in CBV position          |
 --   --------------------------------------------------------------
           else  let (args', nextState)    = mutate callerFormals formals args 0 funs actuals ([], thisState)
                     (mem', frameId, nFrames', indent') = thisState

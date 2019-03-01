@@ -5,9 +5,10 @@
 --      frame. 
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
--- Intraprocedural analysis(spotTCs):
+-- Local (intraprocedural) analysis(spotTCs):
 --  Spot tail calls locally in function' s body
 --  This analysis reveals tc-positions with *good* potential.
+--  *****************What happens with sharing??*********************
 --------------------------------------------------------------------- 
 --      Rules about tail calls in language with CBV, CBN, Lazy:
 --          1. actuals are expressions not dependent by the formals
@@ -28,52 +29,97 @@ import Data.List(map, elemIndex, lookup, foldr)
 import qualified Data.List as L
 import Data.Map.Strict
 import qualified Data.Map.Strict as Map
+import Control.Monad.State
 import Debug.Trace(trace)
 
-spotTCs :: Program -> Program
+-- Returns:
+--  1. Tail-call annotated program
+--  2. tc-candidate functions
+-- A tail-call candidate is a function that contains a tail-call in its body
+spotTCs :: Program -> (Program, [FN])
 spotTCs fdefs = 
     let funsMap = functionMap fdefs Map.empty 
 
-        annotateL :: FDef -> FDef
-        annotateL (Fun funName formals body) = Fun funName formals (annotateE True body) 
+        annotateP :: [FDef] -> [FDef] -> [FN] -> ([FDef], [FN])
+        annotateP [] fdefAcc tcFnAcc = 
+            let cutEmpStrs [] = []
+                cutEmpStrs (h : t) = 
+                    if h == "" then cutEmpStrs t else h : cutEmpStrs t 
+                tcFnAcc' = cutEmpStrs tcFnAcc 
+            in  (fdefAcc, tcFnAcc')
+        annotateP (fdef : fdefs) fdefAcc tcFnAcc = 
+            let (fdef', maybeFN) = annotateL fdef
+                fn = fromMaybe "" maybeFN
+            in  annotateP fdefs (fdef' : fdefAcc) (fn : tcFnAcc)
+
+        annotateL :: FDef -> (FDef, Maybe FN)
+        annotateL (Fun funName formals body) = (Fun funName formals annotatedBody, if state then Just funName else Nothing)
             where
-                annotateE :: Bool -> Expr -> Expr
-                annotateE _ (EVar v) = EVar v
-                annotateE _ (EInt n) = EInt n
-                annotateE _ (UnaryOp ua e) = UnaryOp ua (annotateE False e)
-                annotateE _ (BinaryOp ba e1 e2) = BinaryOp ba (annotateE False e1) (annotateE False e2)
-                annotateE b (Eif c e1 e2) = Eif (annotateE False c) (annotateE b e1) (annotateE b e2)
+                (annotatedBody, state) = runState (annotateE True body) False
+ 
+                annotateE :: Bool -> Expr -> State Bool Expr
+                annotateE _ (EVar v) = return (EVar v)
+                annotateE _ (EInt n) = return (EInt n)
+                annotateE _ (UnaryOp ua e) = do
+                    st <- get
+                    let (e', st') = runState (annotateE False e) st
+                    put (st' || st)
+                    return (UnaryOp ua e')
+                annotateE _ (BinaryOp ba e1 e2) = do
+                    stb <- get
+                    let (e1', st') = runState (annotateE False e1) stb
+                        (e2', st'') = runState (annotateE False e2) st'
+                    put (stb || st' || st'')
+                    return (BinaryOp ba e1' e2')
+                annotateE b (Eif c e1 e2) = do
+                    st <- get
+                    let (e1', st') = runState (annotateE False e1) st
+                        (e2', st'') = runState (annotateE False e2) st'
+                    put (st || st' || st'')
+                    return (Eif c e1' e2')
                 annotateE True (Call n actuals) = 
                     let Just(fsCallee, _, _) = Map.lookup n funsMap
 
-                        b'  = isVar actuals -- if true all actuals are variables
+                        b'  = areVars actuals -- if true all actuals are variables
                             
                         b'' = L.foldr (\e acc -> 
                                         let isDependent = searchFS formals e
+                                            isV = isVar e 
                                             cbv = isCBV e actuals fsCallee
-                                        in  (cbv || isDependent) && acc) True actuals
+                                        in  (isV || cbv || isDependent) && acc) True actuals
 
                     in  if b' || b'' 
-                        then TailCall n actuals
-                        else Call n actuals
-                annotateE b (CaseF cid scrutinee branches) = 
-                    CaseF cid (annotateE False scrutinee) (annotateBs b branches)
+                            then do put True
+                                    return (TailCall n actuals)
+                            else return (Call n actuals)
+                annotateE b (CaseF cid scrutinee branches) = do
+                    state <- get
+                    let (branches', state') = annotateBs b state branches []
+                    put (state || state')
+                    return (CaseF cid scrutinee branches')
                 annotateE b (ConstrF tag (h : t)) = 
-                    ConstrF tag (annotateE b h : L.map (annotateE False) t)
-                annotateE _ funcall@Call {} = funcall
-                annotateE _ Nil = Nil
-                annotateE _ cproj@CProj {} = cproj
+                    return (ConstrF tag (h : t))
+                annotateE _ funcall@Call {} = return funcall
+                annotateE _ Nil = return Nil
+                annotateE _ cproj@CProj {} = return cproj
                 annotateE _ (TailCall _ _) = error "Tail Call: This should be unreached" 
                 annotateE _ exprs@_ = error ("Unhandled expressions = " ++ show exprs)
 
-                annotateB :: Bool -> Branch -> Branch 
-                annotateB b (patt, expr) = (patt, annotateE b expr)
+                annotateB :: Bool -> Bool -> Branch -> (Branch, Bool) 
+                annotateB b st (patt, expr) = ((patt, expr'), st || st')
+                    where (expr', st') = runState (annotateE b expr) st
                 
-                annotateBs :: Bool -> [Branch] -> [Branch]
-                annotateBs b = L.map (annotateB b)
+                annotateBs :: Bool -> Bool -> [Branch] -> [Branch] -> ([Branch], Bool)
+                annotateBs _ st [] brsAcc = (brsAcc, st)
+                annotateBs b st (br : brs) brsAcc = 
+                    let (br', st') = annotateB b st br
+                    in  annotateBs b (st || st') brs (br' : brsAcc) 
 
-    in  L.map annotateL fdefs
+    in  annotateP fdefs [] [] -- L.map annotateL fdefs
 
+--------------------------------------------------------------------------------------------------
+--2.  Function dependentCandidate: Finds which a candidate TC function 
+--------------------------------------------------------------------------------------------------
 
 
 --------------------------------------------------------------------------------------------------    
