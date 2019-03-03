@@ -21,7 +21,9 @@ main = do
         (result, stack, framesNum) = run p'''   -- Evaluation
         (ap, tcCands) = spotTCs p''                        -- trace tail call positions
         (result', stack', framesNum') = run ap  
-
+        calls = callInProgram p'''
+    
+    print calls
     print tcCands
     -- print p'   -- ast 
     putStrLn "================================="
@@ -41,13 +43,5 @@ main = do
     -- putStrLn "================================="
     -- putStrLn $ "Result is: " ++ show result' ++ ", frames used: " ++ show framesNum'
 
-{-
-  print ap  -- TC annotated AST
-  
-  print $ "Result is: " ++ show result ++ ", frames used: " ++ show framesNum 
-  print $ "CallStack: " ++ show stack'
-  print $ "Result' is: " ++ show result' ++ ", frames' used: " ++ show framesNum' 
-  print $ "CallStack: " ++ show stack
--}
 
 

@@ -295,7 +295,7 @@ makeFrameArgs (actual : actuals) (formal : formals) funs (frames, st) =
       let frames' = LazyArg { expr = actual, isEvaluated = False, cachedVal = Nothing } : frames
       in  makeFrameArgs actuals formals funs (frames', st)
 -- TODO: Fix Nil
-makeFrameArgs actuals@_ formals@_ funs st = makeFrameArgs [ConstrF "Nil" []] formals funs st
+makeFrameArgs actuals@_ formals@_ funs st = makeFrameArgs [Nil] formals funs st
   -- error ("makeFrameArgs: Inexhaustive patterns actuals = " ++ show actuals ++ ", formals = " ++ show formals)
 
 
