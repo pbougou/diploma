@@ -22,7 +22,8 @@ module TailCalls (
     callInFun,
     callInProgram,
     eliminateTCs,
-    addNonTCcandi
+    addNonTCcandi,
+    mapM__
 ) where
 import Grammar as G
 import AuxAnalysis
@@ -35,7 +36,7 @@ import qualified Data.Map.Strict as Map
 import Control.Monad.State
 import Debug.Trace(trace)
 import Control.Arrow
-
+import RuntimeStructs(FunctionsMap)
 
 ---------------------------------------------------------------------
 -- Returns:
@@ -132,18 +133,18 @@ spotTCs fdefs =
     in  annotateP fdefs [] []
 
 ---------------------------------------------------------------------
--- **REVIVING PLAN**: 
---  For some function calls, but not all in general case, 
---  a tc-candidate can be tc-optimized. 
---  Thus, we need a plan B, after the annotation that spotTCs does.
---  We have two auxiliary functions for this.
---      Aux. function no1. addNonTCcandi
---      Aux. function no2. eliminateTCs 
+-- **REVIVING PLAN**:                                               |
+--  For some function calls, but not all in general case,           |
+--  a tc-candidate can be tc-optimized.                             |
+--  Thus, we need a plan B, after the annotation that spotTCs does. |
+--  We have two auxiliary functions for this.                       |
+--      Aux. function no1. addNonTCcandi                            |
+--      Aux. function no2. eliminateTCs                             |
 ---------------------------------------------------------------------
 
 ---------------------------------------------------------------
--- Auxiliary function no.1:
---  Add the non-tail recursive version of a lambda to program
+-- Auxiliary function no.1:                                   |
+--  Add the non-tail recursive version of a lambda to program |  
 ---------------------------------------------------------------
 addNonTCcandi :: Program -> FN -> Program
 addNonTCcandi p fn = 
@@ -153,10 +154,10 @@ addNonTCcandi p fn =
         fdef' = Fun (nonTCprefix ++ fn) formals body
     in  p ++ [fdef']
 
----------------------------------------------
--- Auxiliary function no.2
---  Eliminate TailCall from a lambda' s body
----------------------------------------------
+----------------------------------------------
+-- Auxiliary function no.2                   |
+--  Eliminate TailCall from a lambda' s body |
+----------------------------------------------
 eliminateTCs :: Expr -> Expr
 eliminateTCs expr = 
     case expr of
@@ -168,55 +169,35 @@ eliminateTCs expr =
         e@_ -> e
 
 --------------------------------------------------------------------------------------------------
--- Terms:                     **TC-OPTIMIZED** | **TC-CANDIDATE**
+-- Terms:                     **TC-OPTIMIZED** | **TC-CANDIDATE**                                |
 --------------------------------------------------------------------------------------------------
--- Core task: 
---  Decide if a function call, given function' s name, can truly be tc-optimized 
---  Note: This is for the whole program
+-- Core task:                                                                                    |
+--  Decide if a function call, given function' s name, can truly be tc-optimized                 |
+--  Note: This is for the whole program                                                          |
 --------------------------------------------------------------------------------------------------
 
-callInFun :: FDef -> [(FN, [FN])]
-callInFun (Fun fn formals body) = [(fn, tcCandInBody body)]
-    where
-        tcCandInBody :: Expr -> [FN]
-        tcCandInBody e = 
-            case e of
-                EVar _ -> []
-                EInt _ -> []
-                CProj{} -> []
-                Nil -> []
-                UnaryOp _ e1 -> tcCandInBody e1
-                BinaryOp _ e1 e2 -> tcCandInBody e1 ++ tcCandInBody e2
-                Eif c e1 e2 -> tcCandInBody e1 ++ tcCandInBody e2
-                CaseF _ _ brs -> L.foldr (\(x, y) b -> tcCandInBody y ++ b) [] brs
-                ConstrF _ exprs -> L.foldr (\a b -> tcCandInBody a ++ b) [] exprs
-                Call n _ -> [n]
-                TailCall n _ -> [n]
 
-callInProgram :: Program -> [(FN, [FN])]
-callInProgram [] = []
-callInProgram fdefs = L.foldr ((++) . callInFun) [] fdefs
-------------------------------------------------------------------------
--- Subtask No. 1:
--- Given a function' s formal and actual parameters in a function call
---  find all variables in a function call
--- Returns all variables in an actual along with the evaluation order.
--- Purpose: 
---  * Variable lookup: We care for its evaluation order 
---  * Case lazy: Function call is not TC-OPTIMIZED
-------------------------------------------------------------------------
--- Notes:
---  * ? aux. functions
---  * Aux. no1 and no2 are co-dependent
-------------------------------------------------------------------------
+-------------------------------------------------------------------------
+-- Subtask No. 1:                                                       |
+-- Given a function' s formal and actual parameters in a function call  |
+--  find all variables in a function call                               |
+-- Returns all variables in an actual along with the evaluation order.  |
+-- Purpose:                                                             |
+--  * Variable lookup: We care for its evaluation order                 |
+--  * Case lazy: Function call is not TC-OPTIMIZED                      |
+-------------------------------------------------------------------------
+-- Notes:                                                               |
+--  * ? aux. functions                                                  |
+--  * Aux. no1 and no2 are co-dependent                                 |
+-------------------------------------------------------------------------
 
-------------------------------------------------------------------------
--- Auxiliary function no.1 for subtask 1: 
---  * Find scrutinee' s dependencies
---      This function should work with nested case expressions
---  * We can have a case expr in: 
---      1. Case (obvious), 2. If, 3. BinaryOp, 4. UnaryOp
-------------------------------------------------------------------------
+-------------------------------------------------------------------------
+-- Auxiliary function no.1 for subtask 1:                               |
+--  * Find scrutinee' s dependencies                                    |
+--      This function should work with nested case expressions          |
+--  * We can have a case expr in:                                       |
+--      1. Case (obvious), 2. If, 3. BinaryOp, 4. UnaryOp               |
+-------------------------------------------------------------------------
 findCProjDeps :: Expr -> [(CaseID, [VN])]
 findCProjDeps expr =
     case expr of
@@ -258,18 +239,24 @@ findVarsInExpr e =
 actualsDeps :: [Actual] -> [[VN]]
 actualsDeps = L.map findVarsInExpr
 
---------------------------------------------------------------------------------
--- Given caller' s formals, callee' s formals and dependencies:                |
---  1. Check if the function belongs to tc-candidates.                         |
---  2. If 1, Find if the tc-candidate function call can be tc-optimized.       |
--- *******************************RETURN VALUE*********************************|
---  Case Empty list is returned:                                               |
---    If a dependent variable in actuals isn't in lazy order (caller or callee)|
---  Else: [0-based index of formal in caller]                                  |
--- *********************************PURPOSE************************************|
---  We need to know the dependencies, when another function call comes up in   |
---  the BinaryOp operation.                                                    |
---------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------
+-- Given caller' s formals, callee' s formals and dependencies:                      |
+--  1. Check if the function belongs to tc-candidates. [x]                           |
+--  2. If 1, Find if the tc-candidate function call can be tc-optimized.             |
+-- *******************************RETURN VALUE***************************************|
+--  Case Empty list is returned:                                                     |
+--    If a dependent variable in actuals isn't in lazy order (caller or callee)      |
+--  Else: [0-based index of formal in caller]                                        |
+-- *********************************PURPOSE******************************************|
+--  We need to know the dependencies, when another function call comes up in         |
+--  the BinaryOp operation.                                                          |
+--------------------------------------------------------------------------------------
+funInCandies :: FN -> [FN] -> Bool
+funInCandies fn candis = 
+    case L.elemIndex fn candis of
+        Nothing -> False
+        Just _  -> True
+-- Dependencies by caller' s formals. What about CAFs?
 depsInFCall :: [Formal] -- caller's formals
             -> [Formal] -- callee's formals
             -> [[VN]]   -- variables in actuals
@@ -281,47 +268,150 @@ depsInFCall callersf calleesf vars =
         depsInFCall' (v : vs) i = 
             case elemIndex (v, G.Lazy) callersf of
                 Nothing -> depsInFCall' vs (i + 1)
-                Just ix -> 
-                    let calleesOrder = snd (calleesf !! i)
-                        callersOrder = snd (calleesf !! ix) -- ?
-                        isLazy = calleesOrder == G.Lazy 
-                    in  if isLazy 
-                            then ix : depsInFCall' vs (i + 1) 
-                            else depsInFCall' vs (i + 1)
-    in  nub $ L.foldr (\a b -> depsInFCall' a 0 ++ b) [] vars 
+                Just ix -> ix : depsInFCall' vs (i + 1) 
+    in  L.nub $ L.foldr (\a b -> depsInFCall' a 0 ++ b) [] vars 
 
--- EAdd, ESub, EMul, EDiv, EMod can have dependent function calls
---   Case A: BinaryOp bop fc@(Call fn1 actuals1) er, where er /= Call{}
---      fc can be optimized if and only if:
---          not a function call in er that shares a lazy, non-numerical actual with fc
---   Case B: BinaryOp bop el fc@(Call fn1 actuals1), where el /= Call{}
---   Case C: BinaryOp bop (Call fn1 actuals1) (Call fn2 actuals2)
---      1st application is a call to a non tail-call version 
---      2nd application is a call to a tc-candi  
---   Case D: BinaryOp bop el er, where el /= Call{} and er /= Call {}
--- What el or er can be?
---  The program is considered type-safe. So, el or er can be:
---      1. integer
---      2. var
---      3. CProj --> variable
---      4. function call -> this is case C
---      5. if expr
---      6. BinaryOp
---      7. nothing else than 1-6
--- Case 1, 2, 3 lead immediately to decide optimization
--- Case 4, also.
--- Case 5 or 6 need further work.
--- Cons? What happens with Cons
--- if, case
--- call function
---------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------
+-- BinaryOp operation: Sharing problem occurs.                                              |
+--  Contains 2 or more functions that _share_ a lazy argument.                              |
+--      If the argument is non-numerical and these functions are _TC-optimized_,            |
+--      the latest form of the argument is evaluated                                        |
+--      and thus the single-evaluation property is viollated.                               |
+-- We have 4 cases:                                                                         |
+--   Case A: BinaryOp bop fc@(Call fn1 actuals1) er, where er /= Call{}                     |
+--      fc can be optimized if and only if:                                                 |
+--          not a function call in er that shares a lazy, non-numerical actual with fc      |
+--   Case B: BinaryOp bop el fc@(Call fn1 actuals1), where el /= Call{}                     |
+--   Case C: BinaryOp bop (Call fn1 actuals1) (Call fn2 actuals2)                           |
+--      1st application is a call to a non tail-call version                                |
+--      2nd application is a call to a tc-candi                                             |
+--   Case D: BinaryOp bop el er, where el /= Call{} and er /= Call {}                       |
+-- What el or er can be?                                                                    |
+--  The program is considered type-safe. So, el or er can be:                               |
+--      1. integer, 2. var, 3. CProj --> variable                                           |
+--      4. function call -> this is case C                                                  |
+--      5. if expr, 6. BinaryOp                                                             |
+--      7. nothing else than 1-6                                                            |
+-- Case 1, 2, 3 lead immediately to decide optimization. Case 4, also.                      |
+-- Case 5 or 6 need further work.                                                           |
+---------------------------------------------------------------------------------------------
+-- Q: What happens with Cons????????                                                        |
+---------------------------------------------------------------------------------------------
 
--- -- tc-candidates, funsMap, callerFormals
--- dependentCallsE :: Expr -> [Actual] -> Expr
--- dependentCallsE e callerFormals funsMap = 
---     case e of
---         BinaryOp bop (Call fn1 actuals1) (Call fn2 actuals2) -> 
---             -- if an actual in actuals1 and actuals2 in lazy position
---             --  and this actual comes from a lazy formal of the caller
+-- Maybe, try to find the last TC-Candidate' s dependencies?
 
 
+
+-- BinaryOp EAdd e1 e2 
+dependentCallsE :: [Formal]     -- caller' s formals
+                -> FunctionsMap -- k: function names, v: signatures
+                -> [FN]         -- TC-Candidates
+                -> Expr
+                -> State 
+                        (Program, [Int]) 
+                        Expr
+dependentCallsE callerSign funsMap candis e = 
+    case e of
+        BinaryOp bop (Call fn1 actuals1) e2@(Call fn2 actuals2) -> 
+            -- if an actual in actuals1 and actuals2 in lazy position
+            -- and this actual comes from a lazy formal of the caller
+            let (fn1Sign, body1, dep1) = fromJust (Map.lookup fn1 funsMap)
+                (fn2Sign, body2, dep2) = fromJust (Map.lookup fn2 funsMap)
+                
+                isCandi1 = funInCandies fn1 candis
+                isCandi2 = funInCandies fn2 candis
+
+                deps1 = actualsDeps actuals1
+                deps2 = actualsDeps actuals2
+
+                trueDeps1 = depsInFCall callerSign fn1Sign deps1
+                trueDeps2 = depsInFCall callerSign fn2Sign deps2
+
+                commonDeps = L.intersect trueDeps1 trueDeps2
+
+            in  case commonDeps of
+                    [] -> return e
+                    _  ->
+                        if isCandi1 
+                            then do (p, deps) <- get
+                                    let e1' = BinaryOp bop (Call ("nonTC-" ++ fn1) actuals1) e2
+                                        p' = addNonTCcandi p fn1
+                                    put (p', deps)
+                                    return e1'
+                            else return e
+        BinaryOp bop expr funcall@(Call fn actuals) -> do 
+            (progState, depState) <- get 
+            let (fnSign, body, dep) = fromJust (Map.lookup fn funsMap)
+                depsInActuals = actualsDeps actuals
+                trueDeps' = depsInFCall callerSign fnSign depsInActuals
+                depState' = depState ++ trueDeps'
+                (expr', (progState', depState'')) = runState (dependentCallsE callerSign funsMap candis expr) (progState, depState')
+            return (BinaryOp bop expr' funcall)
+        BinaryOp bop el er -> do
+            st0@(progState, depState) <- get
+            let (er', st1) = runState (dependentCallsE callerSign funsMap candis er) st0
+                (el', st2) = runState (dependentCallsE callerSign funsMap candis el) st1
+            put st2
+            return (BinaryOp bop el' er')
+        UnaryOp uop e -> do
+            st0@(pState, depState) <- get
+            let (e', st1) = runState (dependentCallsE callerSign funsMap candis e) st0
+            put st1
+            return (UnaryOp uop e')
+        Eif c el er -> do -- condition needs special treatment [?]
+            st0 <- get
+            let (er', st1) = runState (dependentCallsE callerSign funsMap candis er) st0
+                (el', st2) = runState (dependentCallsE callerSign funsMap candis el) st1
+            put st2
+            return (Eif c el' er')
+        CaseF cid scr brs -> do
+            st0 <- get 
+            let (exprPaths, st1) = mapM__ (dependentCallsE callerSign funsMap candis) st0 (L.map snd brs)
+                brs' = zip (L.map fst brs) exprPaths
+            put st1
+            return (CaseF cid scr brs)
+        funcall@(Call fn actuals) -> do
+            st0@(progST, depST) <- get
+            let (fnSign, _, _) = fromJust (Map.lookup fn funsMap)
+                depsInActuals = actualsDeps actuals
+                trueDeps' = depsInFCall callerSign fnSign depsInActuals
+                depST' = depST ++ trueDeps'
+            put (progST, depST')
+            return funcall
+        tailcall@(TailCall n actuals) -> 
+            return tailcall
+        var@(EVar v) -> return var
+        cproj@(CProj cid cpos) -> return cproj
+        Nil -> return Nil
+        cons@(ConstrF tag exprs) -> return cons
+        int@(EInt n) -> return int
+        _ -> error ("Unhandled expr = " ++ show e)
+
+-- Generic purpose function
+mapM__ :: (a -> State s a) -> s -> [a] -> ([a], s)
+mapM__ f s [] = ([], s) 
+mapM__ f s (h : t) = 
+    let (h', s') = runState (f h) s
+    in  mapM__ f s' t
+
+callInFun :: FDef -> [(FN, [(FN, [Actual])])]
+callInFun (Fun fn formals body) = [(fn, tcCandInBody body)]
+    where
+        tcCandInBody :: Expr -> [(FN, [Actual])]
+        tcCandInBody e = 
+            case e of
+                EVar _ -> []
+                EInt _ -> []
+                CProj{} -> []
+                Nil -> []
+                UnaryOp _ e1 -> tcCandInBody e1
+                BinaryOp _ e1 e2 -> tcCandInBody e1 ++ tcCandInBody e2
+                Eif c e1 e2 -> tcCandInBody e1 ++ tcCandInBody e2
+                CaseF _ _ brs -> L.foldr (\(x, y) b -> tcCandInBody y ++ b) [] brs
+                ConstrF _ exprs -> L.foldr (\a b -> tcCandInBody a ++ b) [] exprs
+                Call n actuals -> [(n, actuals)]
+                TailCall n actuals -> []
+
+callInProgram :: Program -> [(FN, [(FN, [Actual])])]
+callInProgram [] = []
+callInProgram fdefs = L.foldr ((++) . callInFun) [] fdefs
