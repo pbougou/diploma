@@ -23,13 +23,15 @@ module TailCalls (
     callInProgram,
     eliminateTCs,
     addNonTCcandi,
-    mapM__
+    mapM__,
+    dataAnalysisP,
+    analysis
 ) where
 import Grammar as G
 import AuxAnalysis
 import StateInterpreter(replaceNth, functionMap)
 import Data.Maybe(fromJust, fromMaybe)
-import Data.List(map, elemIndex, lookup, foldr, nub)
+import Data.List(map, elemIndex, lookup, foldr, nub, union, intersect)
 import qualified Data.List as L
 import Data.Map.Strict
 import qualified Data.Map.Strict as Map
@@ -299,93 +301,81 @@ depsInFCall callersf calleesf vars =
 ---------------------------------------------------------------------------------------------
 
 -- Maybe, try to find the last TC-Candidate' s dependencies?
-
-
-
--- BinaryOp EAdd e1 e2 
-dependentCallsE :: [Formal]     -- caller' s formals
-                -> FunctionsMap -- k: function names, v: signatures
-                -> [FN]         -- TC-Candidates
-                -> Expr
-                -> State 
-                        (Program, [Int]) 
-                        Expr
-dependentCallsE callerSign funsMap candis e = 
+dataAnalysisE :: 
+    [Formal]  -- caller' s formals
+    -> [FN]   -- TC-Candidates
+    -> Expr
+    -> State (Program, FunctionsMap, [Int]) Expr
+dataAnalysisE callerSign candis e = do
+    st0@(progST, funsMap, depST) <- get
     case e of
-        BinaryOp bop (Call fn1 actuals1) e2@(Call fn2 actuals2) -> 
-            -- if an actual in actuals1 and actuals2 in lazy position
-            -- and this actual comes from a lazy formal of the caller
-            let (fn1Sign, body1, dep1) = fromJust (Map.lookup fn1 funsMap)
-                (fn2Sign, body2, dep2) = fromJust (Map.lookup fn2 funsMap)
-                
-                isCandi1 = funInCandies fn1 candis
-                isCandi2 = funInCandies fn2 candis
-
-                deps1 = actualsDeps actuals1
-                deps2 = actualsDeps actuals2
-
-                trueDeps1 = depsInFCall callerSign fn1Sign deps1
-                trueDeps2 = depsInFCall callerSign fn2Sign deps2
-
-                commonDeps = L.intersect trueDeps1 trueDeps2
-
-            in  case commonDeps of
-                    [] -> return e
-                    _  ->
-                        if isCandi1 
-                            then do (p, deps) <- get
-                                    let e1' = BinaryOp bop (Call ("nonTC-" ++ fn1) actuals1) e2
-                                        p' = addNonTCcandi p fn1
-                                    put (p', deps)
-                                    return e1'
-                            else return e
-        BinaryOp bop expr funcall@(Call fn actuals) -> do 
-            (progState, depState) <- get 
-            let (fnSign, body, dep) = fromJust (Map.lookup fn funsMap)
-                depsInActuals = actualsDeps actuals
-                trueDeps' = depsInFCall callerSign fnSign depsInActuals
-                depState' = depState ++ trueDeps'
-                (expr', (progState', depState'')) = runState (dependentCallsE callerSign funsMap candis expr) (progState, depState')
-            return (BinaryOp bop expr' funcall)
         BinaryOp bop el er -> do
-            st0@(progState, depState) <- get
-            let (er', st1) = runState (dependentCallsE callerSign funsMap candis er) st0
-                (el', st2) = runState (dependentCallsE callerSign funsMap candis el) st1
+            let (er', st1) = runState (dataAnalysisE callerSign candis er) st0
+                (el', st2) = runState (dataAnalysisE callerSign candis el) st1
             put st2
             return (BinaryOp bop el' er')
         UnaryOp uop e -> do
-            st0@(pState, depState) <- get
-            let (e', st1) = runState (dependentCallsE callerSign funsMap candis e) st0
+            let (e', st1) = runState (dataAnalysisE callerSign candis e) st0
             put st1
             return (UnaryOp uop e')
         Eif c el er -> do -- condition needs special treatment [?]
-            st0 <- get
-            let (er', st1) = runState (dependentCallsE callerSign funsMap candis er) st0
-                (el', st2) = runState (dependentCallsE callerSign funsMap candis el) st1
+            let (er', st1) = runState (dataAnalysisE callerSign candis er) st0
+                (el', st2) = runState (dataAnalysisE callerSign candis el) st1
             put st2
             return (Eif c el' er')
         CaseF cid scr brs -> do
-            st0 <- get 
-            let (exprPaths, st1) = mapM__ (dependentCallsE callerSign funsMap candis) st0 (L.map snd brs)
+            let (exprPaths, st1) = mapM__ (dataAnalysisE callerSign candis) st0 (L.map snd brs)
                 brs' = zip (L.map fst brs) exprPaths
             put st1
             return (CaseF cid scr brs)
         funcall@(Call fn actuals) -> do
-            st0@(progST, depST) <- get
-            let (fnSign, _, _) = fromJust (Map.lookup fn funsMap)
-                depsInActuals = actualsDeps actuals
-                trueDeps' = depsInFCall callerSign fnSign depsInActuals
-                depST' = depST ++ trueDeps'
-            put (progST, depST')
-            return funcall
-        tailcall@(TailCall n actuals) -> 
-            return tailcall
+            let (fnSign, body, depth) = fromJust (Map.lookup fn funsMap)
+                depMember = depsInFCall callerSign fnSign (actualsDeps actuals)
+                depIntersect = depST `L.intersect` depMember
+                depST' = depST `L.union` depMember
+                (funcall1, progST1, funsMap1) = 
+                    case depIntersect of
+                        [] -> (funcall, progST, funsMap)
+                        _  -> 
+                            let fn' = "nonTC-" ++ fn
+                                funcall' = Call fn' actuals
+                                (progST', funsMap') = 
+                                    case Map.lookup fn' funsMap of
+                                        Nothing -> (addNonTCcandi progST fn, Map.insert fn' (fnSign, body, depth) funsMap)
+                                        Just _ -> (progST, funsMap)
+                            in  (funcall', progST', funsMap')
+            put (progST1, funsMap1, depST')
+            return funcall1
+        tailcall@(TailCall n actuals) -> return tailcall
         var@(EVar v) -> return var
         cproj@(CProj cid cpos) -> return cproj
         Nil -> return Nil
         cons@(ConstrF tag exprs) -> return cons
         int@(EInt n) -> return int
-        _ -> error ("Unhandled expr = " ++ show e)
+        -- _ -> error ("Unhandled expr = " ++ show e)
+
+dataAnalysisP _ [] funsMap = funsMap
+dataAnalysisP candies (Fun fn formals body : fdefs) funsMap =
+    let p = inverseFunsMap funsMap 
+        st0 = (p, funsMap, [])
+        (body', st1) = runState (dataAnalysisE formals candies body) st0
+        (p', funsMap', _) = st1
+        funsMap'' = Map.insert fn (formals, body', 1) funsMap'
+    in  dataAnalysisP candies fdefs funsMap''
+
+inverseFunsMap funsMap = 
+    let funsList = Map.toList funsMap 
+        transF (fn, (formals, body, depth)) = Fun fn formals body
+    in  L.map transF funsList
+
+-- Fire the analysis!
+analysis :: Program -> Program
+analysis p = 
+    let (annoProg, candies) = spotTCs p
+        funsMap = functionMap annoProg Map.empty
+        funsMap' = dataAnalysisP candies annoProg funsMap 
+        prog = inverseFunsMap  funsMap'
+    in  prog
 
 -- Generic purpose function
 mapM__ :: (a -> State s a) -> s -> [a] -> ([a], s)
@@ -394,6 +384,8 @@ mapM__ f s (h : t) =
     let (h', s') = runState (f h) s
     in  mapM__ f s' t
 
+
+-- Helper testing function for expression
 callInFun :: FDef -> [(FN, [(FN, [Actual])])]
 callInFun (Fun fn formals body) = [(fn, tcCandInBody body)]
     where
@@ -412,6 +404,7 @@ callInFun (Fun fn formals body) = [(fn, tcCandInBody body)]
                 Call n actuals -> [(n, actuals)]
                 TailCall n actuals -> []
 
+-- Helper testing function for the whole program
 callInProgram :: Program -> [(FN, [(FN, [Actual])])]
 callInProgram [] = []
 callInProgram fdefs = L.foldr ((++) . callInFun) [] fdefs

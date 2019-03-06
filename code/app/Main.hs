@@ -21,23 +21,23 @@ main = do
         (result, stack, framesNum) = run p'''   -- Evaluation
         (ap, tcCands) = spotTCs p''                        -- trace tail call positions
         (result', stack', framesNum') = run ap  
-        calls = callInProgram p'''
+        calls = callInProgram ap
     
-    print calls
+    print (analysis p'')
     print tcCands
     -- print p'   -- ast 
-    putStrLn "================================="
-    putStrLn "=====Abstract Syntax Tree========"
-    putStrLn "================================="
-    print p'''
-    putStrLn "================================="
-    putStrLn "===========Interpeter============"
-    putStrLn "================================="
-    putStrLn $ "Result is: " ++ show result ++ ", frames used: " ++ show framesNum 
-    putStrLn "================================="
-    putStrLn "==========TC-POSITIONS==========="
-    putStrLn "================================="
-    print ap
+    -- putStrLn "================================="
+    -- putStrLn "=====Abstract Syntax Tree========"
+    -- putStrLn "================================="
+    -- print p'''
+    -- putStrLn "================================="
+    -- putStrLn "===========Interpeter============"
+    -- putStrLn "================================="
+    -- putStrLn $ "Result is: " ++ show result ++ ", frames used: " ++ show framesNum 
+    -- putStrLn "================================="
+    -- putStrLn "==========TC-POSITIONS==========="
+    -- putStrLn "================================="
+    -- print ap
     -- putStrLn "================================="
     -- putStrLn "===========InterpetTC============"
     -- putStrLn "================================="
