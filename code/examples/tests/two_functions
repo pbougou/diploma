@@ -1,4 +1,6 @@
-fun fun1 #a = call fun2 (a-1);
-fun fun2 !a = a;
-fun main = (call fun1 17) + (call fun2 25)
+fun fun1 a1 = a1 + 1;
+fun fun2 a2 = a2 + 2;
+fun fun3 b = b * 100;
+fun fun4 c = (call fun1 c) + (call fun2 c);
+fun main = call fun4 (call fun3 42)
 

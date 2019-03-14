@@ -1,16 +1,20 @@
-fun sum l !acc = 
-    case l of
+fun sum l1 !acc = 
+    case l1 of
         Cons h t -> (call sum t (h + acc))
         Nil -> acc
 ;
-fun makeList n !acc = if n then call makeList (n-1) (Cons n acc) else acc;
-fun two_sum l = (call sum l 0) + (call sum l 0);
-fun main = call two_sum (call makeList 1 Nil)
 
-{-
-    (Cons 1 (Cons 2 (Cons 3 (Cons 4 Nil))))
-    Sharing variables --> Global reasoning
-    1. consuming lists (and, sum, ...)
-    2. constructing lists 
-    3. modifying lists
--}
+{- Length of a list -}
+fun length l !acc = 
+    case l of 
+        Cons h t -> (call length t (acc + 1))
+        Nil -> acc;
+
+-- Construct a list from 0 to n 
+fun makeList n !acc = if n then call makeList (n-1) (Cons n acc) else acc;
+
+
+fun two_sum l = (call sum l 0) + (call length l 0);
+
+fun main = call two_sum (Cons 1 Nil)
+

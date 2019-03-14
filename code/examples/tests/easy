@@ -1,0 +1,4 @@
+fun f x = x + 1;
+fun z = 0;
+fun g y = (call z) + (call f y);
+fun main = call g 42

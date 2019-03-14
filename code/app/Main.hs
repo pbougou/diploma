@@ -14,26 +14,24 @@ import Text.Parsec.String
 main :: IO ()
 main = do
     s <- getContents
-    p <- parseProgram s                         -- :: IO Program
-    let p'   = correctCaseP p                   -- annotate case with ids
-        p''  = scopingP p'                      -- transform to CProj
-        p''' = wrapConsP p''                    -- transform constructors 
-        (result, stack, framesNum) = run p'''   -- Evaluation
-        (ap, tcCands) = spotTCs p''                        -- trace tail call positions
-        (result', stack', framesNum') = run ap  
-        calls = callInProgram ap
+    p <- parseProgram s :: IO Program
+    let p'   = correctCaseP p                 -- | annotate case with ids
+        p''  = scopingP p'                    -- | transform to CProj
+        p''' = wrapConsP p''                  -- | transform constructors 
+                                              -- | builtin wrapper functions for constructors
+        (result, stack, framesNum) = run p''  -- | Evaluation
+        ap = analysis p''
+        ap' = wrapConsP ap
+        (result', stack', framesNum') = run ap'  
     
-    print (analysis p'')
-    print tcCands
-    -- print p'   -- ast 
-    -- putStrLn "================================="
-    -- putStrLn "=====Abstract Syntax Tree========"
-    -- putStrLn "================================="
-    -- print p'''
-    -- putStrLn "================================="
-    -- putStrLn "===========Interpeter============"
-    -- putStrLn "================================="
-    -- putStrLn $ "Result is: " ++ show result ++ ", frames used: " ++ show framesNum 
+    putStrLn "================================="
+    putStrLn "=====Abstract Syntax Tree========"
+    putStrLn "================================="
+    print p'' -- annotated source program with cons wrappers
+    putStrLn "================================="
+    putStrLn "===========Interpeter============"
+    putStrLn "================================="
+    putStrLn $ "Result is: " ++ show result ++ ", frames used: " ++ show framesNum 
     -- putStrLn "================================="
     -- putStrLn "==========TC-POSITIONS==========="
     -- putStrLn "================================="
