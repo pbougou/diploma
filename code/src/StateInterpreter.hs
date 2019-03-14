@@ -45,8 +45,9 @@ eval :: Expr            -- expression to be evaluated
 eval e funs = do
   st@(mem, frameId, nFrames, indent) <- get
   let thisFrame@(Frame funName funArgs susps prevFrameId) = getFrame mem frameId
+  let lineFill = "================================================================\n"
   let debugPrefix = show nFrames ++ ". " ++ L.replicate (indent*4) ' '
-  trace (debugPrefix ++ "expr = " ++ show e ++ ", frame#" ++ show frameId ++ ":\n" ++ showStack mem frameId) $
+  trace (lineFill ++ debugPrefix ++ "expr = " ++ show e ++ ", frame#" ++ show frameId ++ ":\n" ++ showStack mem frameId) $
     case e of
       EInt n -> 
         return (VI n)
@@ -75,7 +76,7 @@ eval e funs = do
         if vc /= 0  then eval l funs
                     else eval r funs
       EVar var -> do
-        -- Case: variable is in formal parameteres of a function
+        -- Case: variable is in formal parameters of a function
           let i = case Map.lookup funName funs of
                     Nothing -> error "No function definition found"
                     Just (formals, _, _) -> 
@@ -109,7 +110,11 @@ eval e funs = do
             -- Push frame and enter (use its frame id)
             mem'' = push mem' (Frame funName stackFrame [] frameId)
         put (mem'', lastFrameId mem'', stNum' + 1, indent)
-        eval funBody funs
+        v <- eval funBody funs
+        (mem''', _, stNum'', indent') <- get
+        put (mem''', frameId, stNum'', indent')
+        return v
+
       -------------------------------------------------
       --------------DATA DECONSTRUCTION----------------
       -- Assume: 
@@ -294,8 +299,6 @@ makeFrameArgs (actual : actuals) (formal : formals) funs (frames, st) =
     G.Lazy ->
       let frames' = LazyArg { expr = actual, isEvaluated = False, cachedVal = Nothing } : frames
       in  makeFrameArgs actuals formals funs (frames', st)
--- TODO: Fix Nil
-makeFrameArgs actuals@_ formals@_ funs st = makeFrameArgs [Nil] formals funs st
   -- error ("makeFrameArgs: Inexhaustive patterns actuals = " ++ show actuals ++ ", formals = " ++ show formals)
 
 
