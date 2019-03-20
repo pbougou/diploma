@@ -17,12 +17,9 @@ main = do
     p <- parseProgram s :: IO Program
     let p'   = correctCaseP p                 -- | annotate case with ids
         p''  = scopingP p'                    -- | transform to CProj
-        p''' = wrapConsP p''                  -- | transform constructors 
-                                              -- | builtin wrapper functions for constructors
-        (result, stack, framesNum) = run p''  -- | Evaluation
+        (result, _, nr_frames) = run p''  -- | Evaluation
         ap = analysis p''
-        ap' = wrapConsP ap
-        (result', stack', framesNum') = run ap'  
+        (resultTC, _, nr_frames_tc) = run ap 
     
     putStrLn "================================="
     putStrLn "=====Abstract Syntax Tree========"
@@ -31,15 +28,15 @@ main = do
     putStrLn "================================="
     putStrLn "===========Interpeter============"
     putStrLn "================================="
-    putStrLn $ "Result is: " ++ show result ++ ", frames used: " ++ show framesNum 
-    -- putStrLn "================================="
-    -- putStrLn "==========TC-POSITIONS==========="
-    -- putStrLn "================================="
-    -- print ap
-    -- putStrLn "================================="
-    -- putStrLn "===========InterpetTC============"
-    -- putStrLn "================================="
-    -- putStrLn $ "Result is: " ++ show result' ++ ", frames used: " ++ show framesNum'
+    putStrLn $ "Result is: " ++ show result ++ ", frames used: " ++ show nr_frames
+    putStrLn "================================="
+    putStrLn "==========TC-POSITIONS==========="
+    putStrLn "================================="
+    print ap
+    putStrLn "================================="
+    putStrLn "===========InterpetTC============"
+    putStrLn "================================="
+    putStrLn $ "Result is: " ++ show resultTC ++ ", frames used: " ++ show nr_frames_tc
 
 
 
