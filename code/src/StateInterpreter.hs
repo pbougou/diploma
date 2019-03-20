@@ -4,7 +4,7 @@ module StateInterpreter (
   FunctionsMap(..),
   run,
   eval,
-  makeFrameArgs,
+  makeArgs,
   replaceNth,
   updateL,
   functionMap
@@ -23,7 +23,8 @@ import System.IO.Unsafe
 
 -- The state of a call: its stack, the frames counter, and a helper
 -- integer for pretty printing.
-type CallState = (Mem, FrameId, NRFrames, Int)
+type Ident = Int
+type CallState = (Mem, FrameId, NRFrames, Ident)
 
 -- Programs are considered type safe  ===  (No type check)
 run :: Program -> (Value, FrameId, NRFrames)
@@ -44,71 +45,76 @@ eval :: Expr            -- expression to be evaluated
               Value     -- Value: evaluation result
 eval e funs = do
   st@(mem, frameId, nFrames, indent) <- get
-  let thisFrame@(Frame funName funArgs susps prevFrameId) = getFrame mem frameId
+  let thisFrame@(Frame caller funArgs susps prevFrameId) = getFrame mem frameId
   let lineFill = "================================================================\n"
-  let debugPrefix = show nFrames ++ ". " ++ L.replicate (indent*4) ' '
+  let debugPrefix = show nFrames ++ ". " ++ L.replicate (indent * 4) ' '
   trace (lineFill ++ debugPrefix ++ "expr = " ++ show e ++ ", frame#" ++ show frameId ++ ":\n" ++ showStack mem frameId) $
     case e of
-      EInt n -> 
-        return (VI n)
+      EInt n -> return (VI n)
       UnaryOp unaryArithm e ->  do
         VI v <- eval e funs
-        case unaryArithm of 
-          EUnPlus -> 
-            return $ VI v
-          EUnMinus ->
-            return $ VI (-v)
+        return $ VI (
+          case unaryArithm of 
+            EUnPlus -> v
+            EUnMinus -> -v)
       BinaryOp binArithm l r -> do
         VI vl <- eval l funs
         VI vr <- eval r funs
-        case binArithm of
-          EAdd -> return $ VI (vl + vr)
-          ESub -> return $ VI (vl - vr)
-          EMul -> return $ VI (vl * vr)
-          EDiv ->
-            if vr == 0  then error "Division by zero"
-                        else return $ VI (vl `div` vr)
-          EMod ->
-            if vr == 0  then error "Modulo zero"
-                        else return $ VI (vl `mod` vr)
+        return $ VI (
+          case binArithm of
+            EAdd -> vl + vr
+            ESub -> vl - vr
+            EMul -> vl * vr
+            EDiv ->
+              if vr == 0  
+                then error "Division by zero"
+                else vl `div` vr
+            EMod ->
+              if vr == 0  
+                then error "Modulo zero"
+                else vl `mod` vr)
       Eif c l r -> do
         VI vc <- eval c funs
-        if vc /= 0  then eval l funs
-                    else eval r funs
+        if vc /= 0  
+          then eval l funs
+          else eval r funs
       EVar var -> do
         -- Case: variable is in formal parameters of a function
-          let i = case Map.lookup funName funs of
+          let i = case Map.lookup caller funs of
                     Nothing -> error "No function definition found"
                     Just (formals, _, _) -> 
                       let justVars = Data.List.map fst formals
-                          errorFun = "function = " ++ funName
+                          errorFun = "function = " ++ caller
                           errorVar = "\nvariable not in formals: Var = " ++ var
                           errorVars = "\nformals = " ++ show justVars 
                           errorMem = "\nmemory dump: \n" ++ show mem
                           errorMsg = error (errorFun ++ errorVar ++ errorVars ++ errorMem)
                       in  fromMaybe errorMsg (elemIndex var justVars)
               (v, s) = 
-                if i > length funArgs then error "i: out of bounds"
+                if i > length funArgs then error ("i = " ++ show i ++ ": out of bounds")
                 else  case funArgs !! i of
                         StrictArg v   -> (v, st)
                         ByNameArg e   -> 
                           let (v, _) = runState (eval e funs) (mem, prevFrameId, nFrames, indent)
                           in  (v, st)
                         LazyArg e b val -> 
-                            if b  then (fromJust val, st)
-                                  else  
-                                    let (v', (mem', _, n', _)) = runState (eval e funs) (mem, prevFrameId, nFrames, indent)
+                            if b  
+                              then (fromJust val, st)
+                              else  let (v', (mem', _, n', _)) = runState (eval e funs) (mem, prevFrameId, nFrames, indent)
                                         funArgs' = replaceNth i (LazyArg e True (Just v')) funArgs
                                         frame' = thisFrame { fArgs = funArgs' }
                                     in  (v', (updFrame mem' frameId frame', frameId, n', indent))
           put s
           trace (debugPrefix ++ "Variable [" ++ var ++ "] lookup: " ++ show v ++ "\n") $
             return v
-      Call funName actuals -> do
-        let (formals, funBody, depth) = fromMaybe (error $ "Call function: " ++ funName ++ " does not exist") (Map.lookup funName funs)
-            (stackFrame, (mem', _, stNum', _)) = makeFrameArgs actuals formals funs ([], st)
+      Call callee actuals -> do
+        let errorFunStr = "Call function: " ++ callee ++ " does not exist"
+            errorFun = error errorFunStr
+            
+            (formals, funBody, depth) = fromMaybe errorFun (Map.lookup callee funs)
+            (stackFrame, (mem', _, stNum', _)) = makeArgs actuals formals funs ([], st)
             -- Push frame and enter (use its frame id)
-            mem'' = push mem' (Frame funName stackFrame [] frameId)
+            mem'' = push mem' (Frame callee stackFrame [] frameId)
         put (mem'', lastFrameId mem'', stNum' + 1, indent)
         v <- eval funBody funs
         (mem''', _, stNum'', indent') <- get
@@ -146,41 +152,24 @@ eval e funs = do
       Nil -> return (VC (Susp ("Nil", []) frameId))
       ConstrF tag exprs -> return (VC (Susp (tag, exprs) frameId))
       CProj cid cpos -> do -- forces evaluation
-        let susp@(Susp (_, el) savedFrameId) = 
-              fromMaybe (error $ "CProj - not in susps, susps = " ++ show susps ++ ", memory dump: \n" ++ show mem) (L.lookup cid susps)
+        let cprojStr = "CProj: Not in suspensions, susps = " ++ show susps
+            memoryDumpMsg = "\n Memory dump: \n" ++ show mem
+            errorSuspsMsg = error $ cprojStr ++ memoryDumpMsg
+            susp@(Susp (_, el) savedFrameId) = fromMaybe errorSuspsMsg (L.lookup cid susps)
             nextE = el !! cpos
             (val, (mem', _, nFrames', _)) = runState (eval nextE funs) (mem, savedFrameId, nFrames, indent)
         put (mem', frameId, nFrames', indent)
-        -- trace ("CProj: val = " ++ show val ++ ", \nsusp = " ++ show newSusp ++ ",\nsusps = " ++ show susps) $
         return val
-      TailCall calleeName actuals -> do
-        ---------------------------------- |
-        -- *************CALLEE*************|
-        -- funName: function name          |
-        -- actuals: actual parameters      |
-        -- formals: formal parameters      |
-        -- *************CALLER*************|
-        -- callerName: caller's name       |
-        -- callerFormals: caller's formals |
-        ---------------------------------------------
-        -- st:    state (callstack, e.r. in monad)  |
-        -- oldSt: current call stack                |
-        -- fSt:   top frame                         |
-        -- st':   next frames                       |
-        -- n:     number of stackFrames used so far |
-        ---------------------------------------------
-        let callerName = funName 
-            stArgs = funArgs
+--------------------------------------------------------------
+-- | After analysis annotations, runtime handle of tail-calls.
+--------------------------------------------------------------
+      TailCall callee actuals -> do -- actuals, formals belong to callee function
+        let errorFnStr fn = "Call function: " ++ fn ++ " does not exist"
+            errorFn fn = error (errorFnStr fn)
 
-            (callerFormals, _, _) = 
-              let errorFn = "Call function: " ++ callerName ++ " does not exist"
-              in  fromMaybe (error errorFn) (Map.lookup callerName funs)
+            (formals, funBody, _) = fromMaybe (errorFn callee) (Map.lookup callee funs)
 
-            (formals, funBody, _) = 
-              let errorFn = "Call function: " ++ calleeName ++ " does not exist"
-              in  fromMaybe (error errorFn) (Map.lookup calleeName funs)
-
-        put (checkMutate actuals formals calleeName funs stArgs st)
+        put (checkMutate actuals formals callee funs funArgs st)
         eval funBody funs
 
 -- Runtime check if mutation is possible and mutate
@@ -191,16 +180,16 @@ checkMutate :: [Expr]            -- list of actual parameters
               -> [FrameArg]      -- previous stackframe to be mutated
               -> CallState       
               -> CallState
-checkMutate actuals@(a : as) formals@(f : fs) calleeName funs args thisState = 
+checkMutate actuals@(a : as) formals@(f : fs) callee funs args thisState = 
   let (mem, frameId, nFrames, indent) = thisState
       thisFrame@(Frame fn fnArgs susps prevFrameId) = getFrame mem frameId
       (callerFormals, _, _) = fromMaybe (error $ "Function " ++ fn ++ " not found") (Map.lookup fn funs)
   in  
       -- Case 1: True if actuals not dependent by caller's formals
       if actualsFS formals actuals 
-          then  let (args', nextState) = makeFrameArgs actuals formals funs ([], thisState)
+          then  let (args', nextState) = makeArgs actuals formals funs ([], thisState)
                     (mem', frameId', n, ident') = nextState
-                    newFrame = Frame calleeName args' susps prevFrameId 
+                    newFrame = Frame callee args' susps prevFrameId 
                     nextState' = (updFrame mem' frameId newFrame, frameId, n, indent)
                 in  nextState'
 
@@ -212,7 +201,7 @@ checkMutate actuals@(a : as) formals@(f : fs) calleeName funs args thisState =
 --   --------------------------------------------------------------
           else  let (args', nextState)    = mutate callerFormals formals args 0 funs actuals ([], thisState)
                     (mem', frameId, nFrames', indent') = thisState
-                    newFrame = Frame calleeName args' susps prevFrameId
+                    newFrame = Frame callee args' susps prevFrameId
                 in  (updFrame mem' frameId newFrame, frameId, nFrames', indent')
 
 
@@ -277,29 +266,33 @@ mutate callerFs calleeFs args ix funs (a : as) (args', st)  =
 -- Case 3: We know if it is an expression, it should be in CBV position
         _      ->
           let (v', st') = runState (eval a funs) st
-              arg'           = StrictArg v'
+              arg' = StrictArg v'
           in  mutate callerFs calleeFs args (ix + 1) funs as (arg' : args', st')
-          -- error $ "It should not be an expression: " ++ show a 
 
-makeFrameArgs :: [Actual]
+makeArgs :: [Actual]
               -> [Formal]
               -> FunctionsMap
               -> ([FrameArg], CallState)
               -> ([FrameArg], CallState)
-makeFrameArgs [] [] _ (args, st) = (reverse args, st)
-makeFrameArgs (actual : actuals) (formal : formals) funs (frames, st) =
+makeArgs [] [] _ (args, st) = (reverse args, st)
+makeArgs (actual : actuals) (formal : formals) funs (fArgs, st) =
   case snd formal of
     CBV    ->
       let (v, st') = runState (eval actual funs) st
-          frames'  = StrictArg { val = v } : frames
-      in  makeFrameArgs actuals formals funs (frames', st')
+          fArgs'  = StrictArg { val = v } : fArgs
+      in  makeArgs actuals formals funs (fArgs', st')
     CBN    ->
-      let frames' = ByNameArg { expr = actual } : frames
-      in  makeFrameArgs actuals formals funs (frames', st)
+      let fArgs' = ByNameArg { expr = actual } : fArgs
+      in  makeArgs actuals formals funs (fArgs', st)
     G.Lazy ->
-      let frames' = LazyArg { expr = actual, isEvaluated = False, cachedVal = Nothing } : frames
-      in  makeFrameArgs actuals formals funs (frames', st)
-  -- error ("makeFrameArgs: Inexhaustive patterns actuals = " ++ show actuals ++ ", formals = " ++ show formals)
+      let fArgs' = LazyArg { expr = actual, isEvaluated = False, cachedVal = Nothing } : fArgs
+      in  makeArgs actuals formals funs (fArgs', st)
+makeArgs actuals@_ formals@_ _ _ =
+  let errorStrMsg = "makeArgs: Inexhaustive patterns... "
+      errorStrActuals = " actuals = " ++ show actuals
+      errorStrFormals = " formals = " ++ show formals
+      errorMsg = error errorStrMsg
+  in  errorMsg
 
 
 -- construct dictionary(map) where 
