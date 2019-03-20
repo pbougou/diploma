@@ -16,5 +16,5 @@ fun makeList n !acc = if n then call makeList (n-1) (Cons n acc) else acc;
 
 fun two_sum l = (call sum l 0) + (call length l 0);
 
-fun main = call two_sum (Cons 1 Nil)
+fun main = call two_sum (call makeList 2 Nil)
 

@@ -21,18 +21,18 @@ main = do
         ap = analysis p''
         (resultTC, _, nr_frames_tc) = run ap 
     
-    putStrLn "================================="
-    putStrLn "=====Abstract Syntax Tree========"
-    putStrLn "================================="
-    print p'' -- annotated source program with cons wrappers
+    -- putStrLn "================================="
+    -- putStrLn "=====Abstract Syntax Tree========"
+    -- putStrLn "================================="
+    -- print p'' -- annotated source program with cons wrappers
     putStrLn "================================="
     putStrLn "===========Interpeter============"
     putStrLn "================================="
     putStrLn $ "Result is: " ++ show result ++ ", frames used: " ++ show nr_frames
-    putStrLn "================================="
-    putStrLn "==========TC-POSITIONS==========="
-    putStrLn "================================="
-    print ap
+    -- putStrLn "================================="
+    -- putStrLn "==========TC-POSITIONS==========="
+    -- putStrLn "================================="
+    -- print ap
     putStrLn "================================="
     putStrLn "===========InterpetTC============"
     putStrLn "================================="

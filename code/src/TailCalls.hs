@@ -1,21 +1,21 @@
 ---------------------------------------------------------------------
--- An analysis algorithm to spot tail call positions.
---  New annotation: **TailCall**. When executed,
---  TailCall doesn't allocate new frame. It uses the current frame. 
+-- An analysis algorithm to spot tail call positions.               |
+--  New annotation: **TailCall**. When executed,                    |
+--  TailCall doesn't allocate new frame. It uses the current frame. |
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
--- 1. Local (intraprocedural) analysis(spotTCs):
---  Spot tail calls locally in function' s body
---  This analysis reveals tc-positions with *good* potential.
+-- 1. Local (intraprocedural) analysis(spotTCs):                    |
+--  Spot tail calls locally in function' s body                     |
+--  This analysis reveals tc-positions with *good* potential.       |
 -- ******************What happens with sharing??*********************
 ---------------------------------------------------------------------
---      Rules about tail calls in language with CBV, CBN, Lazy:
---          1. actuals are expressions not dependent by the formals
---          2. actuals are variables
---              a. same evaluation order
---              b. different evaluation order
---          3. actuals are expressions dependent by the formals
---             in cbv position(cbn, lazy are forbidden)
+--      Rules about tail calls in language with CBV, CBN, Lazy:     |
+--          1. actuals are expressions not dependent by the formals |
+--          2. actuals are variables                                |
+--              a. same evaluation order                            |
+--              b. different evaluation order                       |
+--          3. actuals are expressions dependent by the formals     |
+--             in cbv position(cbn, lazy are forbidden)             |
 ---------------------------------------------------------------------
 module TailCalls (
     spotTCs,
@@ -41,13 +41,13 @@ import Control.Arrow
 import RuntimeStructs(FunctionsMap)
 
 ---------------------------------------------------------------------
--- Returns:
---  1. Tail-call annotated program
---  2. tc-candidate functions
--- spotTCs: Locally analyzes lambda's body:
---  1. Annotates function calls with tail-calls
---  2. Returns a list **tail-call candidates**
---     That is: A function that contains a TailCall in its body
+-- Returns:                                                         |
+--  1. Tail-call annotated program                                  |
+--  2. tc-candidate functions                                       |
+-- spotTCs: Locally analyzes lambda's body:                         |
+--  1. Annotates function calls with tail-calls                     |
+--  2. Returns a list **tail-call candidates**                      |
+--     That is: A function that contains a TailCall in its body     |
 ---------------------------------------------------------------------
 spotTCs :: Program -> (Program, [FN])
 spotTCs fdefs = 
@@ -153,7 +153,7 @@ addNonTCcandi p fn =
     let funsMap = functionMap p Map.empty
         (formals, body, depth) = fromMaybe (error ("Not found fun: " ++ fn)) (Map.lookup fn funsMap)
         nonTCprefix = "nonTC-"
-        fdef' = Fun (nonTCprefix ++ fn) formals body
+        fdef' = Fun (nonTCprefix ++ fn) formals (eliminateTCs body)
     in  p ++ [fdef']
 
 ----------------------------------------------
@@ -341,7 +341,7 @@ dataAnalysisE callerSign candis e = do
                                 funcall' = Call fn' actuals
                                 (progST', funsMap') = 
                                     case Map.lookup fn' funsMap of
-                                        Nothing -> (addNonTCcandi progST fn, Map.insert fn' (fnSign, body, depth) funsMap)
+                                        Nothing -> (addNonTCcandi progST fn, Map.insert fn' (fnSign, eliminateTCs body, depth) funsMap)
                                         Just _ -> (progST, funsMap)
                             in  (funcall', progST', funsMap')
             put (progST1, funsMap1, depST')
@@ -383,6 +383,23 @@ mapM__ f s [] = ([], s)
 mapM__ f s (h : t) = 
     let (h', s') = runState (f h) s
     in  mapM__ f s' t
+
+
+-------------------------------------
+-- | Make CAFs list.                |
+-- | Returns a list of CAFs names.  |
+-------------------------------------
+makeCAFs :: FunctionsMap -> [FN]
+makeCAFs funsMap = 
+    let funsList = inverseFunsMap funsMap
+
+        findCAFs :: [FDef] -> [FN]
+        findCAFs [] = []
+        findCAFs (Fun fn formals _ : fs) =
+            case formals of
+                [] -> fn : findCAFs fs
+                _  -> findCAFs fs
+    in  findCAFs funsList
 
 
 -- Helper testing function for expression
