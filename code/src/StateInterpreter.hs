@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 module StateInterpreter (
   FrameArg(..),
   Frame(..),
@@ -44,11 +45,19 @@ eval :: Expr            -- expression to be evaluated
     ->  State CallState -- State: execution stack, number of stackframes allocated
               Value     -- Value: evaluation result
 eval e funs = do
+  
+-- Debugging information starts. 
+#if defined(DEBUG)
   st@(mem, frameId, nFrames, indent) <- get
   let thisFrame@(Frame caller funArgs susps prevFrameId) = getFrame mem frameId
   let lineFill = "================================================================\n"
   let debugPrefix = show nFrames ++ ". " ++ L.replicate (indent * 4) ' '
   trace (lineFill ++ debugPrefix ++ "expr = " ++ show e ++ ", frame#" ++ show frameId ++ ":\n" ++ showStack mem frameId) $
+-- Debugging information ends.
+#else
+    st@(mem, frameId, nFrames, indent) <- get
+    let thisFrame@(Frame caller funArgs susps prevFrameId) = getFrame mem frameId
+#endif
     case e of
       EInt n -> return (VI n)
       UnaryOp unaryArithm e ->  do
@@ -84,10 +93,10 @@ eval e funs = do
                     Nothing -> error "No function definition found"
                     Just (formals, _, _) -> 
                       let justVars = Data.List.map fst formals
-                          errorFun = "function = " ++ caller
-                          errorVar = "\nvariable not in formals: Var = " ++ var
-                          errorVars = "\nformals = " ++ show justVars 
-                          errorMem = "\nmemory dump: \n" ++ show mem
+                          errorFun = "Function = " ++ caller
+                          errorVar = "\nVariable not in formals: Var = " ++ var
+                          errorVars = "\nFormals = " ++ show justVars 
+                          errorMem = "\nMemory Dump: \n" ++ show mem
                           errorMsg = error (errorFun ++ errorVar ++ errorVars ++ errorMem)
                       in  fromMaybe errorMsg (elemIndex var justVars)
               (v, s) = 
@@ -105,8 +114,14 @@ eval e funs = do
                                         frame' = thisFrame { fArgs = funArgs' }
                                     in  (v', (updFrame mem' frameId frame', frameId, n', indent))
           put s
+          -- | Debugging information starts.
+#if defined(DEBUG)          
           trace (debugPrefix ++ "Variable [" ++ var ++ "] lookup: " ++ show v ++ "\n") $
             return v
+          -- | Debugging information ends.
+#else
+          return v
+#endif
       Call callee actuals -> do
         let errorFunStr = "Call function: " ++ callee ++ " does not exist"
             errorFun = error errorFunStr
@@ -121,14 +136,14 @@ eval e funs = do
         put (mem''', frameId, stNum'', indent')
         return v
 
-      -------------------------------------------------
-      --------------DATA DECONSTRUCTION----------------
-      -- Assume: 
-      --  a. cases = [Cons x y, Nil] or [Nil, Cons x y]
-      --  b. also pattern is exhaustive
-      -------------------------------------------------
-      -- Note: case forces evaluation of data 
-      -------------------------------------------------
+      ---------------------------------------------------
+      --------------DATA DECONSTRUCTION------------------
+      -- Assume:                                        |
+      --  a. cases = [Cons x y, Nil] or [Nil, Cons x y] |
+      --  b. also pattern is exhaustive                 |
+      ---------------------------------------------------
+      -- Note: case forces evaluation of data           |
+      ---------------------------------------------------
       CaseF cid e cases -> do
         let (evalE, st@(mem', savedFrameId, n, _)) = runState (eval e funs) (mem, frameId, nFrames, indent + 1)
         let 
