@@ -1,0 +1,494 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Beamer Presentation
+% LaTeX Template
+% Version 1.0 (10/11/12)
+%
+% This template has been downloaded from:
+% http://www.LaTeXTemplates.com
+%
+% License:
+% CC BY-NC-SA 3.0 (http://creativecommons.org/licenses/by-nc-sa/3.0/)
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%----------------------------------------------------------------------------------------
+%	PACKAGES AND THEMES
+%----------------------------------------------------------------------------------------
+
+\documentclass{beamer}
+
+\usepackage{comment}
+\usepackage{hyperref}
+\usepackage{url}
+
+\mode<presentation> {
+
+% The Beamer class comes with a number of default slide themes
+% which change the colors and layouts of slides. Below this is a list
+% of all the themes, uncomment each in turn to see what they look like.
+
+%\usetheme{default}
+%\usetheme{AnnArbor}
+%\usetheme{Antibes}
+%\usetheme{Bergen}
+%\usetheme{Berkeley}
+%\usetheme{Berlin}
+%\usetheme{Boadilla}
+%\usetheme{CambridgeUS}
+%\usetheme{Copenhagen}
+%\usetheme{Darmstadt}
+%\usetheme{Dresden}
+%\usetheme{Frankfurt}
+%\usetheme{Goettingen}
+%\usetheme{Hannover}
+%\usetheme{Ilmenau}
+%\usetheme{JuanLesPins}
+%\usetheme{Luebeck}
+\usetheme{Madrid}
+%\usetheme{Malmoe}
+%\usetheme{Marburg}
+%\usetheme{Montpellier}
+%\usetheme{PaloAlto}
+%\usetheme{Pittsburgh}
+%\usetheme{Rochester}
+%\usetheme{Singapore}
+%\usetheme{Szeged}
+%\usetheme{Warsaw}
+
+% As well as themes, the Beamer class has a number of color themes
+% for any slide theme. Uncomment each of these in turn to see how it
+% changes the colors of your current slide theme.
+
+%\usecolortheme{albatross}
+%\usecolortheme{beaver}
+%\usecolortheme{beetle}
+%\usecolortheme{crane}
+%\usecolortheme{dolphin}
+%\usecolortheme{dove}
+%\usecolortheme{fly}
+%\usecolortheme{lily}
+%\usecolortheme{orchid}
+%\usecolortheme{rose}
+%\usecolortheme{seagull}
+%\usecolortheme{seahorse}
+%\usecolortheme{whale}
+%\usecolortheme{wolverine}
+
+%\setbeamertemplate{footline} % To remove the footer line in all slides uncomment this line
+%\setbeamertemplate{footline}[page number] % To replace the footer line in all slides with a simple slide count uncomment this line
+
+%\setbeamertemplate{navigation symbols}{} % To remove the navigation symbols from the bottom of all slides uncomment this line
+}
+
+\usepackage{graphicx} % Allows including images
+\usepackage{booktabs} % Allows the use of \toprule, \midrule and \bottomrule in tables
+
+%----------------------------------------------------------------------------------------
+%	TITLE PAGE
+%----------------------------------------------------------------------------------------
+
+\title[Short title]{Memory Optimization for Functional Programming Languages with Mixed Evaluation Order} % The short title appears at the bottom of every slide, the full title is only on the title page
+
+\author{Panagiotis Bougoulias} % Your name
+\institute[NTUA] % Your institution as it will appear on the bottom of every slide, may be shorthand to save space
+{
+National Technical University of Athens \\ % Your institution for the title page
+\medskip
+\textit{pbougou@gmail.com} % Your email address
+}
+\date{\today} % Date, can be changed to a custom date
+
+\begin{document}
+
+\begin{frame}
+\titlepage % Print the title page as the first slide
+\end{frame}
+
+\begin{frame}
+\frametitle{Overview} % Table of contents slide, comment this block out to remove it
+\tableofcontents % Throughout your presentation, if you choose to use \section{} and \subsection{} commands, these will automatically be printed on this slide as an overview of your presentation
+\end{frame}
+
+%----------------------------------------------------------------------------------------
+%	PRESENTATION SLIDES
+%----------------------------------------------------------------------------------------
+
+\section{Why Functional Programs Need Memory Optimizations}
+
+\begin{frame}
+  \frametitle{Functional Programming and Memory Optimization}
+
+  %% Functional programming style
+
+  \begin{block}{Recursion is better than loops}
+    \begin{itemize}
+      \uncover<2->{\item \textbf{Drawback:} This can make an iterative
+        algorithm, originally running in constant space, run in linear
+        space.}
+
+      \uncover<3->{\item \textbf{Tail-Call Optimization (TCO):} Make
+      tail-recursive algorithms run in constant space (similar to
+      ``for'' loops).}
+    \end{itemize}
+  \end{block}
+
+  \uncover<4->{
+  \begin{block}{Code should be side-effect free}
+    \begin{itemize}
+    \uncover<5->{\item \textbf{Drawback:} To increment the elements of
+      a list, instead of mutating the input list in-place, we have to
+      construct a new list.}
+
+    \uncover<6->{\item \textbf{Deforestation (fusion):} Eliminate
+      intermediate data structures that are not needed for the final
+      output.}
+    \end{itemize}
+  \end{block}
+  }
+\end{frame}
+
+
+\section{Supporting Tail-Call Optimization (TCO) in Mixed Evaluation Order}
+
+\begin{frame}
+  \frametitle{Background: Tail-Call Optimization}
+
+  \begin{itemize}
+  \item A core optimization of functional programming languages.
+  \item Main idea: instead of pushing a new frame to the stack, reuse the current one.
+  \item Background: Scheme, the ``lambda the ultimate'' papers.
+  \item Even useful for non-functional-programming languages (work done in GCC/Clang).
+  \item Can make a recursive algorithm run in constant (stack) memory.
+  \end{itemize}
+\end{frame}
+
+%% \begin{frame}
+%% \frametitle{}
+%% \end{frame}
+
+\subsection{Motivating Example}
+
+\begin{frame}[fragile]
+  \frametitle{Motivating Example: Sum with Accumulator}
+  \begin{block}{}
+  {\small
+\begin{verbatim}
+sum [] acc = acc
+sum (h : t) acc = sum t (h + acc)      -- TCO?
+
+length [] acc = acc
+length (h : t) acc = length t (acc+1)
+
+main = two_sum (makelist 5 [])
+
+makelist n acc = if n > 0 then makelist (n-1) (n : acc) else acc
+
+two_sum l = sum l 0 + length l 0
+\end{verbatim}
+  }
+  \end{block}
+
+  Can the tail call to \texttt{sum} be optimized?\\
+  \uncover<2->{\textbf{No}, unless \texttt{acc} is a strict parameter (\texttt{!} annotation).}
+
+  %% Classic TCO Fails in the Presence of Laziness
+
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Motivating Example: Sum with Accumulator}
+
+  \textbf{The problem:} how to recognize that a tail call can be subject to TCO?\\[1em]
+
+  \textbf{Our solution:} locally reason about evaluation order to recognize TCO opportunities.\\[1em]
+
+\end{frame}
+
+\subsection{Language and Execution Model}
+
+\begin{frame}[fragile]
+  \frametitle{Our Language}
+
+  A core Haskell-like calculus, give its syntax\\[1em]
+
+  First-order\\[1em]
+
+  Evaluation order annotations:
+  \begin{itemize}
+  \item call-by-value
+  \item call-by-name
+  \item call-by-need (``lazy'')
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Our Model}
+
+Programs allocate \textbf{frames} in memory, both for function calls and for constructed data\\[1em]
+
+%% Each frame has a unique address, no garbage collection happens
+
+An \textbf{instrumenting interpreter} runs the program and measures number of allocated frames\\[1em]
+
+The interpreter supports TCO, i.e. \textbf{reuses the current frame} on a suitably-marked tail call\\[1em]
+
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Program Evaluation Example}
+
+  Show how the motivating example runs for small lists (so that it
+  fits in 1-2 slides). This shows both frames for function calls and
+  frames for comnstructors/pattern matching.
+\end{frame}
+
+\subsection{Recognizing TCO Opportunites}
+
+\begin{frame}
+\frametitle{Recognizing TCO Opportunites}
+
+\begin{itemize}
+\item Interprocedural Static Analysis: For every tail call, check that
+  the new frame can overwrite the old frame. Intraprocedural
+  analysis. If yes, mark candidate as a \textbf{TCO candidate}.
+\item Interpreter: For every TCO candidate, attempt to mutate the
+  frame. This may not always succeed. Say in the next slide why: what
+  can go wrong at runtime.
+\end{itemize}
+
+\end{frame}
+
+\subsection{Runtime TCO}
+
+\begin{frame}
+  \frametitle{Doing TCO at Runtime}
+
+The static analysis is too optimistic: there are a couple of corner
+cases where the interpreter can still reject a TCO candidate. Could
+these cases be also predicted by the analysis?
+
+\end{frame}
+
+%% \begin{frame}
+%% \frametitle{}
+%% \end{frame}
+
+\section{Dunamic Elimination of Intermediate Lists}
+
+\begin{frame}
+  \frametitle{Background: Intermediate Data Structure Removal}
+
+  \begin{itemize}
+  \item Deforestation (Wadler), shortcut deforestation, fusion.
+  \item Main idea: recognize code patterns where the code can be
+    transformed to equivalent code that does not create as many
+    intermediate data structures.
+  \item A core optimization of Haskell.
+  \end{itemize}
+\end{frame}
+
+\subsection{Motivating Example, Again}
+
+\begin{frame}
+  \frametitle{Eliminating Intermediate Lists}
+  \begin{itemize}
+  \item Basic difference: our technique does no transformation, but
+    does runtime deallocation to destructively consume lists.
+  \item A limited form of dynamic deforestation/fusion.
+  \item Interacts with TCO in programs.
+  \end{itemize}
+\end{frame}
+
+\subsection{Recognizing Opportunities for List Node Removal}
+
+\begin{frame}
+  \frametitle{Recognizing Opportunities for List Node Removal}
+
+  \begin{itemize}
+  \item Again (as in TCO): analysis, annotation, runtime optimization.
+  \item How can this be extended in other data structures? Trees?
+    Cyclic data structures? If too difficult, put these answers as
+    ``future work'' in the Conclusion.
+  \end{itemize}
+
+\end{frame}
+
+\section{Evaluation}
+
+\begin{frame}
+  \frametitle{Evaluation}
+
+  \begin{itemize}
+  \item We measure how our technique makes a suite of microbenchmarks
+    use less memory. Give a table where each line is (benchmark,
+    frames allocated without TCO, frames allocated with TCO).
+  \item \textbf{Our technique never makes memory use worse.}
+  \end{itemize}
+\end{frame}
+
+
+\section{Conclusion}
+
+\begin{frame}
+  \frametitle{Conclusion}
+  \begin{itemize}
+  \item What we saw.
+  \item How to extend it, future work.
+  \item How suitable is it for inclusion in GHC or other functional
+    programming implementations?
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+\Huge{\centerline{Thank You!}}
+\end{frame}
+
+
+%% %------------------------------------------------
+%% \section{First Section} % Sections can be created in order to organize your presentation into discrete blocks, all sections and subsections are automatically printed in the table of contents as an overview of the talk
+%% %------------------------------------------------
+
+%% \subsection{Subsection Example} % A subsection can be created just before a set of slides with a common theme to further break down your presentation into chunks
+
+%% \begin{frame}
+%% \frametitle{Paragraphs of Text}
+%% Sed iaculis dapibus gravida. Morbi sed tortor erat, nec interdum arcu. Sed id lorem lectus. Quisque viverra augue id sem ornare non aliquam nibh tristique. Aenean in ligula nisl. Nulla sed tellus ipsum. Donec vestibulum ligula non lorem vulputate fermentum accumsan neque mollis.\\~\\
+
+%% Sed diam enim, sagittis nec condimentum sit amet, ullamcorper sit amet libero. Aliquam vel dui orci, a porta odio. Nullam id suscipit ipsum. Aenean lobortis commodo sem, ut commodo leo gravida vitae. Pellentesque vehicula ante iaculis arcu pretium rutrum eget sit amet purus. Integer ornare nulla quis neque ultrices lobortis. Vestibulum ultrices tincidunt libero, quis commodo erat ullamcorper id.
+%% \end{frame}
+
+%% %------------------------------------------------
+
+%% \begin{frame}
+%% \frametitle{Bullet Points}
+%% \begin{itemize}
+%% \item Lorem ipsum dolor sit amet, consectetur adipiscing elit
+%% \item Aliquam blandit faucibus nisi, sit amet dapibus enim tempus eu
+%% \item Nulla commodo, erat quis gravida posuere, elit lacus lobortis est, quis porttitor odio mauris at libero
+%% \item Nam cursus est eget velit posuere pellentesque
+%% \item Vestibulum faucibus velit a augue condimentum quis convallis nulla gravida
+%% \end{itemize}
+%% \end{frame}
+
+%% %------------------------------------------------
+
+%% \begin{frame}
+%% \frametitle{Blocks of Highlighted Text}
+%% \begin{block}{Block 1}
+%% Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer lectus nisl, ultricies in feugiat rutrum, porttitor sit amet augue. Aliquam ut tortor mauris. Sed volutpat ante purus, quis accumsan dolor.
+%% \end{block}
+
+%% \begin{block}{Block 2}
+%% Pellentesque sed tellus purus. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Vestibulum quis magna at risus dictum tempor eu vitae velit.
+%% \end{block}
+
+%% \begin{block}{Block 3}
+%% Suspendisse tincidunt sagittis gravida. Curabitur condimentum, enim sed venenatis rutrum, ipsum neque consectetur orci, sed blandit justo nisi ac lacus.
+%% \end{block}
+%% \end{frame}
+
+%% %------------------------------------------------
+
+%% \begin{frame}
+%% \frametitle{Multiple Columns}
+%% \begin{columns}[c] % The "c" option specifies centered vertical alignment while the "t" option is used for top vertical alignment
+
+%% \column{.45\textwidth} % Left column and width
+%% \textbf{Heading}
+%% \begin{enumerate}
+%% \item Statement
+%% \item Explanation
+%% \item Example
+%% \end{enumerate}
+
+%% \column{.5\textwidth} % Right column and width
+%% Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer lectus nisl, ultricies in feugiat rutrum, porttitor sit amet augue. Aliquam ut tortor mauris. Sed volutpat ante purus, quis accumsan dolor.
+
+%% \end{columns}
+%% \end{frame}
+
+%% %------------------------------------------------
+%% \section{Second Section}
+%% %------------------------------------------------
+
+%% \begin{frame}
+%% \frametitle{Table}
+%% \begin{table}
+%% \begin{tabular}{l l l}
+%% \toprule
+%% \textbf{Treatments} & \textbf{Response 1} & \textbf{Response 2}\\
+%% \midrule
+%% Treatment 1 & 0.0003262 & 0.562 \\
+%% Treatment 2 & 0.0015681 & 0.910 \\
+%% Treatment 3 & 0.0009271 & 0.296 \\
+%% \bottomrule
+%% \end{tabular}
+%% \caption{Table caption}
+%% \end{table}
+%% \end{frame}
+
+%% %------------------------------------------------
+
+%% \begin{frame}
+%% \frametitle{Theorem}
+%% \begin{theorem}[Mass--energy equivalence]
+%% $E = mc^2$
+%% \end{theorem}
+%% \end{frame}
+
+%% %------------------------------------------------
+
+%% \begin{frame}[fragile] % Need to use the fragile option when verbatim is used in the slide
+%% \frametitle{Verbatim}
+%% \begin{example}[Theorem Slide Code]
+%% \begin{verbatim}
+%% \begin{frame}
+%% \frametitle{Theorem}
+%% \begin{theorem}[Mass--energy equivalence]
+%% $E = mc^2$
+%% \end{theorem}
+%% \end{frame}\end{verbatim}
+%% \end{example}
+%% \end{frame}
+
+%% %------------------------------------------------
+
+%% \begin{frame}
+%% \frametitle{Figure}
+%% Uncomment the code on this slide to include your own image from the same directory as the template .TeX file.
+%% %\begin{figure}
+%% %\includegraphics[width=0.8\linewidth]{test}
+%% %\end{figure}
+%% \end{frame}
+
+%% %------------------------------------------------
+
+%% \begin{frame}[fragile] % Need to use the fragile option when verbatim is used in the slide
+%% \frametitle{Citation}
+%% An example of the \verb|\cite| command to cite within the presentation:\\~
+
+%% This statement requires citation \cite{p1}.
+%% \end{frame}
+
+%% %------------------------------------------------
+
+\begin{frame}
+\frametitle{References}
+\footnotesize{
+\begin{thebibliography}{99} % Beamer does not support BibTeX so references must be inserted manually as below
+\bibitem[Smith, 2012]{p1} John Smith (2012)
+\newblock Title of the publication
+\newblock \emph{Journal Name} 12(3), 45 -- 678.
+\end{thebibliography}
+}
+\end{frame}
+
+%% %------------------------------------------------
+
+%% \begin{frame}
+%% \Huge{\centerline{The End}}
+%% \end{frame}
+
+%% %----------------------------------------------------------------------------------------
+
+\end{document} 
