@@ -45,16 +45,13 @@ eval :: Expr            -- expression to be evaluated
     ->  State CallState -- State: execution stack, number of stackframes allocated
               Value     -- Value: evaluation result
 eval e funs = do
-  
--- Debugging information starts. 
-#if defined(DEBUG)
+#if defined(DEBUG)        -- | Debugging information starts.
   st@(mem, frameId, nFrames, indent) <- get
   let thisFrame@(Frame caller funArgs susps prevFrameId) = getFrame mem frameId
   let lineFill = "================================================================\n"
   let debugPrefix = show nFrames ++ ". " ++ L.replicate (indent * 4) ' '
   trace (lineFill ++ debugPrefix ++ "expr = " ++ show e ++ ", frame#" ++ show frameId ++ ":\n" ++ showStack mem frameId) $
--- Debugging information ends.
-#else
+#else                     -- | Debugging information ends.
     st@(mem, frameId, nFrames, indent) <- get
     let thisFrame@(Frame caller funArgs susps prevFrameId) = getFrame mem frameId
 #endif
@@ -74,14 +71,8 @@ eval e funs = do
             EAdd -> vl + vr
             ESub -> vl - vr
             EMul -> vl * vr
-            EDiv ->
-              if vr == 0  
-                then error "Division by zero"
-                else vl `div` vr
-            EMod ->
-              if vr == 0  
-                then error "Modulo zero"
-                else vl `mod` vr)
+            EDiv -> vl `safeDiv` vr
+            EMod -> vl `safeMod` vr)
       Eif c l r -> do
         VI vc <- eval c funs
         if vc /= 0  
@@ -100,7 +91,7 @@ eval e funs = do
                           errorMsg = error (errorFun ++ errorVar ++ errorVars ++ errorMem)
                       in  fromMaybe errorMsg (elemIndex var justVars)
               (v, s) = 
-                if i > length funArgs then error ("i = " ++ show i ++ ": out of bounds")
+                if i > length funArgs then error ("Variable lookup: i = " ++ show i ++ ": out of bounds")
                 else  case funArgs !! i of
                         StrictArg v   -> (v, st)
                         ByNameArg e   -> 
@@ -114,12 +105,10 @@ eval e funs = do
                                         frame' = thisFrame { fArgs = funArgs' }
                                     in  (v', (updFrame mem' frameId frame', frameId, n', indent))
           put s
-          -- | Debugging information starts.
-#if defined(DEBUG)          
+#if defined(DEBUG)          -- | Debugging information starts.
           trace (debugPrefix ++ "Variable [" ++ var ++ "] lookup: " ++ show v ++ "\n") $
             return v
-          -- | Debugging information ends.
-#else
+#else                       -- | Debugging information ends.
           return v
 #endif
       Call callee actuals -> do
@@ -159,7 +148,11 @@ eval e funs = do
                       let patterns = L.map fst cases
                           pattIndex = indexOfPattern cn patterns 0
                           (_, ne) = cases !! pattIndex
-                          frame' = thisFrame{fSusps = (cid, c) : susps}
+                          newSusp = (cid, c)
+                          frame' = 
+                            case L.lookup cid susps of -- used for TCO
+                              Nothing -> thisFrame { fSusps = newSusp : susps }
+                              Just _  -> thisFrame { fSusps = updateL cid c susps }
                           st' = (updFrame mem' frameId frame', frameId, n, indent)
                       in  (ne, st')
         put nextST
@@ -214,7 +207,7 @@ checkMutate actuals@(a : as) formals@(f : fs) callee funs args thisState =
 --   --------------------------------------------------------------
 --   -- Case 3: Actual parameter is expr in CBV position          |
 --   --------------------------------------------------------------
-          else  let (args', nextState)    = mutate callerFormals formals args 0 funs actuals ([], thisState)
+          else  let (args', nextState) = mutate callerFormals formals args 0 funs actuals ([], thisState)
                     (mem', frameId, nFrames', indent') = thisState
                     newFrame = Frame callee args' susps prevFrameId
                 in  (updFrame mem' frameId newFrame, frameId, nFrames', indent')
@@ -231,12 +224,12 @@ mutate :: [Formal]                 -- caller's formals
         -> ([FrameArg], CallState) -- new (stackFrame, state)
 mutate _        _        _    _  _    []       (args', st') = (reverse args', st')
 mutate callerFs calleeFs args ix funs (a : as) (args', st)  =
-  let (_, tp) = calleeFs !! ix 
+  let (_, (tp, _)) = calleeFs !! ix 
   in  case a of
 -- Case 2a, 2b  
         EVar v -> 
-          let Just tp' = L.lookup v callerFs
-              ix'      = fromJust $ L.elemIndex (v, tp') callerFs
+          let Just (tp', dom) = L.lookup v callerFs
+              ix'      = fromJust $ L.elemIndex (v, (tp', dom)) callerFs
               arg      = args !! ix'
               (arg', st') = 
                 if tp == tp' then (arg, st) -- 2a
@@ -291,7 +284,7 @@ makeArgs :: [Actual]
               -> ([FrameArg], CallState)
 makeArgs [] [] _ (args, st) = (reverse args, st)
 makeArgs (actual : actuals) (formal : formals) funs (fArgs, st) =
-  case snd formal of
+  case fst $ snd formal of
     CBV    ->
       let (v, st') = runState (eval actual funs) st
           fArgs'  = StrictArg { val = v } : fArgs
@@ -317,9 +310,9 @@ functionMap
   -- + program from parsing
   :: Program
   -- + map K V where K: function name, V: (formals, expr)
-     -> Map.Map String ([(String, Type)], Expr, Depth)
+     -> Map.Map String ([(String, (EvalOrder, Type))], Expr, Depth)
   -- - map K V where K: function name, V: (formals, expr)
-     -> Map.Map String ([(String, Type)], Expr, Depth)
+     -> Map.Map String ([(String, (EvalOrder, Type))], Expr, Depth)
 functionMap program _map =
     foldr (\(Fun x y z) w ->
             case Map.lookup x _map of
@@ -361,3 +354,13 @@ indexOfPattern cn patterns i =
         CPat cn' vars -> 
           if cn == cn' then i else indexOfPattern cn patts (i + 1)
         _ -> error "Searching for integer patterns in constructor case"
+
+safeDiv vl vr = 
+  if vr == 0  
+    then error "Division by zero"
+    else vl `div` vr
+
+safeMod vl vr = 
+  if vr == 0  
+    then error "Modulo zero"
+    else vl `mod` vr

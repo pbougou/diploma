@@ -268,9 +268,13 @@ depsInFCall callersf calleesf vars =
         depsInFCall' :: [VN] -> Int -> [Int]
         depsInFCall' [] _ = []
         depsInFCall' (v : vs) i = 
-            case elemIndex (v, G.Lazy) callersf of
-                Nothing -> depsInFCall' vs (i + 1)
-                Just ix -> ix : depsInFCall' vs (i + 1) 
+            let info@(order, vtype) = fromMaybe (error $ "Var = " ++ v) (L.lookup v callersf)
+            in  case vtype of
+                    TCons _ -> 
+                        case elemIndex (v, info) callersf of
+                            Nothing -> error "depsInFCall: index not found"
+                            Just ix -> ix : depsInFCall' vs (i + 1) 
+                    _ -> depsInFCall' vs (i + 1)
     in  L.nub $ L.foldr (\a b -> depsInFCall' a 0 ++ b) [] vars 
 
 ---------------------------------------------------------------------------------------------

@@ -3,6 +3,10 @@ module Parser (
   parseProgram,
   program,
   sequenceOfFns,
+  tint,
+  tcons,
+  types,
+  parseType
  ) where
 import Debug.Trace
 import Grammar as G
@@ -62,21 +66,24 @@ callExpr = do
             _         -> error "Function call"
 
 
-functionDef = reserved "fun" *> do
+functionDef = do
+    typed <- signature
+    _ <- semi
+    reserved "fun"
     ids <- sepBy1 identifier whitespace
     reservedOp "="
     e <- expression
     case ids of []       -> error "Function must have a name"
                 (x : xs) -> if head x /= '#' && head x /= '!' 
-                              then return $ Fun x (getFormals xs) e
+                              then return $ Fun x (getFormals typed xs) e
                               else fail "function name starts with a letter"
   where
-    getFormals = 
-      map (
-        \x -> (case head x of
-                  '#'  -> (tail x, CBN)
-                  '!'  -> (tail x, CBV)
-                  _    -> (x, Lazy)))
+    -- TODO: Save result type [DONE].
+    getFormals [t] [] = [("", (Lazy, t))]
+    getFormals (t : ts) (f : fs) =
+      let (vn, eo) = case head f of { '#' -> (tail f, CBN); '!' -> (tail f, CBV); _ -> (f, Lazy) }
+      in  (vn, (eo, t)) : getFormals ts fs
+    getFormals _ _ = error "Wrong signature"
 
 -------------------------------------------------
 -- Support for constructors and pattern matching
@@ -121,6 +128,30 @@ line = do
   e <- expression
   return (patt, e)
 
+---------------------------------------------------------------
+-- Support type information parsing
+---------------------------------------------------------------
+tint = do
+  reserved "Int"
+  return TInt
+
+tcons = do
+  reserved "Cons"
+  ltype <- tint <|> tcons
+  return (TCons ltype)
+
+types = 
+  tint
+  <|> tcons
+
+signature = do
+  reserved "fun"
+  fname <- identifier
+  reservedOp "::"
+  sepBy1 types separrow
+
+separrow = reserved "->"
+
 sequenceOfFns = sepBy1 functionDef semi
 
 term = 
@@ -139,6 +170,12 @@ expression =
 
 
 program = sequenceOfFns
+
+parseType :: String -> IO [Type]
+parseType t =
+  case parse (signature <* eof) "" t of
+    Right t' -> return t'
+    Left err -> error "type parsing"
 
 parseExpr :: String -> IO Expr
 parseExpr s =

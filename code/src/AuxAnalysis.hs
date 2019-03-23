@@ -67,7 +67,7 @@ isCBV :: Expr
         -> Bool
 isCBV e es fs =
     let Just ix = elemIndex e es
-        (_, tp) = fs !! ix
+        (_, (tp, _)) = fs !! ix
     in case tp of
         CBV -> True
         _   -> False

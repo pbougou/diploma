@@ -3,8 +3,8 @@ module IntermediateTrans (
     correctCaseEs,
     correctCaseP,
     scopingP,
-    wrapConsP,
-    builtinConstrs,
+    -- wrapConsP,
+    -- builtinConstrs,
 ) where
 import Grammar as G
 import Data.List(map, elemIndex, lookup, foldr)
@@ -113,29 +113,29 @@ scopingP (fdef : fdefs) = scopingF fdef : scopingP fdefs
         CProj _ _ -> error "CProj: This should be unreached"
 
 
-wrapConsP :: Program -> Program
-wrapConsP [] = [] ++ builtinConstrs
-wrapConsP (fdef : fdefs) = wrapConsF fdef : wrapConsP fdefs
-  where
-    wrapConsF (Fun fn frmls expr) = Fun fn frmls (wrapConsE expr)
-    wrapConsE e =
-      case e of
-        ConstrF tag exprs -> Call (wrapTag tag) $ L.map wrapConsE exprs
-        c@(EInt _) -> c
-        v@(EVar _) -> v
-        cp@CProj{} -> cp
-        UnaryOp unaryArithm e -> UnaryOp unaryArithm $ wrapConsE e
-        BinaryOp binArithm el er -> BinaryOp binArithm (wrapConsE el) (wrapConsE er)
-        Eif c thenE elseE -> Eif (wrapConsE c) (wrapConsE thenE) (wrapConsE elseE)
-        Call fn actuals -> Call fn $ L.map wrapConsE actuals
-        CaseF id e cases -> CaseF id (wrapConsE e) $ L.map wrapConsBr cases
-        Nil -> Nil
-        _ -> error ("Not handled: " ++ show e)
-    wrapConsBr (pat, expr) = (pat, wrapConsE expr)
-    wrapTag c = '#' : c
+-- wrapConsP :: Program -> Program
+-- wrapConsP [] = [] ++ builtinConstrs
+-- wrapConsP (fdef : fdefs) = wrapConsF fdef : wrapConsP fdefs
+--   where
+--     wrapConsF (Fun fn frmls expr) = Fun fn frmls (wrapConsE expr)
+--     wrapConsE e =
+--       case e of
+--         ConstrF tag exprs -> Call (wrapTag tag) $ L.map wrapConsE exprs
+--         c@(EInt _) -> c
+--         v@(EVar _) -> v
+--         cp@CProj{} -> cp
+--         UnaryOp unaryArithm e -> UnaryOp unaryArithm $ wrapConsE e
+--         BinaryOp binArithm el er -> BinaryOp binArithm (wrapConsE el) (wrapConsE er)
+--         Eif c thenE elseE -> Eif (wrapConsE c) (wrapConsE thenE) (wrapConsE elseE)
+--         Call fn actuals -> Call fn $ L.map wrapConsE actuals
+--         CaseF id e cases -> CaseF id (wrapConsE e) $ L.map wrapConsBr cases
+--         Nil -> Nil
+--         _ -> error ("Not handled: " ++ show e)
+--     wrapConsBr (pat, expr) = (pat, wrapConsE expr)
+--     wrapTag c = '#' : c
 
-builtinConstrs :: Program
-builtinConstrs =
-  [ Fun "#Cons" [("cons$0", G.Lazy), ("cons$1", G.Lazy)] (ConstrF "Cons" [EVar "cons$0", EVar "cons$1"])
-  , Fun "#Nil" [] (ConstrF "Nil" [])
-  ]
+-- builtinConstrs :: Program
+-- builtinConstrs =
+--   [ Fun "#Cons" [("cons$0", G.Lazy), ("cons$1", G.Lazy)] (ConstrF "Cons" [EVar "cons$0", EVar "cons$1"])
+--   , Fun "#Nil" [] (ConstrF "Nil" [])
+--   ]

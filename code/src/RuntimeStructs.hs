@@ -30,6 +30,11 @@ data Value =  VI Integer
 type FrameId = Int
 data Frame = Frame { fName :: FN, fArgs :: [FrameArg], fSusps :: [(CaseID, Susp)], fPrev :: FrameId }
 
+type Address = Int
+data Heap = Heap { heap :: Map.Map Address Expr, lastAddress :: Address} 
+
+data TArg = Value | Address
+
 instance Show Frame where
   show (Frame fn args susps prev) =
     "* Activation record [ function: " ++ show fn ++ ", previous frame: " ++ show prev ++ " ]\n" ++

@@ -4,13 +4,14 @@ module Grammar (
     FDef(..),
     Formal,
     Type(..),
+    EvalOrder(..),
     Scopes(..),
     Pattern(..),
     ArithmOp(..),
     UnaryArithm(..),
     CaseID, VN, FN, CN, CPos, Tag, Scrutinee, Branch, Actual
   ) where
-import Data.List(map, elemIndex, lookup, foldr)
+import Data.List(map, elemIndex, lookup, foldr, unzip)
 import qualified Data.List as L
 import Data.Map.Strict
 import qualified Data.Map.Strict as Map
@@ -20,9 +21,10 @@ type CN = String -- constructor name
 type FN = String -- function name
 type VN = String -- variable name
 
-data Type = CBV | CBN | Lazy
+data Type = TInt | TCons Type deriving Eq
+data EvalOrder = CBV | CBN | Lazy
     deriving Eq
-type Formal = (VN, Type) -- formal variable with strictness annotation
+type Formal = (VN, (EvalOrder, Type)) -- formal variable with strictness annotation
 type Funbody = Expr
 data FDef = Fun { function :: FN, formals :: [Formal], body :: Funbody }
 type Program = [FDef]
@@ -109,20 +111,36 @@ instance Show FDef where
     showList [] = ("" ++)
     showList [l] = shows l
     showList (l : ls) = shows l .(";\n" ++) .showList ls
-    showsPrec p (Fun x l e) = ("fun " ++) . (x ++) . (" " ++) . (l' ++) .
-                                ("=\n    " ++) . shows e
+    showsPrec p (Fun x l e) = 
+        -- Print function signature.
+        ("fun " ++) . (x ++) . (" :: " ++) . 
+        showList sign . ("\n" ++) .
+        -- Print function.
+        ("fun " ++) . (x ++) . (" " ++) . (l' ++) .
+        ("=\n    " ++) . shows e
         where 
-            l' = showFormals l
+            (l', sign) = showFormals l
             showFormals =
-                L.foldr (\x y -> 
-                    let ch = case snd x of { CBV  -> "!"; CBN  -> "#"; Lazy -> "" }
-                    in  ch ++ fst x ++ " " ++ y) ""
+                L.foldr (\(fn, (ord, tp)) (y, tpAcc) -> 
+                    let ch = case ord of { CBV  -> "!"; CBN  -> "#"; Lazy -> "" }
+                    in  (ch ++ fn ++ " " ++ y, tp : tpAcc)) ("", [])
+
+instance Show EvalOrder where
+    showsPrec p eo = 
+        case eo of   
+            CBV  -> ("! " ++)
+            CBN  -> ("# " ++)
+            Lazy -> ("" ++)
 
 instance Show Type where
-    showsPrec p t = case t of   
-                        CBV  -> ("! " ++)
-                        CBN  -> ("# " ++)
-                        Lazy -> ("" ++)
+    showList [] = shows " "
+    showList [t] = shows t
+    showList (t : ts) = shows t . (" -> " ++) . showList ts
+
+    showsPrec p t = 
+        case t of
+            TInt -> ("int" ++)
+            TCons t' -> ("list " ++) . showsPrec p t' 
 
 instance Show Pattern where 
     showsPrec p patt = 
