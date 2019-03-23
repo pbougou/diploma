@@ -47,7 +47,7 @@ dependencies:
 library:
   build-tools: cpphs >= 1.19
   ghc-options: -pgmP cpphs -optP --cpp
-  # cpp-options: -DDEBUG
+  cpp-options: -DDEBUG
   source-dirs: 
   - src/
   exposed-modules:
