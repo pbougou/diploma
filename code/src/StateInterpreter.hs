@@ -99,14 +99,14 @@ eval e funs = do
                                         frame' = thisFrame { fArgs = funArgs' }
                                     in  (v', (updFrame mem' frameId frame', frameId, n', indent))
           put s
-
+--------------------------------------------------------------------------------------------
 #if defined(DEBUG)          -- | Debugging information starts.
           trace (debugPrefix ++ "Variable [" ++ var ++ "] lookup: " ++ show v ++ "\n") $
             return v
 #else                       -- | Debugging information ends.
           return v
 #endif
-
+--------------------------------------------------------------------------------------------
       Call callee actuals -> do
         let errorFunStr = "Call function: " ++ callee ++ " does not exist"
             errorFun = error errorFunStr
@@ -190,7 +190,6 @@ checkMutate actuals@(a : as) formals@(f : fs) callee funs args thisState =
       thisFrame@(Frame fn fnArgs susps prevFrameId) = getFrame mem frameId
       (callerFormals, _, _) = fromMaybe (error $ "Function " ++ fn ++ " not found") (Map.lookup fn funs)
   in  
-      -- Case 1: True if actuals not dependent by caller's formals
       if actualsFS formals actuals 
           then  let (args', nextState) = makeArgs actuals formals funs ([], thisState)
                     (mem', frameId', n, ident') = nextState
@@ -198,16 +197,18 @@ checkMutate actuals@(a : as) formals@(f : fs) callee funs args thisState =
                     nextState' = (updFrame mem' frameId newFrame, frameId, n, indent)
                 in  nextState'
 
---   --------------------------------------------------------------
---   -- Case 2: If all actuals are variables (or values-integers) |
---   --  Case 2a, 2b are handled in mutate                        |
---   --------------------------------------------------------------
---   -- Case 3: Actual parameter is expr in CBV position          |
---   --------------------------------------------------------------
-          else  let (args', nextState) = mutate callerFormals formals args 0 funs actuals ([], thisState)
-                    (mem', frameId, nFrames', indent') = thisState
-                    newFrame = Frame callee args' susps prevFrameId
-                in  (updFrame mem' frameId newFrame, frameId, nFrames', indent')
+--   ------------------------------------------------------------------
+--   -- | Case 1: True if actuals not dependent by caller's formals   |
+--   ------------------------------------------------------------------
+--   -- | Case 2: If all actuals are variables (or values-integers)   |
+--   -- |     Case 2a, 2b are handled in mutate                       |
+--   ------------------------------------------------------------------
+--   -- Case 3: Actual parameter is expr in CBV position              |
+--   ------------------------------------------------------------------
+      else  let (args', nextState) = mutate callerFormals formals args 0 funs actuals ([], thisState)
+                (mem', frameId, nFrames', indent') = thisState
+                newFrame = Frame callee args' susps prevFrameId
+            in  (updFrame mem' frameId newFrame, frameId, nFrames', indent')
 
 
 --  case 2a, case 2b mutation
@@ -291,7 +292,9 @@ makeArgs :: [Actual]
               -> FunctionsMap
               -> ([FrameArg], CallState)
               -> ([FrameArg], CallState)
-makeArgs [] [] _ (args, st) = (reverse args, st)
+-- | Base case: Formals contain one extra parameter for the result.
+-- | It' s used for type information.
+makeArgs [] [_] _ (args, st) = (reverse args, st)
 makeArgs (actual : actuals) (formal : formals) funs (fArgs, st) =
   case fst $ snd formal of
     CBV    ->
