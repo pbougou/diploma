@@ -1,0 +1,14 @@
+fun goo :: Cons Int -> Int;
+fun goo !l = call head l;
+
+fun head :: Cons Int -> Int;
+fun head !l = 
+    case l of
+        Cons h t -> h
+        Nil -> -42;
+
+fun loop :: Int -> Int;
+fun loop x = call loop x;
+
+fun main :: Int;
+fun main = call goo (Cons 1 (Cons (call loop 1) Nil))
