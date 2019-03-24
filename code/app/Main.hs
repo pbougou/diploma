@@ -15,24 +15,25 @@ main :: IO ()
 main = do
     s <- getContents
     p <- parseProgram s :: IO Program
-    let p'   = correctCaseP p                 -- | annotate case with ids
-        p''  = scopingP p'                    -- | transform to CProj
+    let p'   = correctCaseP p             -- | annotate case with ids
+        p''  = scopingP p'                -- | transform to CProj
         (result, _, nr_frames) = run p''  -- | Evaluation
         ap = analysis p''
         (resultTC, _, nr_frames_tc) = run ap 
-    
-    -- putStrLn "================================="
-    -- putStrLn "=====Abstract Syntax Tree========"
-    -- putStrLn "================================="
-    -- print p'' -- annotated source program with cons wrappers
+        -- (tcocands, _) = spotTCs p''
+        -- (resultTCOCands, _, nr_frames') = run tcocands
+    putStrLn "================================="
+    putStrLn "=====Abstract Syntax Tree========"
+    putStrLn "================================="
+    print p'' -- annotated source program with cons wrappers
     putStrLn "================================="
     putStrLn "===========Interpeter============"
     putStrLn "================================="
     putStrLn $ "Result is: " ++ show result ++ ", frames used: " ++ show nr_frames
-    -- putStrLn "================================="
-    -- putStrLn "==========TC-POSITIONS==========="
-    -- putStrLn "================================="
-    -- print ap
+    putStrLn "================================="
+    putStrLn "==========TC-POSITIONS==========="
+    putStrLn "================================="
+    print ap
     putStrLn "================================="
     putStrLn "===========InterpetTC============"
     putStrLn "================================="
