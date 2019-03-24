@@ -90,8 +90,8 @@ spotTCs fdefs =
                     return (BinaryOp ba e1' e2')
                 annotateE b (Eif c e1 e2) = do
                     st <- get
-                    let (e1', st') = runState (annotateE False e1) st
-                        (e2', st'') = runState (annotateE False e2) st'
+                    let (e1', st') = runState (annotateE b e1) st
+                        (e2', st'') = runState (annotateE b e2) st'
                     put (st || st' || st'')
                     return (Eif c e1' e2')
                 annotateE True (Call n actuals) = 
