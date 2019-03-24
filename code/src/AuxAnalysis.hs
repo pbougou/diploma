@@ -35,13 +35,13 @@ actualsFS fsCaller = L.foldr (\e acc -> searchFS fsCaller e && acc) True
 --  1. renaming in variables bound by case patterns 
 --  2. case expression not in function' s actuals or constructors expressions
 searchFS :: [Formal]    -- caller's formals
-            -> Expr     -- calle' s actual processed
+            -> Expr     -- callee' s actual processed
             -> Bool     -- True if it is not dependent by caller's formals
 searchFS fsCaller actual = 
     case actual of
         EVar v ->   
             case L.lookup v fsCaller of
-                Nothing -> error ("Variable must be in formals, var = " ++ show v)
+                Nothing -> error ("searchFS: Variable must be in formals, var = " ++ show v)
                 Just _  -> False
         EInt n -> True
         Nil    -> True

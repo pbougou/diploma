@@ -93,7 +93,8 @@ instance Show Expr where
             EMod -> showsPrec 1 x . (" % " ++) . showsPrec 1 y
     showsPrec p Nil = (" Nil " ++)
     showsPrec p (ConstrF tag exps) = 
-        (tag ++) . (" " ++) . showList exps
+        showParen (p > 0) $
+            (tag ++) . (" " ++) . showList exps
     showsPrec p (CaseF caseID e lines) =
         showParen (p > 0) $
             ("case <" ++) . (show caseID  ++) . ("> " ++) . shows e . (" of " ++) . 
