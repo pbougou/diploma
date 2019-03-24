@@ -8,7 +8,8 @@ module StateInterpreter (
   makeArgs,
   replaceNth,
   updateL,
-  functionMap
+  functionMap,
+  binArithmFn
 ) where
 import Grammar as G
 import RuntimeStructs
@@ -45,6 +46,7 @@ eval :: Expr            -- expression to be evaluated
     ->  State CallState -- State: execution stack, number of stackframes allocated
               Value     -- Value: evaluation result
 eval e funs = do
+
 #if defined(DEBUG)        -- | Debugging information starts.
   st@(mem, frameId, nFrames, indent) <- get
   let thisFrame@(Frame caller funArgs susps prevFrameId) = getFrame mem frameId
@@ -55,24 +57,16 @@ eval e funs = do
     st@(mem, frameId, nFrames, indent) <- get
     let thisFrame@(Frame caller funArgs susps prevFrameId) = getFrame mem frameId
 #endif
+
     case e of
       EInt n -> return (VI n)
       UnaryOp unaryArithm e ->  do
         VI v <- eval e funs
-        return $ VI (
-          case unaryArithm of 
-            EUnPlus -> v
-            EUnMinus -> -v)
+        return $ VI (unaryArithmFn unaryArithm v)
       BinaryOp binArithm l r -> do
         VI vl <- eval l funs
         VI vr <- eval r funs
-        return $ VI (
-          case binArithm of
-            EAdd -> vl + vr
-            ESub -> vl - vr
-            EMul -> vl * vr
-            EDiv -> vl `safeDiv` vr
-            EMod -> vl `safeMod` vr)
+        return $ VI (binArithmFn binArithm vl vr)
       Eif c l r -> do
         VI vc <- eval c funs
         if vc /= 0  
@@ -105,20 +99,22 @@ eval e funs = do
                                         frame' = thisFrame { fArgs = funArgs' }
                                     in  (v', (updFrame mem' frameId frame', frameId, n', indent))
           put s
+
 #if defined(DEBUG)          -- | Debugging information starts.
           trace (debugPrefix ++ "Variable [" ++ var ++ "] lookup: " ++ show v ++ "\n") $
             return v
 #else                       -- | Debugging information ends.
           return v
 #endif
+
       Call callee actuals -> do
         let errorFunStr = "Call function: " ++ callee ++ " does not exist"
             errorFun = error errorFunStr
             
             (formals, funBody, depth) = fromMaybe errorFun (Map.lookup callee funs)
-            (stackFrame, (mem', _, stNum', _)) = makeArgs actuals formals funs ([], st)
+            (frameArgs, (mem', _, stNum', _)) = makeArgs actuals formals funs ([], st)
             -- Push frame and enter (use its frame id)
-            mem'' = push mem' (Frame callee stackFrame [] frameId)
+            mem'' = push mem' (Frame callee frameArgs [] frameId)
         put (mem'', lastFrameId mem'', stNum' + 1, indent)
         v <- eval funBody funs
         (mem''', _, stNum'', indent') <- get
@@ -141,7 +137,8 @@ eval e funs = do
           (nextE, nextST) = 
             case evalE of
           -- 1. evalE is an expression 
-              VI i -> let nextE = fromMaybe (error "Case: Patterns must be integers") (L.lookup (IPat i) cases)
+              VI i -> let errorIntPatterns = error "Case: Patterns must be integers"
+                          nextE = fromMaybe errorIntPatterns (L.lookup (IPat i) cases)
                       in  (nextE, st)
           -- 2. evalE is a constructor 
               VC c@(Susp (cn, _) _) ->
@@ -226,7 +223,8 @@ mutate _        _        _    _  _    []       (args', st') = (reverse args', st
 mutate callerFs calleeFs args ix funs (a : as) (args', st)  =
   let (_, (tp, _)) = calleeFs !! ix 
   in  case a of
--- Case 2a, 2b  
+-- | Case 2a, 2b. 
+-- | Nine cases deriving from combinations of different evaluation orders.  
         EVar v -> 
           let Just (tp', dom) = L.lookup v callerFs
               ix'      = fromJust $ L.elemIndex (v, (tp', dom)) callerFs
@@ -234,34 +232,45 @@ mutate callerFs calleeFs args ix funs (a : as) (args', st)  =
               (arg', st') = 
                 if tp == tp' then (arg, st) -- 2a
                 else case tp of             -- 2b
-                      CBV   ->  case tp' of
-                                  CBV     -> (arg, st)  
-                                  CBN     ->  let ByNameArg e = arg
-                                                  (v, st') = runState (eval e funs) st
-                                              in  (StrictArg v, st') 
-                                  G.Lazy  -> let LazyArg e b v = arg 
-                                             in if b then (StrictArg (fromJust v), st) 
-                                                else  let (v, st') = runState (eval e funs) st 
-                                                      in  (StrictArg v, st')
-                      CBN    -> case tp' of
-                                  CBV   ->  let StrictArg v = arg 
-                                            in  case v of 
-                                                  VI v' -> (ByNameArg (EInt v'), st)
-                                                  VC c  -> error ("TCO: CBN - CBV, constructor = " ++ show c)
-                                  CBN    -> (arg, st)  
-                                  G.Lazy -> let LazyArg e b v = arg 
-                                            in  if b 
-                                                  then  case fromJust v of
-                                                          VI v' -> (ByNameArg (EInt v'), st) 
-                                                          VC c  -> error ("TCO: CBN - Lazy, constructor = " ++ show c)
-                                                  else (ByNameArg e, st)  
-                      G.Lazy -> case tp' of
-                                  CBV     ->  error "TCO Lazy-CBV ????"
-                                              -- let StrictArg v = arg 
-                                              -- in  (LazyArg (EInt v) True (Just v), st)  
-                                  CBN     ->  let ByNameArg e = arg 
-                                              in  (LazyArg e False Nothing, st)  
-                                  G.Lazy  ->  (arg, st) 
+                      CBV   ->  
+                        case tp' of
+                          CBV     -> (arg, st)  
+                          CBN     ->  
+                            let ByNameArg e = arg
+                                (v, st') = runState (eval e funs) st
+                            in  (StrictArg v, st') 
+                          G.Lazy  -> 
+                            let LazyArg e b v = arg 
+                            in  if b 
+                                  then (StrictArg (fromJust v), st) 
+                                  else  let (v, st') = runState (eval e funs) st 
+                                        in  (StrictArg v, st')
+                      CBN    -> 
+                        case tp' of
+                          CBV   ->  
+                            let StrictArg v = arg 
+                            in  case v of 
+                                  VI v' -> (ByNameArg (EInt v'), st)
+                                  VC c  -> 
+                                    error ("TCO: CBN - CBV, constructor = " ++ show c)
+                          CBN    -> (arg, st)  
+                          G.Lazy -> 
+                            let LazyArg e b v = arg 
+                            in  if b 
+                                  then  case fromJust v of
+                                          VI v' -> (ByNameArg (EInt v'), st) 
+                                          VC c  -> 
+                                            error ("TCO: CBN - Lazy, constructor = " ++ show c)
+                                  else (ByNameArg e, st)  
+                      G.Lazy -> 
+                        case tp' of
+                          CBV    ->  error "TCO Lazy-CBV ????"
+                                    -- let StrictArg v = arg 
+                                    -- in  (LazyArg (EInt v) True (Just v), st)  
+                          CBN    -> 
+                            let ByNameArg e = arg 
+                            in  (LazyArg e False Nothing, st)  
+                          G.Lazy -> (arg, st) 
           in  mutate callerFs calleeFs args (ix + 1) funs as (arg' : args', st')                 
 
         EInt n -> 
@@ -364,3 +373,17 @@ safeMod vl vr =
   if vr == 0  
     then error "Modulo zero"
     else vl `mod` vr
+
+
+binArithmFn bop = 
+  case bop of
+    EAdd -> (+)
+    ESub -> (-)
+    EMul -> (*)
+    EDiv -> safeDiv
+    EMod -> safeMod
+
+unaryArithmFn uop v =
+  case uop of
+    EUnPlus -> v
+    EUnMinus -> -v
