@@ -52,7 +52,7 @@ eval e funs = do
   let thisFrame@(Frame caller funArgs susps prevFrameId) = getFrame mem frameId
   let lineFill = "================================================================\n"
   let debugPrefix = show nFrames ++ ". " ++ L.replicate (indent * 4) ' '
-  trace (lineFill ++ debugPrefix ++ "expr = " ++ show e ++ ", frame#" ++ show frameId ++ ":\n" ++ showStack mem frameId) $
+  trace (lineFill ++ debugPrefix ++ "expr = " ++ show e ++ ", frame#" ++ show frameId ++ ":\n" ++ showStack mem frameId ++ "\nMemory Dump = \n" ++ show mem) $
 #else                     -- | Debugging information ends.
     st@(mem, frameId, nFrames, indent) <- get
     let thisFrame@(Frame caller funArgs susps prevFrameId) = getFrame mem frameId
@@ -146,10 +146,10 @@ eval e funs = do
                           pattIndex = indexOfPattern cn patterns 0
                           (_, ne) = cases !! pattIndex
                           newSusp = (cid, c)
-                          frame' = 
-                            case L.lookup cid susps of -- used for TCO
-                              Nothing -> thisFrame { fSusps = newSusp : susps }
-                              Just _  -> thisFrame { fSusps = updateL cid c susps }
+                          frame' = thisFrame { fSusps = newSusp : susps }
+                            -- case L.lookup cid susps of -- used for TCO
+                            --   Nothing -> thisFrame { fSusps = newSusp : susps }
+                            --   Just _  -> thisFrame { fSusps = updateL cid c susps }
                           st' = (updFrame mem' frameId frame', frameId, n, indent)
                       in  (ne, st')
         put nextST
@@ -161,7 +161,10 @@ eval e funs = do
             memoryDumpMsg = "\n Memory dump: \n" ++ show mem
             errorSuspsMsg = error $ cprojStr ++ memoryDumpMsg
             susp@(Susp (_, el) savedFrameId) = fromMaybe errorSuspsMsg (L.lookup cid susps)
-            nextE = el !! cpos
+            nextE = 
+              if cpos >= length el 
+                then error ("Indexing el = " ++ case el of { [] -> "[]"; _ -> show el } ++ "\nsusps = " ++ show susps) 
+                else el !! cpos
             (val, (mem', _, nFrames', _)) = runState (eval nextE funs) (mem, savedFrameId, nFrames, indent)
         put (mem', frameId, nFrames', indent)
         return val
@@ -190,12 +193,12 @@ checkMutate actuals@(a : as) formals@(f : fs) callee funs args thisState =
       thisFrame@(Frame fn fnArgs susps prevFrameId) = getFrame mem frameId
       (callerFormals, _, _) = fromMaybe (error $ "Function " ++ fn ++ " not found") (Map.lookup fn funs)
   in  
-      if actualsFS formals actuals 
-          then  let (args', nextState) = makeArgs actuals formals funs ([], thisState)
-                    (mem', frameId', n, ident') = nextState
-                    newFrame = Frame callee args' susps prevFrameId 
-                    nextState' = (updFrame mem' frameId newFrame, frameId, n, indent)
-                in  nextState'
+      -- if actualsFS formals actuals 
+      --     then  let (args', nextState) = makeArgs actuals formals funs ([], thisState)
+      --               (mem', frameId', n, ident') = nextState
+      --               newFrame = Frame callee args' susps prevFrameId 
+      --               nextState' = (updFrame mem' frameId newFrame, frameId, n, indent)
+      --           in  nextState'
 
 --   ------------------------------------------------------------------
 --   -- | Case 1: True if actuals not dependent by caller's formals   |
@@ -205,9 +208,9 @@ checkMutate actuals@(a : as) formals@(f : fs) callee funs args thisState =
 --   ------------------------------------------------------------------
 --   -- Case 3: Actual parameter is expr in CBV position              |
 --   ------------------------------------------------------------------
-      else  let (args', nextState) = mutate callerFormals formals args 0 funs actuals ([], thisState)
-                (mem', frameId, nFrames', indent') = thisState
-                newFrame = Frame callee args' susps prevFrameId
+            let (args', nextState) = mutate callerFormals formals args 0 funs actuals ([], thisState)
+                (mem', frameId, nFrames', indent') = nextState
+                newFrame = Frame callee args' (reverse susps) prevFrameId
             in  (updFrame mem' frameId newFrame, frameId, nFrames', indent')
 
 
