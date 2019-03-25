@@ -71,7 +71,8 @@ push mem f =
   in  Mem { memFrames = frames', lastFrameId = lastId }
 
 getFrame :: Mem -> FrameId -> Frame
-getFrame mem i = fromMaybe (error $ "Internal error: no frame in memory for id " ++ show i) (Map.lookup i (memFrames mem))
+getFrame mem i = 
+  fromMaybe (error $ "Internal error: no frame in memory for id " ++ show i ++ "Mem dump = " ++ show mem) (Map.lookup i (memFrames mem))
 
 updFrame :: Mem -> FrameId -> Frame -> Mem
 updFrame mem frameId frame =
@@ -85,7 +86,7 @@ frameTrace mem fId =
   case Map.lookup fId (memFrames mem) of
     Just frame@(Frame _ _ _ prevId) -> frame : frameTrace mem prevId
     Nothing ->
-      if fId == cTOPFRAMEID then [] else error $ "Frame trace error for id " ++ show fId
+      if fId == cTOPFRAMEID then [] else error $ "Frame trace error for id " ++ show fId ++ "\nMem dump = \n" ++ show mem
 
 type Depth = Int
 type FunctionsMap = Map.Map String ([Formal], Expr, Depth)
