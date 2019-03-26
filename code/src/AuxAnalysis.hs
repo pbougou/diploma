@@ -3,7 +3,8 @@ module AuxAnalysis (
     searchFS,
     isCBV,
     isVar,
-    areVars
+    areVars,
+    isInt
 ) where
 import Grammar 
 import Data.Maybe
@@ -26,9 +27,7 @@ import qualified Data.Map.Strict as Map
 
 -- Check if every actual is not dependented
 --  Calls searchFS for every formal of caller function
-actualsFS :: [Formal]
-            -> [Expr]
-            -> Bool
+actualsFS :: [Formal] -> [Expr] -> Bool
 actualsFS fsCaller = L.foldr (\e acc -> searchFS fsCaller e && acc) True
 
 -- Assuming: 
@@ -61,10 +60,20 @@ searchFS fsCaller actual =
         CProj {} -> False
         TailCall _ _ -> error "Tail Call: This should be unreached"
 
-isCBV :: Expr 
-        -> [Expr] 
-        -> [Formal] 
-        -> Bool
+-- Checks if an actual parameter is int or list.
+isInt :: Expr -> [Actual] -> [Formal] -> Bool
+isInt e es fs = 
+    let Just ix = elemIndex e es 
+        (_, (_, tp)) = fs !! ix 
+    in  case tp of
+            TInt -> True
+            _    -> False
+
+--------------------------------------------------------------------------------
+-- Checks if an actual parameter is CBV.                                       |
+-- Returns true for strict parameters or false otherwise (call-by-name, lazy). |
+--------------------------------------------------------------------------------
+isCBV :: Expr -> [Actual] -> [Formal] -> Bool
 isCBV e es fs =
     let Just ix = elemIndex e es
         (_, (tp, _)) = fs !! ix

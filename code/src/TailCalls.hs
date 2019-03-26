@@ -103,7 +103,8 @@ spotTCs fdefs =
                                         let isDependent = searchFS formals e
                                             isV = isVar e 
                                             cbv = isCBV e actuals fsCallee
-                                        in  (isV || cbv || isDependent) && acc) True actuals
+                                            int = isInt e actuals fsCallee
+                                        in  (isV || (cbv && int) || isDependent) && acc) True actuals
 
                     in  if b' || b'' 
                             then do put True
