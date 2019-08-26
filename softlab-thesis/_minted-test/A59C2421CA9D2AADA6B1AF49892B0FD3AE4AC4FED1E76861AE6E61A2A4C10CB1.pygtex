@@ -1,0 +1,3 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+  \PYG{k+kr}{data} \PYG{k+kt}{List} \PYG{n}{a} \PYG{o+ow}{=} \PYG{k+kt}{Empty} \PYG{o}{|} \PYG{k+kt}{Cons} \PYG{o}{!}\PYG{n}{a} \PYG{o}{!}\PYG{p}{(}\PYG{k+kt}{List} \PYG{n}{a}\PYG{p}{)}
+\end{Verbatim}

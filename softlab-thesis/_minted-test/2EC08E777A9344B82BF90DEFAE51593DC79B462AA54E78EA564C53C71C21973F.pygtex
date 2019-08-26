@@ -1,0 +1,6 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+  \PYG{k}{let} \PYG{k}{rec} \PYG{n}{fact\PYGZsq{}} \PYG{n}{n} \PYG{n}{acc} \PYG{o}{=}
+    \PYG{k}{if} \PYG{n}{n} \PYG{o}{\PYGZgt{}} \PYG{l+m+mi}{0}
+      \PYG{k}{then} \PYG{n}{fact\PYGZsq{}} \PYG{o}{(}\PYG{n}{n}\PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{1}\PYG{o}{)} \PYG{o}{(}\PYG{n}{n} \PYG{o}{*} \PYG{n}{acc}\PYG{o}{)}
+      \PYG{k}{else} \PYG{n}{acc}
+\end{Verbatim}

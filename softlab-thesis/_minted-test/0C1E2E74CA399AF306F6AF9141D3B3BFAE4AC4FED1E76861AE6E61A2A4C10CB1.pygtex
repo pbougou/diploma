@@ -1,0 +1,3 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+    \PYG{k+kr}{data} \PYG{k+kt}{Expr} \PYG{o+ow}{=} \PYG{o}{...} \PYG{o}{|} \PYG{k+kt}{CProj} \PYG{k+kt}{CaseID} \PYG{k+kt}{CPos}
+\end{Verbatim}

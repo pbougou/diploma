@@ -1,0 +1,6 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+  \PYG{k+kr}{type} \PYG{k+kt}{FrameId} \PYG{o+ow}{=} \PYG{k+kt}{Int}
+  \PYG{k+kr}{data} \PYG{k+kt}{Mem} \PYG{o+ow}{=} \PYG{k+kt}{Mem} \PYG{p}{\PYGZob{}}
+    \PYG{n}{memFrames} \PYG{o+ow}{::} \PYG{k+kt}{Map} \PYG{k+kt}{FrameId} \PYG{k+kt}{Frame}\PYG{p}{,} \PYG{n}{lastFrameId} \PYG{o+ow}{::} \PYG{k+kt}{FrameId}
+  \PYG{p}{\PYGZcb{}}
+\end{Verbatim}

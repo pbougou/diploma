@@ -1,0 +1,3 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+ \PYG{k}{let} \PYG{n}{main} \PYG{o}{=} \PYG{n}{fact} \PYG{l+m+mi}{3}
+\end{Verbatim}

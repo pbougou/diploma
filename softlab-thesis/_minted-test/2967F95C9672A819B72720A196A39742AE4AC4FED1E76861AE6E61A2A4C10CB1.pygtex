@@ -1,0 +1,20 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+  \PYG{k+kr}{data} \PYG{k+kt}{Func} \PYG{o+ow}{=} \PYG{k+kt}{Inc}
+
+  \PYG{n}{apply} \PYG{o+ow}{::} \PYG{k+kt}{Func} \PYG{o+ow}{\PYGZhy{}\PYGZgt{}} \PYG{n}{b} \PYG{o+ow}{\PYGZhy{}\PYGZgt{}} \PYG{n}{b}
+  \PYG{n}{apply} \PYG{n}{f} \PYG{n}{x} \PYG{o+ow}{=}
+    \PYG{k+kr}{case} \PYG{n}{f} \PYG{k+kr}{of}
+      \PYG{k+kt}{Inc} \PYG{o+ow}{\PYGZhy{}\PYGZgt{}} \PYG{n}{inc} \PYG{n}{x}
+
+  \PYG{n}{map} \PYG{o+ow}{::} \PYG{k+kt}{Func} \PYG{o+ow}{\PYGZhy{}\PYGZgt{}} \PYG{p}{[}\PYG{n}{a}\PYG{p}{]} \PYG{o+ow}{\PYGZhy{}\PYGZgt{}} \PYG{p}{[}\PYG{n}{b}\PYG{p}{]}
+  \PYG{n}{map} \PYG{n}{f} \PYG{n}{l} \PYG{o+ow}{=}
+  \PYG{k+kr}{case} \PYG{n}{l} \PYG{k+kr}{of}
+    \PYG{k+kt}{[]}     \PYG{o+ow}{\PYGZhy{}\PYGZgt{}} \PYG{n}{acc}
+    \PYG{n}{x} \PYG{k+kt}{:} \PYG{n}{xs} \PYG{o+ow}{\PYGZhy{}\PYGZgt{}} \PYG{n}{apply} \PYG{n}{f} \PYG{n}{x} \PYG{k+kt}{:} \PYG{n}{map} \PYG{n}{f} \PYG{n}{xs}
+
+  \PYG{n}{inc} \PYG{o+ow}{::} \PYG{k+kt}{Int} \PYG{o+ow}{\PYGZhy{}\PYGZgt{}} \PYG{k+kt}{Int}
+  \PYG{n}{inc} \PYG{n}{a} \PYG{o+ow}{=} \PYG{n}{a} \PYG{o}{+} \PYG{l+m+mi}{1}
+
+  \PYG{n}{result} \PYG{o+ow}{::} \PYG{p}{[}\PYG{k+kt}{Int}\PYG{p}{]}
+  \PYG{n}{result} \PYG{o+ow}{=} \PYG{n}{map} \PYG{k+kt}{Inc} \PYG{p}{[}\PYG{l+m+mi}{1}\PYG{p}{,} \PYG{l+m+mi}{2}\PYG{p}{,} \PYG{l+m+mi}{3}\PYG{p}{]} \PYG{k+kt}{[]}
+\end{Verbatim}

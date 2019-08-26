@@ -1,0 +1,3 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+  \PYG{n}{eval} \PYG{o+ow}{::} \PYG{k+kt}{Expr} \PYG{n+nf}{\PYGZbs{}}\PYG{n}{texttimes} \PYG{k+kt}{State} \PYG{o+ow}{\PYGZhy{}\PYGZgt{}} \PYG{k+kt}{State} \PYG{n+nf}{\PYGZbs{}}\PYG{n}{texttime} \PYG{k+kt}{Value}
+\end{Verbatim}

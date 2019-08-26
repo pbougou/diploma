@@ -1,0 +1,8 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+  \PYG{n}{fact} \PYG{n}{n} \PYG{n}{acc} \PYG{o+ow}{=}
+    \PYG{k+kr}{if} \PYG{n}{n} \PYG{o}{\PYGZgt{}} \PYG{l+m+mi}{0}
+      \PYG{k+kr}{then} \PYG{n}{fact} \PYG{p}{(}\PYG{n}{n}\PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{1}\PYG{p}{)} \PYG{p}{(}\PYG{n}{n}\PYG{o}{*}\PYG{n}{acc}\PYG{p}{)}
+      \PYG{k+kr}{else} \PYG{n}{acc}
+
+  \PYG{n}{main} \PYG{o+ow}{=} \PYG{n}{fact} \PYG{l+m+mi}{3}
+\end{Verbatim}

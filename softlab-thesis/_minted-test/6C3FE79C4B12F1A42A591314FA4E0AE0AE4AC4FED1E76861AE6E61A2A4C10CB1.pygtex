@@ -1,0 +1,6 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{n+nf}{makelist} \PYG{n}{x} \PYG{o+ow}{=}
+  \PYG{k+kr}{if} \PYG{n}{x} \PYG{o}{\PYGZgt{}} \PYG{l+m+mi}{0}
+    \PYG{k+kr}{then} \PYG{n}{x} \PYG{k+kt}{:} \PYG{n}{makelist} \PYG{p}{(}\PYG{n}{x}\PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{1}\PYG{p}{)}
+    \PYG{k+kr}{else} \PYG{k+kt}{[]}
+\end{Verbatim}

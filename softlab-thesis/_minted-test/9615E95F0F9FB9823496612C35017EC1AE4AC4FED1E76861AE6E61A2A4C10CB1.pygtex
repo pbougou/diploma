@@ -1,0 +1,10 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+  \PYG{n}{loop} \PYG{n}{x} \PYG{o+ow}{=} \PYG{n}{loop} \PYG{n}{x} \PYG{c+c1}{\PYGZhy{}\PYGZhy{} function that diverges}
+
+  \PYG{n}{head} \PYG{n}{l} \PYG{o+ow}{=}
+    \PYG{k+kr}{case} \PYG{n}{l} \PYG{k+kr}{of}
+      \PYG{k+kt}{[]}     \PYG{o+ow}{\PYGZhy{}\PYGZgt{}} \PYG{n+ne}{error} \PYG{l+s}{\PYGZdq{}Empty list\PYGZdq{}}
+      \PYG{p}{(}\PYG{n}{x}\PYG{k+kt}{:}\PYG{n}{xs}\PYG{p}{)} \PYG{o+ow}{\PYGZhy{}\PYGZgt{}} \PYG{n}{x}
+
+  \PYG{n}{main} \PYG{o+ow}{=} \PYG{n}{head} \PYG{p}{[}\PYG{l+m+mi}{42}\PYG{p}{,} \PYG{n}{loop} \PYG{l+m+mi}{42}\PYG{p}{]}
+\end{Verbatim}

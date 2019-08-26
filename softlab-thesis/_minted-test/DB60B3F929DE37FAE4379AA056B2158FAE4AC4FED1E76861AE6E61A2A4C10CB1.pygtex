@@ -1,0 +1,6 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+  \PYG{n}{foo} \PYG{n}{n} \PYG{n}{res} \PYG{o+ow}{=}
+    \PYG{k+kr}{if} \PYG{n}{n} \PYG{o}{\PYGZgt{}} \PYG{l+m+mi}{0}
+      \PYG{k+kr}{then} \PYG{n}{foo} \PYG{p}{(}\PYG{n}{n} \PYG{o}{\PYGZhy{}} \PYG{l+m+mi}{1}\PYG{p}{)} \PYG{p}{(}\PYG{n}{n} \PYG{o}{*} \PYG{n}{res}\PYG{p}{)}
+      \PYG{k+kr}{else} \PYG{n}{res}
+\end{Verbatim}

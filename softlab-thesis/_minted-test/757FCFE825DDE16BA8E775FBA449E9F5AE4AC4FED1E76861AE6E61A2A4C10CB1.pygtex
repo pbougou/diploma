@@ -1,0 +1,3 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+    \PYG{k+kr}{if} \PYG{n}{cond} \PYG{k+kr}{then} \PYG{n}{e1} \PYG{k+kr}{else} \PYG{n}{e2} \PYG{o+ow}{=\PYGZgt{}} \PYG{k+kr}{case} \PYG{n}{cond} \PYG{k+kr}{of} \PYG{p}{\PYGZob{}} \PYG{k+kt}{True} \PYG{o+ow}{\PYGZhy{}\PYGZgt{}} \PYG{n}{e1}\PYG{p}{;} \PYG{k+kt}{False} \PYG{o+ow}{\PYGZhy{}\PYGZgt{}} \PYG{n}{e2} \PYG{p}{\PYGZcb{}}
+\end{Verbatim}

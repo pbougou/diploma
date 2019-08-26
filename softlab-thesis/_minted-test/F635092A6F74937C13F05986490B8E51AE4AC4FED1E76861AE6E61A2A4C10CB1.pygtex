@@ -1,0 +1,5 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+  \PYG{k+kr}{data} \PYG{k+kt}{Value} \PYG{o+ow}{=}
+    \PYG{k+kt}{VI} \PYG{k+kt}{Integer}
+  \PYG{o}{|} \PYG{k+kt}{VC} \PYG{k+kt}{Susp}
+\end{Verbatim}

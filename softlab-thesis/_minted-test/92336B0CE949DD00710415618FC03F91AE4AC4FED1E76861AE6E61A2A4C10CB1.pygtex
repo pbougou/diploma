@@ -1,0 +1,4 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+  \PYG{k+kr}{type} \PYG{k+kt}{FN} \PYG{o+ow}{=} \PYG{k+kt}{String}
+  \PYG{k+kr}{data} \PYG{k+kt}{FunctionsMap} \PYG{o+ow}{=} \PYG{k+kt}{Map} \PYG{k+kt}{FN} \PYG{p}{([}\PYG{k+kt}{Formal}\PYG{p}{],} \PYG{k+kt}{Expr}\PYG{p}{)}
+\end{Verbatim}
