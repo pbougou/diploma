@@ -290,7 +290,7 @@ Call-by-name and call-by-need semantics is similar to each other; they always pr
 Their key difference is that call-by-need computes a value when it needs it, memoizes the result after the computation 
 and does not evaluate it again, while call-by-name re-evaluates the value, in case it's needed again for a computation.
 This makes call-by-name less practical. Call-by-need can also be considered as a \textit{practical} implementation 
-of call-by-name \textbf{[Citate Launchbury's mutable heap for call-by-name to call-by-need]}.
+of call-by-name \textbf{[Cite Launchbury's mutable heap for call-by-name to call-by-need]}.
 
 \subsection {Call-by-value (CBV) or \textit{strict} evaluation }
 
@@ -602,10 +602,10 @@ secd, tim, stg etc etc
 Write about G-Machine, STG's predecessor. Compare it with G-Machine.
 
 \subsection{Spineless Tagless G-Machine (STG)}
-Overview of STG [citate paper]
+Overview of STG~\cite{Jo92} and its latest version~\cite{Ma06}.
 
-\subsection{push/enter vs. eval/apply}
-push-enter vs eval-apply, marlow and jones.
+\subsection{Push/enter vs. eval/apply}
+Push-enter vs eval-apply~\cite{Ma06}, marlow and jones. Our model is push-enter, since it is first-order.
 
 % \section {Techniques for removing intermediate data}
 % Include listlessness, deforestation etc etc.
@@ -825,8 +825,7 @@ is only the case for strict arguments revealed by strictness analysis.
 \section {Defunctionalization transformation}
 
 Defunctionalization is a compile time tranformation technique which eliminates higher order 
-functions, replacing them by a single first-order \textit{apply} function, introduced by John Reynolds \textbf{[citate
-Reynolds' paper definitional interpreter etc]}.
+functions, replacing them by a single first-order \textit{apply} function, introduced by John Reynolds~\cite{Reynolds72definitionalinterpreters}.
 Reynolds' observation was that a given program contains only finitely many function abstractions, so that each can 
 be assigned (and replaced by) a unique identifier. Every function application within the program is then replaced 
 by a call to the apply function with the function identifier as the first argument. The apply function's only job is 
@@ -839,8 +838,7 @@ abstraction are passed as extra arguments to apply. In addition, if closures are
 it becomes necessary to represent these captured bindings by creating data structures.
 
 Defunctionalization transformation was used for MLton, an optimizing compiler for ML. The first order 
-core language created oportunities for whole-program analysis and led to great performance \textbf{[citate MLton: how 
-first order created these oportunities]}.
+core language created oportunities for whole-program analysis and led to great performance~\cite{mlton}.
 
 As an example of defunctionalization, Prelude's `map' follows. The transformation leads to 
 the non tail-recursive version of `map', shown in section 3.1.4.
@@ -899,7 +897,7 @@ strict programming languages. But everything comes at a cost: evaluation can hap
 arbitrarily and thus lazy arguments can escape their context.
 
 But \cite{Mycroft:1980:TPT:647324.721526}
-\textbf{[citate Mycroft call by need into call by value and SPJ's references to 
+\textbf{[cite Mycroft call by need into call by value and SPJ's references to 
 strictness analysis https://www.microsoft.com/en-us/research/wp-content/uploads/1987/01/slpj-book-1987-small.pdf]} 
 noticed that some lazy terms are actually strict under the right circumstances. For instance, `case' 
 construct forces the evaluation of the scrutinee, causing the scrutinee to actually become strict, 
@@ -1673,7 +1671,7 @@ So, \textit{mutate} is a function that takes as input:
   \item the actual parameter of the function call, which is tail-call optimisable,
   \item the current state of the interpreter, 
 \end{itemize}
-, and produces:
+and produces:
 \begin{itemize}
   \item The frame arguments for the new frame. We note here that we want to turn the actual parameters 
   of the function call into the appropriate frame arguments, using the function signatures of the caller and the callee.
@@ -1793,6 +1791,13 @@ may allocate activation records on the heap. Tail-call optimization is
 also important for implementations of logic languages~\cite{Bigot99}.
 
 Tail-call optimization in C: GCC~\cite{Probst01}, LLVM~\cite{Pandey:2015:LC:2842773}.
+
+Tail-call optimization for functional programming languages running on
+the Java virtual machine~\cite{Madsen:2018:TCE:3178372.3179499}.
+
+TODO: Clinger citation~\cite{Clinger:1998:PTR:277650.277719}.
+
+TODO: citation for further details on the GIC memory model~\cite{Fourtounis14}.
 
 \chapter{Ευρετήριο συμβολισμών}
 
