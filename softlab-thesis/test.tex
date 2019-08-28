@@ -48,7 +48,7 @@
 της αναδρομής.
   
 
-Η λύση αυτού του προβλήματος, που δόθηκε στη δεκαετία του '80 για τη γλώσσα Scheme, ήταν η χρήση της βελτιστοποίησης 
+Η λύση αυτού του προβλήματος, που δόθηκε στη δεκαετία του '70 για τη γλώσσα Scheme, ήταν η χρήση της βελτιστοποίησης
 κλήσεων ουράς, μια πολύ απλή αλλά, όπως αποδείχθηκε, πολύ αποτελεσματική για την εξάλειψη του παραπάνω προβλήματος.
 Εκτός από τη Scheme, η βελτιστοποίηση αυτή περιλαμβάνεται στις υλοποιήσεις των περισσότερων συναρτησιακών 
 γλωσσών με αυστηρή σημασιολογία, όπως η SML/NJ και η OCaml, καθώς και σε υλοποιήσεις προστακτικών 
@@ -84,7 +84,7 @@
   implemented in imperative languages that run in constant space, run in linear space implemented 
   in functional languages. 
   
-  The solution to this problem, given in 1980's for Scheme, was the use of the tail-call
+  The solution to this problem, given in 1970's for Scheme, was the use of the tail-call
   optimisation, a very simple but, as it turned out, very efficient to eliminate the above problem.
   On the one hand, this optimisation was naturally embedded in strict functional programming languages, such as 
   SML/NJ, OCaml or Scheme, and even in imperative languages, such as C/C++. On the other hand, it is not used in functional 
@@ -205,7 +205,7 @@ main idea of this thesis is given.
 \section{Tail-call optimisation}
 
 
-The main optimisation this thesis discusses is the tail-call optimisation. This optimisation, first found in Scheme and
+The main optimisation this thesis discusses is the tail-call optimisation. This optimisation, first found in Scheme~\cite{Sussman:1975:IEL:889230,Steele:1976:LUI:889232} and
 generally usually found in strict functional languages, 
 allows functional programming languages to have constant space similar to `for' loops from imperative programming languages. 
 Without this, recursion would require \textit{linear} memory space; i.e. one frame allocation for each function call. 
@@ -938,7 +938,7 @@ properly annotate strict arguments.
 After defunctionalization transformation and strictness analysis are performed, we also 
 perform some more transformations to the source language in order the intermediate 
 language to reach the final form, which is the input of the analysis, presented in later section.
-\textbf{[TODO : Write more about the folloeing transformations]}
+\textbf{[TODO : Write more about the following transformations]}
 \begin{itemize}
   \item alpha-renaming
   \item if to case transform 
@@ -1765,6 +1765,36 @@ can be used for Haskell? Simply sketch something.
 \backmatter
 
 \appendix
+
+\chapter{General}
+
+Implementations of programming languages use a stack for function calls, where activation records are pushed for every function invocation: this permits recursion and has good performance. Stack allocation for function calls has been an old technique, dating back at least to ALGOL~\cite{Dijkstra60,Naur78} and LISP~\cite{McCarthy60,Stoyan79}.
+
+Tail-calls are function calls that happen last inside a function and
+they can be implemented with a ``go to'' instruction. In the special
+case that the caller's activation record will not be needed again,
+\emph{tail-call optimization} can reuse it to construct the activation
+record of the callee, saving space, and making some programs run in
+constant space. Tail-calls can be further optimized by the
+instruction-scheduling stage of a compiler~\cite[\S12.4.3]{Torczon12}.
+Tail-calls have been used to transform recursive functions to
+iterative (tail-recursive)
+ones~\cite[\S{9}]{McCarthy62}\cite{Barron68}.  Tail-call optimization
+is an old idea~\cite[p.~7]{Gill65}\cite[p.~21]{Knuth74}, which is an
+established part of modern compilers.
+
+Some languages and implementations often offer features that are not
+easy to compose with tail-call optimization. Activation records may
+not be resized in-place for languages that support
+coroutines~\cite[p.~60]{Waite84}. Languages that support first-class
+continuations~\cite{Sperber10}, higher-order return
+values~\cite[p.~103]{Appel92}\cite{Steele78},
+backtracking~\cite{Bobrow73}, or non-strict evaluation, and
+implementations in continuation-passing style~\cite[p.~103]{Appel92},
+may allocate activation records on the heap. Tail-call optimization is
+also important for implementations of logic languages~\cite{Bigot99}.
+
+Tail-call optimization in C: GCC~\cite{Probst01}, LLVM~\cite{Pandey:2015:LC:2842773}.
 
 \chapter{Ευρετήριο συμβολισμών}
 
