@@ -967,10 +967,10 @@ We need to highlight the following points, before we dive deeper into the langua
   \item There aren't any partial applications, neither in function nor in constructor applications.
   This means that the arguments in a function call are the same in number as in the function definition.
   \item There is not `let' expression in the core language. Instead we assume that our language 
-  fully depends upon the lambda lifter ; Johnson style \textit{full laziness} lambda lifter \textbf{[ TODO: Enter citation ]} 
+  fully depends upon the lambda lifter ; Johnson style \textit{full laziness} lambda lifter~\cite{Johnsson:1985:LLT:5280.5292}
   will get the work done.
   \item Case patterns are simple and don't allow wildcard patterns. Turning a complex case pattern into
-  a simple case pattern is a well studied topic \textbf{[wadler citation about case pattern compiler]}.
+  a simple case pattern is a well studied topic~\cite{Au85,Wadler87}.
   \item The scrutinee of a case construct is not a case expression. We assume that case-of-case transform 
   \textbf{[citation about this transformation]} is performed.
 \end{itemize}
@@ -1113,8 +1113,8 @@ The data definition has the following fields:
 \end{itemize}
 
 The reader can think of memory as the memory in a computer: every memory cell has an address (\textit{FrameId}) and 
-the address has a content (\textit{frame}). A similar representation to \textbf{[TODO: Launchbury's mutable heap for 
-lazy evaluation and provide the citation]}.
+the address has a content (\textit{frame}). A similar representation to Launchbury's mutable heap for 
+lazy evaluation~\cite{La93}.
 Here, not all frames have the same capacity; the details will be given in later section for a frame.
 \newline
 \par This aforementioned data structure is accompanied with three operations in order to handle it \textbf{[write 
@@ -1504,20 +1504,18 @@ for the definitions, probably put them in an appendix for better search. ]}.
 
 \subsection{Tail-call position (tail-call) vs. Tail-call optimisable (true tail-call)}
 
-\textbf{Definition 6.1} 
-\newline 
-\par A function call is in \textit{tail call position}, or \textit{tail call}, \textit{if and only if} its execution is the last action 
+\paragraph{Definition 6.1}
+A function call is in \textit{tail call position}, or \textit{tail call}, \textit{if and only if} its execution is the last action 
 performed before the function returns.
-\newline
-\par \textbf{Definition 6.2}
-\newline
-\par A function call is \textit{tail call optimisable}, or \textit{true tail call}, \textit{if and only if} it is in tail call position and it satisfies the rules shown in 
-section 6.1.3.
-\newline 
-\par The same defintions also stand for tail-recursion modulo cons, if we substitute \textit{tail-call} with 
+
+\paragraph{Definition 6.2}
+A function call is \textit{tail call optimisable}, or \textit{true tail call}, \textit{if and only if} it is in tail call position and it satisfies the rules shown in 
+section 6.1.3.\\
+
+The same definitions also stand for tail-recursion modulo cons, if we substitute \textit{tail-call} with 
 \textit{tail-recursion modulo cons}; an equivalent section is omitted for section 6.2.
-\newline
-\par In the next sections, we present the path from \textit{function calls} in the core language to \textit{tail-call positons}, 
+
+In the next sections, we present the path from \textit{function calls} in the core language to \textit{tail-call positons}, 
 and from there to \textit{true tail-calls}; that is function calls that are actually optimisable. The latter is annotated as a new 
 expression in the core language, called \textit{TailCall}. When the interpreter comes across this expression, it performs the 
 optimisation, while the program is executing.
@@ -1555,7 +1553,7 @@ But if we had the following example:
       then foo (n - 1) (n * res)
       else res
 \end{minted}
-, then the call is in tail-call position as the `then' clause is in tail-call position.
+then the call is in tail-call position as the `then' clause is in tail-call position.
 
 \subsection{Data-driven analysis: Revealing true tail-calls}
 
@@ -1609,8 +1607,8 @@ then we can have \textit{x `:' tail recursive call to the function}. Details on 
 \chapter {Runtime evaluator for optimisations}
 In this chapter, we will present how the optimisations are implemented in the interpreter.
 More specifically there will be presented:
-\[eval \hfill\ (e, s) = (e', s') \],
-where
+\[eval \hfill\ (e, s) = (e', s') \]
+where:
 \begin{itemize}
 \item in section 7.1 we have the evaluation of:
 \[e = TailCall \hfill\ callee \hfill\ actuals \] 
@@ -1801,13 +1799,14 @@ Tail-call optimization in C: GCC~\cite{Probst01}, LLVM~\cite{Pandey:2015:LC:2842
 $A \rightarrow B$ : συνάρτηση από το πεδίο $A$ στο πεδίο $B$.
 
 \chapter{Ευρετήριο γλωσσών}
-\begin{itemize}
-  \item \textbf{Haskell} : https://www.haskell.org/
-  \item \textbf{SML/NJ}  : link
-  \item \textbf{MLton}   : link
-  \item \textbf{OCaml}   : link
-  \item \textbf{Scheme}  : link
-\end{itemize}
+
+\begin{tabular}{ll}
+  \textbf{Haskell} & https://www.haskell.org/\\
+  \textbf{SML/NJ} & link\\
+  \textbf{MLton} & link\\
+  \textbf{OCaml} & link\\
+  \textbf{Scheme} & link\\
+\end{tabular}
 
 % \chapter{Ευρετήριο αριθμών}
 
