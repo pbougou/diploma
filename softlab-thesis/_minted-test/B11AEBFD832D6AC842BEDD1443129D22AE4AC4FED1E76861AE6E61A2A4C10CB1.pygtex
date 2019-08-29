@@ -1,3 +1,0 @@
-\begin{Verbatim}[commandchars=\\\{\}]
-  \PYG{k+kr}{data} \PYG{k+kt}{Expr} \PYG{o+ow}{=} \PYG{k+kt}{Call} \PYG{n}{callee} \PYG{n}{actuals}
-\end{Verbatim}

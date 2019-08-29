@@ -1,7 +1,0 @@
-\begin{Verbatim}[commandchars=\\\{\}]
-    \PYG{k+kr}{type} \PYG{k+kt}{Formal} \PYG{o+ow}{=} \PYG{p}{(}\PYG{k+kt}{VN}\PYG{p}{,} \PYG{p}{(}\PYG{k+kt}{EvalOrder}\PYG{p}{,} \PYG{k+kt}{Type}\PYG{p}{))}
-    \PYG{k+kr}{type} \PYG{k+kt}{VN} \PYG{o+ow}{=} \PYG{k+kt}{String}
-    \PYG{k+kr}{type} \PYG{k+kt}{EvalOrder} \PYG{o+ow}{=} \PYG{k+kt}{CBV} \PYG{o}{|} \PYG{k+kt}{CBN} \PYG{o}{|} \PYG{k+kt}{Lazy}
-    \PYG{k+kr}{data} \PYG{k+kt}{Type} \PYG{o+ow}{=} \PYG{k+kt}{TInt} \PYG{o}{|} \PYG{k+kt}{TCons} \PYG{k+kt}{Type} \PYG{c+c1}{\PYGZhy{}\PYGZhy{} an value of type integer (TInt) or}
-                                  \PYG{c+c1}{\PYGZhy{}\PYGZhy{} a list of values with type Type}
-\end{Verbatim}

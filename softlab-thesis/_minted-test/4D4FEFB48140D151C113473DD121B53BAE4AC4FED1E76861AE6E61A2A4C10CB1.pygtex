@@ -1,4 +1,0 @@
-\begin{Verbatim}[commandchars=\\\{\}]
-  \PYG{k+kt}{State} \PYG{o+ow}{=} \PYG{p}{(}\PYG{k+kt}{Mem}\PYG{p}{,} \PYG{k+kt}{FrameId}\PYG{p}{,} \PYG{k+kt}{NRFrames}\PYG{p}{)}
-  \PYG{c+c1}{\PYGZhy{}\PYGZhy{} FrameId: id of the current frame}
-\end{Verbatim}

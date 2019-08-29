@@ -1,4 +1,0 @@
-\begin{Verbatim}[commandchars=\\\{\}]
-  \PYG{n}{thisFrame} \PYG{o+ow}{=} \PYG{n}{getFrame} \PYG{n}{mem} \PYG{n}{frameId}
-  \PYG{k+kt}{Frame} \PYG{n}{caller} \PYG{n}{funArgs} \PYG{n}{susps} \PYG{n}{prevFrameId} \PYG{o+ow}{=} \PYG{n}{thisFrame}
-\end{Verbatim}
