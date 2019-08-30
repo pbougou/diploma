@@ -3,6 +3,8 @@
 \usepackage{syntax}
 \usepackage{graphicx}
 \usepackage{minted}
+\usepackage{amsmath}
+
 %%%
 %%%  The document
 %%%
@@ -250,9 +252,12 @@ main idea of this thesis is given.
 
 The main optimisation this thesis discusses is the tail-call optimisation. This optimisation, first found in Scheme~\cite{Sussman:1975:IEL:889230,Steele:1976:LUI:889232} and
 generally usually found in strict functional languages, 
-allows functional programming languages to have constant space similar to `for' loops from imperative programming languages. 
-Without this, recursion would require \textit{linear} memory space; i.e. one frame allocation for each function call. 
-\textbf{[Enter citation from Scheme, and refer to lambda the ultimate and work for C/C++]}
+allows functional programming languages to have constant space 
+similar to `for' loops from imperative programming languages~\cite{Clinger:1998:PTR:277650.277719}. 
+Without this, recursion would require \textit{linear} memory space; 
+i.e. one frame allocation for each function call. More recent works perform tail-call optimisation 
+for non-functional languages, as for example for C/C++~\cite{Probst01} 
+or even Java~\cite{Madsen:2018:TCE:3178372.3179499}.
 
 What exactly is \textit{tail call optimisation}? Tail calls are function calls in specific locations;
 specifically they are function calls performed as the final action of a function. Tail-call optimisation is actually passing 
@@ -413,14 +418,13 @@ They are substituted directly into the function body (using capture-avoiding sub
 whenever they appear in the function. If an argument is not used in the function body, the argument is never evaluated; 
 if it is used several times, it is re-evaluated each time it appears.
 
-Call-by-name evaluation is occasionally preferable to call-by-value evaluation. If a function's argument is not used 
-in the function, call by name will save time by not evaluating the argument, whereas call by value will evaluate it regardless. 
-If the argument is a non-terminating computation, the advantage is enormous. However, when the function argument is used, 
-call by name is often slower, requiring a mechanism such as a thunk \textbf{[write more about thunk. 
-Add it to the term section at the end of the text as well]}.
-\textbf{[Examples]}
-\textbf{[dual calculus/references, also useful for relevant/future work]}
-\textbf{[Connect it with call by need]}
+Call-by-name evaluation is occasionally preferable to call-by-value evaluation. If a function's 
+argument is not used in the function, call by name will save time by not evaluating the argument, 
+whereas call by value will evaluate it regardless. If the argument is a non-terminating computation, 
+the advantage is enormous. However, when the function argument is used, call by name is often slower, 
+requiring a mechanism such as a thunk, first appeared in ALGOL60~\cite{Naur78}. More recent works 
+works prove a relation between call-by-name and call-by-value~\cite{Wadler03}, supporting our interest 
+to investigate call-by-name as an evaluation order present in our core language.
 
 A first example in order to showcase the importance of CBN semantics is:
 
@@ -433,7 +437,7 @@ A first example in order to showcase the importance of CBN semantics is:
   main = head [42, loop 42]
 \end{minted}
 
-While in CBV, this program would cause a meory overflow, because it would try to evaluate [42, loop 42],
+While in CBV, this program would cause a memory overflow, because it would try to evaluate [42, loop 42],
 while `loop' is an ifinite loop and it would diverge, and thus the above would be an incorrect program, 
 in CBN it will return 42, which is actually the first element of the list.
 
@@ -559,7 +563,12 @@ The program above has the following behaviour when executed:
   \item An important notice here is that `!' doesn't force \textit{deep} evaluation of the data structure. It just moves the 
   value from weak-head normal form to head normal form. For data, this means that the outermost value is evaluated.
 \end{itemize}
-\textbf{[Refer also to StrictCore]}
+
+The idea about extending Haskell with strictness was used in StrictCore, an intermediate language 
+which aims to improve GHC's Core language by having
+thunk/value distinction at the type level and multi-arity functions and multiple value returns, 
+inspired by~\cite{Bol09}.
+
 
 \subsection{Deepseq: ML-lists in Haskell}
 
@@ -582,8 +591,7 @@ In the above data definition, `Cons' contains:
 
 In case that this list was used for `head', we finally have ML lists and the program 
 will diverge as it happens in a strict functional language like OCaml. `Deepseq' automatically can turn a data structure
-defined in Haskell into a ML-like data structure. \textbf{[Some more writing about deepseq. Probably there is something nice 
-here to put as future work.]}
+defined in Haskell into a ML-like data structure, by automatic instance derivation.
 \newline \newline
 \par In case the programmer needs more customization, he can use BangPatterns in every possible combination. 
 The definitions below are also used in this thesis' language.
@@ -656,9 +664,6 @@ Overview of STG~\cite{Jo92} and its latest version~\cite{Ma06}.
 \subsection{Push/enter vs. eval/apply}
 Push-enter vs. eval-apply~\cite{Ma06}, marlow and jones. Our model is push-enter, since it is first-order.
 
-% \section {Techniques for removing intermediate data}
-% Include listlessness, deforestation etc etc.
-
 % \section {Boxed vs. Unboxed values}
 % μπλα μπαλα.
 
@@ -684,19 +689,19 @@ the data-driven analysis, that will be described later on.
 
 \section {Classic tail-call optimisation}
 
-\subsection {Example 1: Integers}
-In this example, the only values are integers. As mentioned 
-in the previous chapter, integer values are always in weak-head normal 
-form (WHNF). This means that their \textit{full} evaluation requires \textit{one} more evaluation
-step, provided that the program does \textit{not} diverge. 
+% \subsection {Example 1: Integers}
+% In this example, the only values are integers. As mentioned 
+% in the previous chapter, integer values are always in weak-head normal 
+% form (WHNF). This means that their \textit{full} evaluation requires \textit{one} more evaluation
+% step, provided that the program does \textit{not} diverge. 
 
 
-In the first example presented below the argument is in CBV evaluation order, 
-while in the second it is in lazy evaluation order. \textbf{[1 or 2 examples (if 1 isn't enough) which makes clear the copy of values from 
-one frame to the next and also the importance of strictness.]}
+% In the first example presented below the argument is in CBV evaluation order, 
+% while in the second it is in lazy evaluation order. \textbf{[1 or 2 examples (if 1 isn't enough) which makes clear the copy of values from 
+% one frame to the next and also the importance of strictness.]}
 
 
-\subsection {Example 2: Consuming lists}
+\subsection {Example 1: Consuming lists}
 
 The first example with constructed data is a 
 function that \textit{consumes} the input data in 
@@ -733,10 +738,8 @@ At the latter example, `acc' (an integer or WHNF) is strict. This means that `ac
 fully evaluated in each execution step, and thus it can be tail-call optimized. This, of course,
 isn't possible if `acc' was, for example, a list, as we will illustrate with the following examples.
 
-\textbf{[Tail-call but not tail-call optimizable. Run it in order to showcase how terms 
-tail-call position / tail-call optimisation are different.]}
 
-\subsection {Example 3: Constructing lists}
+\subsection {Example 2: Constructing lists}
 In this example, we have a function that constructs a list with successive 
 integers up to the input number `n' (`0' excluded, `n' included). The function contains 
 a tail-recursive call in its body to itself (`makelist (n-1) (n : acc)'). 
@@ -761,9 +764,9 @@ we were actually able to tail-call optimize the example
 above. The details will follow in section 6.1 and 7.1 for the analysis 
 and the evaluator respectively. 
 
-\textbf{[Tail-call optimisable after all. Compare it with the integer example.]}
 
-\subsection {Example 4: Constructing and consuming lists}
+
+\subsection {Example 3: Constructing and consuming lists}
 An example of constructing and consuming, or better \textit{processing}, lists is `map' or `foldl'/`foldr'.
 In the example below, we present a defunctionalized version of `map', similar to Prelude's `map', instantiated for
 the integer domain.
@@ -793,7 +796,7 @@ in the following section.
 \section {Tail-recursion modulo cons}
 
 Tail-recursion modulo cons is a generalization of classic tail-call optimisation. First found in an 
-implementation of Prolog \textbf{[find the right citation (Warren ??)]}, it can also be applied in 
+implementation of Prolog, found as citation in~\cite{Wadler84}, it can also be applied in 
 functional programming languages, especially those with lazy evaluation. 
 
 Tail recursion modulo cons can also be found in bibliography, as \textit{guarded} recursion, 
@@ -936,8 +939,6 @@ strict programming languages. But everything comes at a cost: evaluation can hap
 arbitrarily and thus lazy arguments can escape their context.
 
 But \cite{Mycroft:1980:TPT:647324.721526}
-\textbf{[cite Mycroft call by need into call by value and SPJ's references to 
-strictness analysis https://www.microsoft.com/en-us/research/wp-content/uploads/1987/01/slpj-book-1987-small.pdf]} 
 noticed that some lazy terms are actually strict under the right circumstances. For instance, `case' 
 construct forces the evaluation of the scrutinee, causing the scrutinee to actually become strict, 
 similar to strictness presented in section 2.2.5 about BangPatterns. 
@@ -989,9 +990,9 @@ This is the output of the strictness analysis and
 defunctionalization transformation as well as the other transformations of the previous 
 section. We run the analysis algorithm to spot tail-call positions with input 
 the language from this section. The interpreter is also built for that language; the evaluator for 
-the optimisations are also implemented inside the interpreter for this language \textbf{[Fix grammar]}.
+the optimisations are also implemented inside the interpreter for this language.
 \newline
-\par In figure~\ref{fig:grammar} \textbf{[actually put grammar as a figure]}, there is the abstract syntax of 
+\par In figure~\ref{fig:grammar}, there is the abstract syntax of 
 the first order intermediate language.
 We need to highlight the following points, before we dive deeper into the language:
 \begin{itemize}
@@ -1037,7 +1038,7 @@ We need to highlight the following points, before we dive deeper into the langua
 \end{figure}
 
 The syntax in the figure is a syntax of a first order functional language. Our syntax has two main 
-differences from the one shown in the figure \textbf{[TODO figure]}:
+differences from the one shown in the figure:
 \begin{itemize}
   \item The concrete syntax of the core language has evaluation order annotations in order to 
   distinguish between the semantics during the parameter passing. We have already mentioned the 
@@ -1094,15 +1095,28 @@ In this section, we present a high-level description for the execution model; th
 to follow the technical details from the next sections. Also, it will be easier to compare to other existing 
 abstract machines and interpreters that exist for a lazy functional language.
 
-Our model includes the following high-level properties \textbf{[Expand the properties below.]}:
+Our model, based on GIC~\cite{Fourtounis14}, 
+includes the following high-level properties:
 \begin{itemize}
-  \item first-order lazy abstract machine.
-  \item Heap allocated frames, 
-  \item explicit frame allocation, needed for frame mutation 
-  \item implementation for cbv, cbn, lazy
-  \item ml-lists and lazy data constructors 
-  \item push/enter function call policy 
-  \item pattern matching similar to Haskell. Write terms as scrutinee here 
+  \item We implement a first-order lazy abstract machine. First-order as we don't support
+  function arguments can't be functions and partial evaluation. Laziness is the default semantics
+  for our model.
+  \item We have a frame-based execution model for our language, but the frames are 
+  \textit{heap-allocated frames}, instead of stack. The reason for this is that lazy evaluation 
+  breaks the sequential order of execution, because of frame updates, and thus we are not able 
+  to allocate and deallocate frames with push/pop operations.
+  \item Our interpreter supports explicit frame allocation, needed for frame mutation and evaluation 
+  of our technique, as well as a frame counting mechanism of frames.
+  \item Our language supports multiple evaluation orders and thus our interpreter 
+  also handles them (call-by-value, call-by-name, call-by-need).
+  \item Our data are lazy data constructors, but we can also support ML-lists (data with deep evaluation
+  presented in section 2.2.6).
+  \item At function calls we follow the push/enter function call policy. Before jumping into 
+  the function's body, we allocate the frame and evaluate all the actual parameters, with the respect
+  to the semantics. 
+  \item Our model supports pattern matching (constructors and base type values) similar to Haskell. 
+  This is the most complicated feature in a lazy functional language, if we consider that initial 
+  abstract machine didn't provide support for that (section 2.4.3).
 \end{itemize}
 % \section {Operational semantics}
 % \textbf{[TODO : Give operational semantics for your model.]}
@@ -1110,8 +1124,8 @@ Our model includes the following high-level properties \textbf{[Expand the prope
 \section {Runtime system}
 
 In this section, there is a detailed explanation of the prototype implementation of the interpreter we 
-used for the language. First, we are going to present the data structures used in the runtime; then, we present 
-the interpreter. 
+used for the language. First, we are going to present the data structures used in the runtime; then, 
+we present the operational features of our interpreter. 
 
 \section{Runtime data structures}
 
@@ -1246,15 +1260,26 @@ reaches a \textit{final state} and \textit{returns a value}, where an expression
 tree presented in section 4.5. The definition of the \textit{state} follows later in the section.
 
 From now on, the function $\mathit{eval}$ corresponds to the interpreter function.The declaration of the \textit{eval} 
-function is:
+function is shown in figure~\ref{fig:eval}:
+
+\begin{figure}[h]
+  \[
+    \mathit{eval} :: \mathit{Expr} \times \mathit{FunctionsMap} \times \mathit{State} \rightarrow 
+    \mathit{State} \times \mathit{Value}
+  \]
+\caption{Declaration of \textit{eval}\label{fig:eval}}
+\end{figure}
+
+\begin{figure}[b]
+
 \[
-  \mathit{eval} :: \mathit{Expr} \times \mathit{FunctionsMap} \times State \rightarrow State \times Value
+  \mathit{State :: (Mem, FrameId, NRFrames)}
 \]
 
-The \textit{State} of the \textit{eval} is:
-\[
-  State :: (Mem, FrameId, NRFrames)
-\] 
+\caption{State of the interpreter\label{fig:state}}
+\end{figure} 
+
+The \textit{State} of the \textit{eval} is shown in figure~\ref{fig:state}:
 where the definitions for \textit{Mem}, \textit{FrameId} are given earlier in this chapter. The field \textit{NRFrames}
 gives the number of frames allocated so far. Remember at this point that the interpreter includes \textit{explicit frame 
 allocation} and this number is the \textit{goal number} for the tail-call optimisation, that will be presented in a 
@@ -1267,12 +1292,15 @@ as well. It doesn't change during the execution of the program and is a \textit{
   \item Values are a pair of formal parameters with their static information (evaluation order, type) 
   of the function and the body of the function.
 \end{itemize}
-The data definition of the aforementioned structure seems below:
+
+The data definition of the aforementioned structure is shown in figure~\ref{fig:functionsmap}:
+\begin{figure}[h]
 \begin{minted}{haskell}
   type FN = String 
   data FunctionsMap = Map FN ([Formal], Expr)
 \end{minted}
-
+\caption{FunctionsMap\label{fig:functionsmap}}
+\end{figure}
 The result of the interpreter is the result of the execution of the body of the top-level function \textit{main}. 
 This function is a special case of a function and is assumed not to have any arguments. So, the initial expression 
 \textit{expr0} is: 
@@ -1282,7 +1310,13 @@ This function is a special case of a function and is assumed not to have any arg
 % \newline
 
 The \textit{initial state} for the interpreter's execution to start with, is:
-\[ State0 = (mem0, frameId0, nr\_frames0) \], where:
+\begin{figure}[h]
+\[ 
+  \mathit{State0 = (mem0, frameId0, nr\_frames0) }
+\]
+\caption{Initial state of the interpreter\label{fig:state0}}
+\end{figure}
+, where:
 \begin{itemize}
   \item The initial state of memory, called \textit{mem0}, is:
     \begin{minted}{haskell}
@@ -1362,32 +1396,48 @@ evaluation order (we use the abbrevation e.o. which stands for evaluation order)
   \[eval (v, s) = (v', s') \]
 
   \begin{itemize}
-    \item cbv e.o.: \[(v', s') = (val, s), where \hfill\ v = StrictArg \hfill\ val\]
+    \item cbv e.o.: 
+      \begin{figure}[h]
+        \[
+          \mathit{(v', s') = (val, s), where \hfill\ v = StrictArg \hfill\ val}
+        \]
+      \caption{Variable lookup for call-by-value\label{fig:cbv-varLookup}}
+      \end{figure}
     \item cbn e.o.: 
-      \[(v', s') = (val, s), \hfill\ where\]
-          \[ v = ByNameArg \hfill\ expr,\] 
-                \[(val, s'') = eval \hfill\ expr \hfill\ (mem, prevFrameId, nr\_frames)\]
-      
+    \begin{figure}[h]
+      \begin{align*}
+        & \mathit{ (v', s') = (val, s), \hfill\ where } \\
+        &  \mathit{ v = ByNameArg \hfill\ expr, } \\
+        & \mathit{(val, s'') = eval \hfill\ expr \hfill\ (mem, prevFrameId, nr\_frames)} \\
+      \end{align*}
+    \caption{Variable lookup for call-by-name\label{fig:cbn-varLookup}}
+    \end{figure}      
       We note that whatever is the new interpreter's state \textit{s''}, we don't memoize it, as call-by-name semantics 
       doesn't include any change of the memory's state.
 
-    \item lazy e.o.: In this case we have \textit{two} subcases. First, we have that 
-    \[v = LazyArg \hfill\ e \hfill\ b \hfill\ val\]
-    
+    \item lazy e.o.: In this case we have \textit{two} subcases.
     The subcases are whether \textit{b} is \textit{true} or \textit{false}, i.e. the lazy argument is evaluated and cached or
     not evaluated. In the latter case, the interpreter needs to evaluate the variable and update the frame, as shown below,
     in the appropriate case:
 
+    \begin{figure}[h]
+      \[v = LazyArg \hfill\ e \hfill\ b \hfill\ val\]
+      
       \begin{itemize}
-        \item \textit{b} is \textit{true}: \[ (v', s') = (val, s) \]
-        \item \textit{b} is \textit{false}:
-        \[(v', s') = (val', (updFrame \hfill\ mem' \hfill\ frameId \hfill\ frame', frameId, nr\_frames')), where\]
-        \[(val', (mem', frameId', nr\_frames')) = eval \hfill\ e \hfill\ (mem, prevFrameId, nr\_frames)\]
-        \[frame'[funArgs] = ( funArgs[i] = LazyArg \hfill\ e \hfill\ true \hfill\ val' ) \]
-
-        We note that, at this point, where there is memory change, and probably evaluation of the expression provokes 
-        the creation of new frames, we update the memory state as well as the frame counter. 
+          \item \textit{b} is \textit{true}: \[ (v', s') = (val, s) \]
+          \item \textit{b} is \textit{false}:
+            \begin{align*}
+                & \mathit{(v', s') = (val', (updFrame \hfill\ mem' \hfill\ frameId \hfill\ frame', frameId, nr\_frames')), where} \\
+                & \mathit{(val', (mem', frameId', nr\_frames')) = eval \hfill\ e \hfill\ (mem, prevFrameId, nr\_frames)} \\
+                & \mathit{frame'[funArgs] = ( funArgs[i] = LazyArg \hfill\ e \hfill\ true \hfill\ val' )} \\
+            \end{align*}
       \end{itemize}
+    \caption{Variable lookup for call-by-need\label{fig:lazy-varlookup}}
+  \end{figure}
+
+
+  We note that, at this point, where there is memory change, and probably evaluation of the expression provokes 
+  the creation of new frames, we update the memory state as well as the frame counter. 
 
   \end{itemize}
   
@@ -1395,9 +1445,7 @@ evaluation order (we use the abbrevation e.o. which stands for evaluation order)
 
 In this section, we describe the interpreter for a function call. The call is of the form:
 
-\begin{minted}{haskell}
-  data Expr = Call callee actuals 
-\end{minted}
+\[ \mathit{Expr = Call \hfill\ callee \hfill\ actuals} \]
 
 , where we have the information about \textit{callee}'s name and the actual parameters from the function call. 
 
@@ -1407,15 +1455,23 @@ pause for a while for the definition of this function, and then resume later for
 interpreter.
 
 The function, called \textit{makeArgs} has the following form:
-\[makeArgs :: [Actual] \times [Formal] \times State \rightarrow [FrameArg] \times State \]
+\begin{figure}[h]
+\[ \mathit{makeArgs :: [Actual] \times [Formal] \times State \rightarrow [FrameArg] \times State} \]
+\caption{Construction of frame arguments\label{fig:makeArgs}}
+\end{figure}
 , where the actuals and the formals are explained above and the \textit{State} is the interpreter's current state.
 
 For every actual corresponding to every formal, we have the following, depending whether the parameter is in 
 cbv, cbn or lazy evaluation order(abbr. e.o):
 \begin{itemize}
   \item cbv e.o.: 
-  \[(v, state') = eval \hfill\ actual \hfill\ state \]
-  \[frameArg = StrictArg \hfill\ v\]
+  \begin{figure}[h]
+    \begin{align*}
+      \mathit{(v, state') = eval \hfill\ actual \hfill\ state} \\
+      \mathit{frameArg = StrictArg \hfill\ v}
+    \end{align*}
+  \caption{Construction of call-by-value frame argument\label{fig:makeCBVArg}}
+  \end{figure}
   , and thus we have \textit{(frameArg, state')}, where \textit{frameArg} is added to \textit{[FrameArg]} and 
   \textit{state'} is the next input state for \textit{makeArgs}. 
   \item cbn e.o.:
@@ -1430,16 +1486,21 @@ As it seems above, only cbv arguments are executed at this point, and the memory
 in the state of the \textit{eval} function.
 
 Now, it is time to resume the presentation about the function call in the interpreter. 
+\begin{figure}[h]
+  \begin{align*}
+    &\mathit{eval \hfill\ (Call \hfill\ callee \hfill\ actuals, s) = (val, s'''),} \\ \mathit{where} \\
+    &\mathit{(formals, funBody) = lookup \hfill\ callee \hfill\ FunctionsMap} \\
+    &\mathit{(frameArgs, (mem', \_, nr\_frames')) = makeArgs \hfill\ actuals \hfill\ formals  \hfill\ state} \\
+    &\mathit{newFrame = Frame \hfill\ callee \hfill\ frameArgs \hfill\ [] \hfill\ frameId} \\
+    &\mathit{mem'' = push \hfill\ mem' \hfill\ newFrame \hfill\ (nr\_frames + 1) \hfill\ frameId} \\
+    &\mathit{s' = (mem'', lastFrameId \hfill\ mem'', nr\_frames + 1)} \\
+    &\mathit{(val, s'') = eval \hfill\ funBody \hfill\ s'} \\
+    &\mathit{(s'' = (mem''', _, nr\_frames''))} \\
+    &\mathit{s''' = (mem''', frameId, nr\_frames'')}
+  \end{align*}
+\caption{Operational semantics for function call\label{fig:functionCall}}
+\end{figure}
 
-\[eval \hfill\ (Call \hfill\ callee \hfill\ actuals, s) = (val, s''')\], where 
-\[(formals, funBody) = lookup \hfill\ callee \hfill\ FunctionsMap\]
-\[(frameArgs, (mem', \_, nr\_frames')) = makeArgs \hfill\ actuals \hfill\ formals  \hfill\ state \]
-\[newFrame = Frame \hfill\ callee \hfill\ frameArgs \hfill\ [] \hfill\ frameId \]
-\[mem'' = push \hfill\ mem' \hfill\ newFrame \hfill\ (nr\_frames + 1) \hfill\ frameId\]
-\[s' = (mem'', lastFrameId \hfill\ mem'', nr\_frames + 1) \]
-\[(val, s'') = eval \hfill\ funBody \hfill\ s' \]
-\[(s'' = (mem''', _, nr\_frames'')) \]
-\[s''' = (mem''', frameId, nr\_frames'') \]
 
 \textbf{[Add a brief explanation here!]}
 
@@ -1454,7 +1515,10 @@ More specifically a branch for a pattern matching is:
 \end{minted}
 
 The case expression is of the following form:
-\[caseExpr = Case \hfill\ caseId \hfill\ e \hfill\ branches \]
+\begin{figure}[h]
+\[ \mathit{caseExpr = Case \hfill\ caseId \hfill\ e \hfill\ branches} \]
+\caption{Case expression\label{fig:case}}
+\end{figure}
 
 First, we evaluate the scrutinized expression, as following:
 \[eval \hfill\ (e, s) = (e', s'),  \]
@@ -1530,8 +1594,7 @@ in the next chapter we present \textit{how} to actually perform the optimisation
 \section{Classic tail-call optimisation}
 
 At this point, we shall make clear that the terms tail-call or tail-call position are not the same 
-as tail-call optimisable, providing the definitions shown below \textbf{[ TODO : Mind the defintions, Something better 
-for the definitions, probably put them in an appendix for better search. ]}.
+as tail-call optimisable, providing the definitions shown below.
 
 \subsection{Tail-call position (tail-call) vs. Tail-call optimisable (true tail-call)}
 
