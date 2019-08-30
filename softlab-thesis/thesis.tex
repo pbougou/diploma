@@ -43,7 +43,7 @@
 Οι συναρτησιακές γλώσσες προγραμματισμού είναι διάσημες για τη χρήση αναδρομής αντί για «βρόχους», 
 κάτι που υπάρχει και χαρακτηρίζει τις προστακτικές γλώσσες προγραμματισμού. Ενώ η αναδρομή είναι καλύτερη από 
 τους βρόχους σε ό,τι αφορά την καθαρότητα του κώδικα, καθώς είναι άμεσα συνδεδεμένη με το μαθηματικό ορισμό
-των συναρτήσεων, έχουν ένα βασικό ελάττωμα το οποίο συνδέεται με τη χρήση της μνήμης για την εκτέλωση των 
+των συναρτήσεων, έχουν ένα βασικό ελάττωμα το οποίο συνδέεται με τη χρήση της μνήμης για την εκτέλεση των 
 προγραμμάτων. Το πρόβλημα αυτό είναι ότι ένας αλγόριθμος που χρησιμοποιεί σταθερό χώρο μνήμης για την εκτέλεση του
 σε μια προστακτική γλώσσα προγραμματισμού, μπορεί να χρησιμοποιήσει γραμμικό χώρο σε συναρτησιακή, εξαιτίας 
 της αναδρομής.
@@ -75,40 +75,30 @@
 
 
 \begin{abstracten}%
-  The purpose of this diploma dissertation is to embed a mainstream compiler optimisation 
-  for strict functional programming languages, which is tail-call optimisation, in a functional 
-  programming language with mixed evaluation order.
-
-  Functional programming languages are famous for the use of recursion instead of `for' loops; 
-  something naturally existing in imperative programming languages. Functional programmers proverb 
-  "Recursion is better than loops" cause programs fall into a major drawback: iterative algorithms 
-  implemented in imperative languages that run in constant space, run in linear space implemented 
-  in functional languages. 
+  Functional programming languages ​​favour recursion over "loops";
+  while the latter is a key feature of imperative programming languages. Although recursion may 
+  be better than loops in terms of code purity, as it is directly linked to the mathematical definition
+  of functions, it has a major flaw associated with the memory overhead to execute
+  programs. This problem is that an algorithm uses a fixed memory space to run it
+  in a imperative programming language, it can use linear space in a functional language because
+  of recursion.
   
-  The solution to this problem, given in 1970's for Scheme, was the use of the tail-call
-  optimisation, a very simple but, as it turned out, very efficient to eliminate the above problem.
-  On the one hand, this optimisation was naturally embedded in strict functional programming languages, such as 
-  SML/NJ, OCaml or Scheme, and even in imperative languages, such as C/C++. On the other hand, it is not used in functional 
-
-  For my diploma thesis, I worked in order to integrate tail-call optimisation in a functional 
-  language in the presence of multiple evaluation orders (strict, lazy, call-by-name semantics). 
-  I worked on combining this optimisation with a program representation based on the 
-  defunctionalization transformation, aiming to eliminate performance penalties associated with 
-  higher-order features of functional languages. The source language, similar to Haskell, 
-  is transformed (via defunctionalization) to a low-level, minimal, first-order functional language 
-  with non-strict semantics, lazy evaluation and lazy structured data as well as strictness 
-  annotations. To find opportunities for optimisation, I performed a static analysis on the 
-  low-level functional language, to spot tail-call positions. The difficult part, 
-  compared with languages with strict semantics, is that lazy semantics makes program values escape 
-  their context and thus finding tail-call positions is not trivial. This optimisation was evaluated
-  on an interpreter of the language that explicitly allocates and measures frames, so that on 
-  tail-call positions found by the analysis, I could properly replace the unnecessary current 
-  frame's arguments with the arguments needed by the frame that represents the next function call. 
-  My optimisation either improves program run-time, or does not change it. Also, in the case of 
-  strict programs, my optimisation is equivalent to classic tail-call optimisation. In conclusion,
-  in a non-strict, lazy-evaluated functional language with lazy data constructors and strictness 
-  annotations, for all benchmarks I used, there is always memory optimisation, and for the majority 
-  of them there is a significant memory optimisation with performance boost.
+  
+  The solution to this problem, given in the 1970s for the programming language Scheme, was tail-call 
+  optimization, a very simple but, as it turned out, very effective in order to eliminate the above 
+  problem.
+  In addition to Scheme, this optimization is included in most implementations of functional programming 
+  languages with strict semantics, such as SML / NJ and OCaml, as well as in imperative programming 
+  languages, such as the "Clang" compiler for C/C++, which demonstrates the value of this particular
+  optimization to eliminate memory overhead due to recursion.
+  
+  The purpose of this thesis is to integrate this well-known compiler optimization
+  (tail call optimization) for strict functional programming languages in
+  functional programming languages with multiple evaluation orders (call-by-value, call-by-name and
+  call-by-need). Specifically in the presence of call-by-need semantics, the program values under this 
+  semantics "escape" their context more easily than in call-by-value, making tail-calls much more 
+  difficult to reveal.
+  
 
 \begin{keywordsen}
 Tail-call optimisation, lazy evaluation, static analysis, interpreter. 
@@ -151,41 +141,52 @@ Tail-call optimisation, lazy evaluation, static analysis, interpreter.
 \chapter{Introduction}
 
 \section {Purpose of the thesis}
-The purpose of the thesis is to integrate tail-call optimisation to
-functional programming languages with mixed evaluation orders. The main
-challenge is call-by-need evaluation order, for which there isn't previous 
-work or compiler that combines this optimisation.
+
+The purpose of the thesis is to integrate tail-call optimisation to functional programming languages 
+in the presence of multiple evaluation orders (call-by-value, call-by-name, call-by-need). More 
+specifically our purpose is to combine this optimisation with a program transformation based on the 
+defunctionalization transformation, aiming to eliminate performance penalties associated with 
+higher-order features of functional languages. 
 
 \section {Motivation}
-Lazy functional languages, first appeared in \dots and have become popular
-with Haskell's compiler, Glasgow Haskell Compiler, don't use tail-call optimisation 
-neither in the core language nor in the level of code generation. We used 
-a higher-order functional language, which we defunctionalized and added the 
-strictness analysis techique, in order to reveal the combination of \textit{laziness}
-and \textit{tail-call optimisation}. 
+
+Tail-call optimisation for strict functional languages is a well-studied topic, but it fails in the 
+presence of laziness: the computation of a lazy argument can happen arbitrarily during the execution 
+of the program and thus lazy arguments escape their context more easily than strict ones.
+On the one hand, laziness gives programmers great options: to use infinite data structures~\cite{Abel13}, 
+to define control flow (structures) as abstaractions instead of primitives and to increase performance 
+by avoiding needless calculations, and avoiding error conditions when evaluating compound expressions.
+But everything comes at a cost: too lazy programs can lead to poor performance and even memory leaks. 
+On the other hand, strictness enables programmers to count performance more easily, but programs can 
+fall into undesired behavior, such as divergence.
+In this thesis, we get the best of both worlds: our programs are neither too lazy nor too strict,
+while strictness provides the option to use tail-call optimisation in lazy evaluated 
+functional programming languages and thus to eliminate memory overhead associated with recursion in the 
+same way as in strict functional languages.
 
 \section {Overview of the thesis}
-In \textit{Chapter 2}, we provide the necessary background for the reader in order to follow the next chapters. 
-There is a comprehensive explanation of what exactly tail-call 
-optimisation is (section 1.1) , an overview of the evaluation orders we study in this thesis (section 1.2),
-listlessness and deforestation optimisations as presented for Haskell (section 1.3), a brief reference to 
-static analysis (section 1.4).
 
-In \textit{Chapter 3}, \dots
+In this thesis, we integrate tail-call optimisation in a functional 
+language in the presence of multiple evaluation orders (strict, lazy, call-by-name semantics). 
+We combine this optimisation with a program representation based on the 
+defunctionalization transformation, aiming to eliminate performance penalties associated with 
+higher-order features of functional languages. The source language, similar to Haskell, 
+is transformed (via defunctionalization) to a low-level, minimal, first-order functional language 
+with non-strict semantics, lazy evaluation and lazy structured data as well as strictness 
+annotations. To find opportunities for optimisation, we perform a static analysis on the 
+low-level functional language, to spot tail-call positions. The difficult part, 
+compared with languages with strict semantics, is that lazy semantics makes program values escape 
+their context and thus finding tail-call positions is not trivial. This optimisation was evaluated
+on an interpreter of the language that explicitly allocates and measures frames, so that on 
+tail-call positions found by the analysis, we can properly replace the unnecessary current 
+frame's arguments with the arguments needed by the frame that represents the next function call. 
+Our optimisation either improves program run-time, or does not change it. Also, in the case of 
+strict programs, our optimisation is equivalent to classic tail-call optimisation. In conclusion,
+in a non-strict, lazy-evaluated functional language with lazy data constructors and strictness 
+annotations, for all benchmarks we use, there is always memory optimisation, and for the majority 
+of them there is a significant memory optimisation with performance boost.
 
-In \textit{Chapter 4}, \dots
-
-In \textit{Chapter 5}, \dots
-
-In \textit{Chapter 6}, \dots
-
-In \textit{Chapter 7}, \dots
-
-In \textit{Chapter 8}, \dots
-
-In \textit{Chapter 9}, \dots
-\newline
-\par Our major contributions presented in this thesis, are listed below:
+Our major contributions, presented in this thesis, are:
 \begin{itemize}
   \item We show how tail-call optimisation and tail-recursion modulo cons can be applied to a functional programming 
   language with mixed evaluation order. Our key contribution is how it can be applied in 
@@ -200,6 +201,43 @@ In \textit{Chapter 9}, \dots
   or does not change it. The evaluation seems to approach in many cases the number of frame allocations in call-by-value languages, 
   which is the best result we can have.
 \end{itemize}
+
+An overview of the contents of each chapter follows:
+\begin{itemize}
+  \item In \textit{Chapter 2}, we provide the necessary background for the reader in 
+        order to follow the next chapters. There is a comprehensive explanation of classic 
+        tail-call optimisation (section 2.1), an overview of the evaluation orders we study 
+        in this thesis (section 2.2), an overview of static analysis (section 2.3). Finally, 
+        in section 2.4 there is an overview of abstact machines and interpreters, focusing on 
+        lazy functional languages (sections 2.4.2-2.4.4) as well as more general techniques 
+        (section 2.4.5).
+
+  \item In \textit{Chapter 3}, there is an overview of the thesis; we provide the intuition 
+        for our key ideas presented in the rest of the thesis.
+
+  \item In \textit{Chapter 4}, we present the language we studied. Briefly, we describe 
+        how from a higher-order functional language and applying the appropriate 
+        transformations (sections 4.2-4.4) we can reach the first-order functional 
+        language we used for our analysis and evaluation of the optimisation.
+
+  \item In \textit{Chapter 5} the execution model of our language exists. We present operational 
+        properties as well as implementation details.
+
+  \item In \textit{Chapter 6}, there is the static analysis algorithm that we use in order to spot 
+        and thus properly annotate true tail-call positions. These annotated function calls 
+        are later handled by the interpreter.
+
+  \item In \textit{Chapter 7}, how we operationally treat inside the interpreter the 
+        tail call optimisable function calls and the tail recursion modulo cons.
+
+  \item In \textit{Chapter 8}, there is an evaluation of our optimisations on microbenchmarks.
+
+  \item \textit{Chapter 9} and \textit{Chapter 10} are related work and future wok respectively.
+
+\end{itemize}
+
+
+
 
 \chapter{Background}
 
@@ -295,7 +333,9 @@ Call-by-name and call-by-need semantics is similar to each other; they always pr
 Their key difference is that call-by-need computes a value when it needs it, memoizes the result after the computation 
 and does not evaluate it again, while call-by-name re-evaluates the value, in case it's needed again for a computation.
 This makes call-by-name less practical. Call-by-need can also be considered as a \textit{practical} implementation 
-of call-by-name \textbf{[Cite Launchbury's mutable heap for call-by-name to call-by-need]}.
+of call-by-name, first appeared as a real-world implementation in the \textit{Miranda} programming 
+language, later in \textit{Clean} and have become more popular
+with Haskell's programming language implementation: the Glasgow Haskell Compiler (GHC).
 
 \subsection {Call-by-value (CBV) or \textit{strict} evaluation }
 
@@ -769,9 +809,9 @@ Programmers who constantly use strict functional programming languages like OCam
 will argue that the program below is bad. 
 
 In Haskell, this is not the case. Actually, in Haskell's Prelude all functions are written 
-in the form below, where these programs are subject to many optimisations triggered by Haskell's \textit{rewriting machine},
-and performed in the runtime (especially this program is subject to \textit{fusion} \textbf{[Enter citation about 
-fusion. Compare it in reletive / future work]}). 
+in the form below, where these programs are subject to many optimisations triggered 
+by Haskell's \textit{rewriting machine}, and performed in the runtime 
+(especially this program is subject to \textit{fusion}~\cite{Coutts07}). 
 \newline
 \par At this point, we showcase the use of tail recursion \textit{modulo cons}, instead of other optimisations
 used in GHC.
@@ -797,16 +837,6 @@ thunk with two cells, which will contain `x' and `makelist (x-1)'.
 The function call to makelist is actually a call that can be transformed 
 to a tail-recursive call to `makelist', if the `cons' thunk is \textit{updated} 
 with the value of the variable `x'. 
-
-% \section {Intermediate List node removal}
-
-% average
-
-% mpla mpla mpla mplampla mplampla mpla mpla mplampla mpla
-% mpla mplampla mplampla mpla.
-
-% \subsection {Motivating example}
-% mpla mpla.
 
 \chapter {The language} 
 In this chapter, we will describe the language that we studied in this thesis.
@@ -978,8 +1008,8 @@ We need to highlight the following points, before we dive deeper into the langua
   will get the work done.
   \item Case patterns are simple and don't allow wildcard patterns. Turning a complex case pattern into
   a simple case pattern is a well studied topic~\cite{Au85,Wadler87}.
-  \item The scrutinee of a case construct is not a case expression. We assume that case-of-case transform 
-  \textbf{[citation about this transformation]} is performed.
+  \item The scrutinee of a case construct is not a case expression. We assume that case-of-case 
+  transform~\cite{Jone98} is performed.
 \end{itemize}
 
 % Better have it as figure. 
@@ -1047,12 +1077,6 @@ differences from the one shown in the figure \textbf{[TODO figure]}:
   execution model.
 \end{itemize}
 
-\textbf{[Example of a program in our language. How is it transformed to the syntax presented earlier.]} . 
-% Chapter 4
-% Overview of the execution model.
-% Operational semantics for the first-order functional 
-% abstract machine.
-% Frame update, caching stats...
 
 
 \chapter {Execution model}
@@ -1709,29 +1733,6 @@ mpla mpla mpla
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-% \section {Evaluator for intermediate list node removal}
-% what does the annotation runs in the interpreter
-
 \chapter {Evaluation of the optimisations }
 
 Write about the interpreter again for each case.
@@ -1775,7 +1776,10 @@ can be used for Haskell? Simply sketch something.
 
 \chapter{General}
 
-Implementations of programming languages use a stack for function calls, where activation records are pushed for every function invocation: this permits recursion and has good performance. Stack allocation for function calls has been an old technique, dating back at least to ALGOL~\cite{Dijkstra60,Naur78} and LISP~\cite{McCarthy60,Stoyan79}.
+Implementations of programming languages use a stack for function calls, 
+where activation records are pushed for every function invocation: this permits recursion 
+and has good performance. Stack allocation for function calls has been an old technique, 
+dating back at least to ALGOL~\cite{Dijkstra60,Naur78} and LISP~\cite{McCarthy60,Stoyan79}.
 
 Tail-calls are function calls that happen last inside a function and
 they can be implemented with a ``go to'' instruction. In the special
