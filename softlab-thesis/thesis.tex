@@ -876,7 +876,7 @@ defunctionalization must be preceded by closure conversion (lambda lifting), so 
 abstraction are passed as extra arguments to apply. In addition, if closures are supported as first-class values, 
 it becomes necessary to represent these captured bindings by creating data structures.
 
-Defunctionalization transformation was used for MLton, an optimizing compiler for ML. The first order 
+The defunctionalization transformation was used in MLton, an optimizing compiler for ML. The first-order
 core language created oportunities for whole-program analysis and led to great performance~\cite{mlton}.
 
 As an example of defunctionalization, Prelude's `map' follows. The transformation leads to 
