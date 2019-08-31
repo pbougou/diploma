@@ -693,7 +693,7 @@ Push-enter vs. eval-apply~\cite{Ma06}, marlow and jones. Our model is push-enter
 
 In this chapter, we present to the reader some examples providing the intuition of the main idea described 
 in the following chapters. The description is informal and the reader has to know only the details of laziness 
-described in the background in order to follow. We don't refer to details of the analysis and the execution model 
+described in the background in order to follow. We do not refer to details of the analysis and the execution model 
 that may confuse the reader, while leaving that part for later explanation, in the appropriate sections.
 
 More specifically, in section~\ref{sec:classic-tco-examples} we provide examples for integers (values always in WHNF) and 
@@ -960,7 +960,7 @@ The reader can refer to Reynolds' paper for more information about this transfor
 \label{sec:strictness-analysis}
 
 Lazy evaluation only evaluates terms to values when needed; this provides the 
-opportunity for infinite data structures and programs that don't diverge, as those in 
+opportunity for infinite data structures and programs that do not diverge, as those in 
 strict programming languages. But everything comes at a cost: evaluation can happen 
 arbitrarily and thus lazy arguments can escape their context.
 
@@ -1044,7 +1044,7 @@ We need to highlight the following points, before we dive deeper into the langua
   \item There is not `let' expression in the core language. Instead we assume that our language 
   fully depends upon the lambda lifter ; Johnson style \textit{full laziness} lambda lifter~\cite{Johnsson:1985:LLT:5280.5292}
   will get the work done.
-  \item Case patterns are simple and don't allow wildcard patterns. Turning a complex case pattern into
+  \item Case patterns are simple and do not allow wildcard patterns. Turning a complex case pattern into
   a simple case pattern is a well studied topic~\cite{Au85,Wadler87}.
   \item The scrutinee of a case construct is not a case expression. We assume that case-of-case 
   transform~\cite{Jone98} is performed.
@@ -1139,7 +1139,7 @@ abstract machines and interpreters that exist for a lazy functional language.
 Our model, based on GIC~\cite{Fourtounis14}, 
 includes the following high-level properties:
 \begin{itemize}
-  \item We implement a first-order lazy abstract machine. First-order as we don't support
+  \item We implement a first-order lazy abstract machine. First-order as we do not support
   function arguments can't be functions and partial evaluation. Laziness is the default semantics
   for our model.
   \item We have a frame-based execution model for our language, but the frames are 
@@ -1483,7 +1483,7 @@ Later, we give the v' and s' for:
     \item cbn e.o.: Variable lookup operation for call-by-value 
     variables is shown in figure~\ref{fig:cbn-varLookup}.
 
-    We note that whatever is the new interpreter's state \textit{s''}, we don't memoize it, as call-by-name semantics 
+    We note that whatever is the new interpreter's state \textit{s''}, we do not memoize it, as call-by-name semantics 
     doesn't include any change of the memory's state.
 
     \begin{figure}[t]
@@ -1884,7 +1884,7 @@ our evaluation, that follows in the next chapter.
 Classic tail call evaluation contains one major \textit{operation}, which makes the optimisation 
 feasible: this is \textit{frame mutation}. This operation includes the replacement of the current frame's arguments 
 with the arguments necessary for the construction of the frame for the next function call. For this operation,
-it is mandatory that the caller's arguments don't escape and for those that escape we correctly passed them 
+it is mandatory that the caller's arguments do not escape and for those that escape we correctly passed them 
 to the new frame. 
 
 The \textit{eval} for the \textit{TailCall} follows in figure~\ref{fig:tco}; we remind that this is actually optimisable as the analysis 
