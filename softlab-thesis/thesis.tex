@@ -87,15 +87,15 @@
   
   
   The solution to this problem, given in the 1970s for the programming language Scheme, was tail-call 
-  optimization, a very simple but, as it turned out, very effective in order to eliminate the above 
+  optimisation, a very simple but, as it turned out, very effective in order to eliminate the above 
   problem.
-  In addition to Scheme, this optimization is included in most implementations of functional programming 
+  In addition to Scheme, this optimisation is included in most implementations of functional programming 
   languages with strict semantics, such as SML / NJ and OCaml, as well as in imperative programming 
   languages, such as the "Clang" compiler for C/C++, which demonstrates the value of this particular
-  optimization to eliminate memory overhead due to recursion.
+  optimisation to eliminate memory overhead due to recursion.
   
-  The purpose of this thesis is to integrate this well-known compiler optimization
-  (tail call optimization) for strict functional programming languages in
+  The purpose of this thesis is to integrate this well-known compiler optimisation
+  (tail call optimisation) for strict functional programming languages in
   functional programming languages with multiple evaluation orders (call-by-value, call-by-name and
   call-by-need). Specifically in the presence of call-by-need semantics, the program values under this 
   semantics "escape" their context more easily than in call-by-value, making tail-calls much more 
@@ -145,9 +145,8 @@ Tail-call optimisation, lazy evaluation, static analysis, interpreter.
 \section {Purpose of the thesis}
 
 The purpose of the thesis is to integrate tail-call optimisation to functional programming languages 
-in the presence of multiple evaluation orders (call-by-value, call-by-name, call-by-need). More 
-specifically our purpose is to combine this optimisation with a program transformation based on the 
-defunctionalization transformation, aiming to eliminate performance penalties associated with 
+in the presence of multiple evaluation orders (call-by-value, call-by-name, call-by-need). Our optimisation can be combined with  the 
+defunctionalization transformation, so that the resulting performance optimisation also supports
 higher-order features of functional languages. 
 
 \section {Motivation}
@@ -156,11 +155,12 @@ Tail-call optimisation for strict functional languages is a well-studied topic, 
 presence of laziness: the computation of a lazy argument can happen arbitrarily during the execution 
 of the program and thus lazy arguments escape their context more easily than strict ones.
 On the one hand, laziness gives programmers great options: to use infinite data structures~\cite{Abel13}, 
-to define control flow (structures) as abstaractions instead of primitives and to increase performance 
-by avoiding needless calculations, and avoiding error conditions when evaluating compound expressions.
-But everything comes at a cost: too lazy programs can lead to poor performance and even memory leaks. 
+to define control flow (structures) as abstaractions instead of primitives, to increase performance
+by avoiding needless calculations, and to avoid error conditions when evaluating compound expressions.
+But this flexibility comes at a cost: too lazy programs can lead to poor performance and even memory leaks.
 On the other hand, strictness enables programmers to count performance more easily, but programs can 
 fall into undesired behavior, such as divergence.
+
 In this thesis, we get the best of both worlds: our programs are neither too lazy nor too strict,
 while strictness provides the option to use tail-call optimisation in lazy evaluated 
 functional programming languages and thus to eliminate memory overhead associated with recursion in the 
@@ -170,7 +170,7 @@ same way as in strict functional languages.
 
 In this thesis, we integrate tail-call optimisation in a functional 
 language in the presence of multiple evaluation orders (strict, lazy, call-by-name semantics). 
-We combine this optimisation with a program representation based on the 
+Our optimisation can be combined with the
 defunctionalization transformation, aiming to eliminate performance penalties associated with 
 higher-order features of functional languages. The source language, similar to Haskell, 
 is transformed (via defunctionalization) to a low-level, minimal, first-order functional language 
@@ -198,7 +198,7 @@ Our major contributions, presented in this thesis, are:
   for a functional language with call-by-value, call-by-name and call-by-need semantics, lazy data constructors 
   and pattern matching.
   \item An analysis algorithm to find \textit{true} tail call positions and the implementation of the runtime system 
-  for these optimisations embedded to the interpreter.
+  for these optimisations embedded in the interpreter.
   \item The evaluation of this optimisation on micro benchmarks shows that it either improves the runtime 
   or does not change it. The evaluation seems to approach in many cases the number of frame allocations in call-by-value languages, 
   which is the best result we can have.
@@ -222,7 +222,7 @@ An overview of the contents of each chapter follows:
         transformations (sections 4.2-4.4) we can reach the first-order functional 
         language we used for our analysis and evaluation of the optimisation.
 
-  \item In \textit{Chapter 5} the execution model of our language exists. We present operational 
+  \item In \textit{Chapter 5}, the execution model of our language exists. We present operational 
         properties as well as implementation details.
 
   \item In \textit{Chapter 6}, there is the static analysis algorithm that we use in order to spot 
@@ -244,8 +244,8 @@ An overview of the contents of each chapter follows:
 \chapter{Background}
 
 In this chapter, we provide the reader the necessary background for this thesis. The optimisations presented in this thesis 
-are explained. Anyone familiar with these ideas, can skip this section and continue to the next chapter, where the intuition for the 
-main idea of this thesis is given.
+are explained. Anyone familiar with these ideas, can skip this section and continue to the next chapter, where we give the intuition behind the
+main idea of this thesis.
 
 \section{Tail-call optimisation}
 
@@ -721,7 +721,7 @@ this is subject to tail-call optimisation. As we know from section 2.2.1
 presence of laziness `acc' is evaluated \textit{once}, when the input 
 list is empty and the function \textit{needs} it as a result.
 
-The intuition here is that lazy argument `acc' has to be strict, as in the example below, 
+The intuition here is that lazy argument `acc' has to be strict, as in the example below,
 because it is a variable that has always a value (in the case the value of the variable `x') added to it,
 and finally it is returned as a result. This is known in the world from strictness analysis [1], as we 
 will describe later in section 4.3.
@@ -735,7 +735,7 @@ will describe later in section 4.3.
 \end{minted}
 
 At the latter example, `acc' (an integer or WHNF) is strict. This means that `acc' is 
-fully evaluated in each execution step, and thus it can be tail-call optimized. This, of course,
+fully evaluated in each execution step, and thus it can be tail-call optimised. This, of course,
 isn't possible if `acc' was, for example, a list, as we will illustrate with the following examples.
 
 
@@ -760,7 +760,7 @@ force deep evaluation of the data, but it forces the evaluation one more step. T
 (`n-1' and `n:acc' cells) for further evaluation. 
 
 With a more case-aware analysis and additional work in the evaluator, 
-we were actually able to tail-call optimize the example 
+we were actually able to tail-call optimise the example
 above. The details will follow in section 6.1 and 7.1 for the analysis 
 and the evaluator respectively. 
 
@@ -879,7 +879,7 @@ defunctionalization must be preceded by closure conversion (lambda lifting), so 
 abstraction are passed as extra arguments to apply. In addition, if closures are supported as first-class values, 
 it becomes necessary to represent these captured bindings by creating data structures.
 
-The defunctionalization transformation was used in MLton, an optimizing compiler for ML. The first-order
+The defunctionalization transformation was used in MLton, an optimising compiler for ML. The first-order
 core language created oportunities for whole-program analysis and led to great performance~\cite{mlton}.
 
 As an example of defunctionalization, Prelude's `map' follows. The transformation leads to 
@@ -1847,30 +1847,30 @@ dating back at least to ALGOL~\cite{Dijkstra60,Naur78} and LISP~\cite{McCarthy60
 Tail-calls are function calls that happen last inside a function and
 they can be implemented with a ``go to'' instruction. In the special
 case that the caller's activation record will not be needed again,
-\emph{tail-call optimization} can reuse it to construct the activation
+\emph{tail-call optimisation} can reuse it to construct the activation
 record of the callee, saving space, and making some programs run in
-constant space. Tail-calls can be further optimized by the
+constant space. Tail-calls can be further optimised by the
 instruction-scheduling stage of a compiler~\cite[\S12.4.3]{Torczon12}.
 Tail-calls have been used to transform recursive functions to
 iterative (tail-recursive)
-ones~\cite[\S{9}]{McCarthy62}\cite{Barron68}.  Tail-call optimization
+ones~\cite[\S{9}]{McCarthy62}\cite{Barron68}.  Tail-call optimisation
 is an old idea~\cite[p.~7]{Gill65}\cite[p.~21]{Knuth74}, which is an
 established part of modern compilers.
 
 Some languages and implementations often offer features that are not
-easy to compose with tail-call optimization. Activation records may
+easy to compose with tail-call optimisation. Activation records may
 not be resized in-place for languages that support
 coroutines~\cite[p.~60]{Waite84}. Languages that support first-class
 continuations~\cite{Sperber10}, higher-order return
 values~\cite[p.~103]{Appel92}\cite{Steele78},
 backtracking~\cite{Bobrow73}, or non-strict evaluation, and
 implementations in continuation-passing style~\cite[p.~103]{Appel92},
-may allocate activation records on the heap. Tail-call optimization is
+may allocate activation records on the heap. Tail-call optimisation is
 also important for implementations of logic languages~\cite{Bigot99}.
 
-Tail-call optimization in C: GCC~\cite{Probst01}, LLVM~\cite{Pandey:2015:LC:2842773}.
+Tail-call optimisation in C: GCC~\cite{Probst01}, LLVM~\cite{Pandey:2015:LC:2842773}.
 
-Tail-call optimization for functional programming languages running on
+Tail-call optimisation for functional programming languages running on
 the Java virtual machine~\cite{Madsen:2018:TCE:3178372.3179499}.
 
 TODO: Clinger citation~\cite{Clinger:1998:PTR:277650.277719}.
