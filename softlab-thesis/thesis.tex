@@ -526,12 +526,12 @@ and also in the compiler as a flag, or as a language extension annotation inside
 \begin{minted}{haskell}
   {-# LANGUAGE BangPatterns #-}
 \end{minted}
-, which allow the explicit use of strictness in Haskell. We should also mention the existence of `seq', a function found
+which allow the explicit use of strictness in Haskell. We should also mention the existence of `seq', a function found
 in Haskell's Prelude:
 \begin{minted}{haskell}
   seq :: a -> b -> b
 \end{minted}
-, which forces the evaluation of the first argument and returns the second argument as a result.
+which forces the evaluation of the first argument and returns the second argument as a result.
 
 The example below showcases the use:
 \begin{minted}{haskell}
