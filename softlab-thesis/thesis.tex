@@ -1599,7 +1599,7 @@ More specifically a branch for a pattern matching is:
     \hfill\ evaluation.}
   \end{align*}
 \caption{Integer pattern matching operational semantics\label{fig:intPattMatch}}
-\end{figure}~
+\end{figure} ~
 \begin{figure}[htp]
   \begin{align*}
     & \mathit{eval \hfill\ (caseExpr, s) = (eval \hfill\ e'' \hfill\ s'', s''), } \\ 
@@ -1659,9 +1659,31 @@ is shown in figure~\ref{fig:consAppl}.
     constructor.}
   \end{align*}
 \caption{Lazy list constructor application operational semantics\label{fig:consAppl}}
-\end{figure}
+\end{figure} ~
+% \begin{figure}[h]
+%   \begin{align*}
+%     & \mathit{eval~(SHConstrF~tag~(e~:~es), s) = (VC~(Susp~(tag, (e'~:~es))~frameId), s')} \\
+%     & \mathit{(e',s') = eval~(e, s)}
+%   \end{align*}
+% \caption{Strict head list constructor application\label{fig:shconsAppl}}
+% \end{figure} ~
+% \begin{figure}[h]
+%   \begin{align*}
+%     & \mathit{eval~(STConstrF~tag~(e~:~es), s) = (VC~(Susp~(tag, (e~:~es'))~frameId), s')} \\
+%     & \mathit{(es',s') = eval~(es, s)}
+%   \end{align*}
+% \caption{Strict tail list constructor application\label{fig:stconsAppl}}
+% \end{figure} ~
+% \begin{figure}[h]
+%   \begin{align*}
+%     & \mathit{eval~(MLConstrF~tag~(e~:~es), s) = (VC~(Susp~(tag, (e'~:~es'))~frameId), s'')} \\
+%     & \mathit{(e',s') = eval~(e, s)} \\
+%     & \mathit{(es', s'') = eval~(es, s')}
+%   \end{align*}
+% \caption{ML-list constructor application\label{fig:mlconsAppl}}
+% \end{figure}
 
-\textbf{[More constructor applications here]}
+% \newpage
 
 \subsection{Constructor projection}
 
@@ -1669,7 +1691,7 @@ In this case, the interpreter has come across a variable bound by
 pattern matching. As we mentioned earlier (section 2.2.4), the evaluation 
 of a term is forced, when such variables are needed to be evaluated.
 The \textit{eval} function of \textit{constructor projection} is shown in 
-figure~\ref{fig:consproj}.
+figure~\ref{fig:consproj}. ~
 \begin{figure}[htp]
   \begin{align*}
     & \mathit{eval \hfill\ (CProj \hfill\ caseId \hfill\ cpos, s) = (val, s'),} \\
@@ -1681,7 +1703,7 @@ figure~\ref{fig:consproj}.
     & \mathit{(val, (mem', \_, nr\_frames')) = eval \hfill\ (e', s)}
   \end{align*}
 \caption{Constructor projection operational semantics\label{fig:consproj}}
-\end{figure}
+\end{figure} ~
 First, we find the $\mathit{susp}$ inside the $\mathit{susps}$ in the current frame. Then, 
 from the expression list $\mathit{el}$ we find the right constructor in the $\mathit{cpos}$ 
 position. After evaluating this expression, we have the result-value and the next state 
@@ -1893,7 +1915,7 @@ figure~\ref{fig:checkMutate}.
     & \mathit{frame'' = Frame \hfill\ callee \hfill\ funArgs' \hfill\ [] \hfill\ prevFrameId} \\
     & \mathit{s' = (updFrame \hfill\ mem' \hfill\ frameId \hfill\ frame'', frameId, nr\_frames')}
   \end{align*}
-\caption{checkMutate operational semantics\label{fig:checkMutate}}
+\caption{Operational semantics for \textit{checkMutate}\label{fig:checkMutate}}
 \end{figure}
 
 Now, we are going to describe an auxiliary function used in order to constructor 
