@@ -987,7 +987,7 @@ language to reach the final form, which is the input of the analysis, presented 
   \item \textbf{Constructor projections:}  Every variable bound by a `case' pattern has to be 
   transformed to a special syntactic node in the core language, which contains the case unique identifier
   and the position inside the expression list in the constructor pattern. The `case' id is 
-  unique inside a function definiton (locally).
+  unique inside a function definition (locally).
 \end{itemize}
 
 \section {Syntax}
@@ -1124,8 +1124,6 @@ includes the following high-level properties:
   This is the most complicated feature in a lazy functional language, if we consider that initial 
   abstract machine didn't provide support for that (section 2.4.3).
 \end{itemize}
-% \section {Operational semantics}
-% \textbf{[TODO : Give operational semantics for your model.]}
 
 \section {Runtime system}
 
@@ -1139,7 +1137,7 @@ Here, there are the definitions of the runtime structures, as they are used in t
 implementation is in Haskell, but the code will be simple, so that every reader with a basic background of a functional 
 language can understand.
 \newline
-\par There is an authoring convention for next sections that will describe the runtime structures. At first, a definiton 
+\par There is an authoring convention for next sections that will describe the runtime structures. At first, a definition 
 will appear; probably accompanied with one or more definitions. If it contains more complex data in its body, it will be 
 described later in the section or there will be a pointer to another section.
 
@@ -1168,13 +1166,38 @@ the address has a content (\textit{frame}). A similar representation to Launchbu
 lazy evaluation~\cite{La93}.
 Here, not all frames have the same capacity; the details will be given in later section for a frame.
 \newline
-\par This aforementioned data structure is accompanied with three operations in order to handle it \textbf{[write 
-more about the calling convention of each function (input and output)]}:
+\par This aforementioned data structure is accompanied with three operations in order to handle it:
 \begin{itemize}
-  \item Add a frame to the memory with \textit{push} operation.
-  \item Get a frame from the memory given its unique identifier (\textit{getFrame}).
-  \item Update the content of a memory's frame, given its unique identifier (\textit{updFrame}).
+  \item Add a frame to the memory with \textit{push} operation (figure~\ref{fig:push}).
+  \item Get a frame from the memory given its unique identifier (\textit{getFrame})
+  (figure~\ref{fig:getFrame}).
+  \item Update the content of a memory's frame, given its unique identifier (\textit{updFrame})
+  (figure~\ref{fig:updFrame}).
 \end{itemize}
+
+\begin{figure}[h]
+  $ \mathit{push} :: \mathit{Mem \times Frame \rightarrow Mem} $ \\
+  $ \mathit{push~(mem, frame) = mem'} $ \\
+  $ \mathit{mem' = Mem~\{~memFrames = frames', lastFrameId = lastId~\} } $ \\
+  $ \mathit{frames' = frame : (memFrames~mem)} $ \\
+  $ \mathit{lastId = lastFrameId~mem + 1} $
+\caption{Push frame operation\label{fig:push}}
+\end{figure}
+
+\begin{figure}[h]
+  $ \mathit{getFrame} :: \mathit{Mem \times FrameId \rightarrow Frame} $ \\
+  $ \mathit{getFrame~(mem, id) = frame} $ \\
+  $ \mathit{frame = lookup~id~(memFrames~mem)} $
+\caption{Get frame operation\label{fig:getFrame}}
+\end{figure}
+
+\begin{figure}[h]
+  $ \mathit{updFrame} :: \mathit{Mem \times FrameId \times Frame \rightarrow Mem} $ \\
+  $ \mathit{upFrame~(mem, frameId, frame) = 
+      mem~\{memFrames = insert~frameId~frame~(memFrames~mem)~\} } $ 
+\caption{Update frame operation\label{fig:updFrame}}
+\end{figure}
+
 
 Later on, we will use the terms \textit{push}, \textit{getFrame} and \textit{updFrame} in order to refer to 
 operations performed in memory.
@@ -1205,7 +1228,11 @@ A value can either an integer value or a suspension.
   | VC Susp 
 \end{minted}
 
-\textbf{[TODO: Write more about values. Explain the suspended execution]}
+From the above definition, we have that a value can be either an integer (or generally a base type 
+value) or a suspension of constructed data (see section 5.3.2). While the former is obvious, especially 
+for most programmers who use strict languages, the latter is something that happens in lazy evaluated 
+programming languages. Computations may not be deeply evaluated and thus they can create thunks or 
+leave unevaluated thunks that can be evaluated later.
 
 \subsection{Frame}
 
@@ -1250,7 +1277,7 @@ An argument that lives in `fArg :: [FrameArg]' has the following definition:
 
 An argument can be either:
 \begin{itemize}
-  \item Strict and thus containing a \textit{value}. More about values in section \textbf{[Point to the description of the values]}.
+  \item Strict and thus containing a \textit{value} (more about values in section 5.3.3).
   \item Call-by-name and thus containing only an expression, an unevaluated thunk with no option for 
   memoization.
   \item Lazy and thus containing an expression, in the same way as call-by-name arguments, 
@@ -1276,7 +1303,7 @@ function is shown in figure~\ref{fig:eval}:
 \caption{Declaration of \textit{eval}\label{fig:eval}}
 \end{figure}
 
-\begin{figure}[b]
+\begin{figure}[t]
 
 \[
   \mathit{State :: (Mem, FrameId, NRFrames)}
@@ -1397,20 +1424,30 @@ The procedure is the following (this is equivalent to lookup the variable inside
 \end{itemize}
 
 Once we have found the proper frame argument, we have \textit{three} cases, depending whether the variable is in cbv, cbn or lazy 
-evaluation order (we use the abbrevation e.o. which stands for evaluation order). Later, we give the v' and s' for 
+evaluation order (we use the abbrevation e.o. which stands for evaluation order). 
 
-  \[\mathit{eval (v, s) = (v', s')} \]
+Later, we give the v' and s' for:
+  $ \mathit{eval (v, s) = (v', s')} $
 
   \begin{itemize}
-    \item cbv e.o.: 
-      \begin{figure}[h]
-        \[
-          \mathit{(v', s') = (val, s), where \hfill\ v = StrictArg \hfill\ val}
-        \]
+    \item cbv e.o.: Variable lookup operation for call-by-value 
+          variables is shown in figure~\ref{fig:cbv-varLookup}.
+      \begin{figure}[t]
+      \hrule
+        \begin{align*}
+           & \mathit{(v', s') = (val, s),} \\
+           \mathit{where} \\ 
+           & \mathit{v = StrictArg \hfill\ val}
+        \end{align*}
       \caption{Variable lookup for call-by-value\label{fig:cbv-varLookup}}
       \end{figure}
-    \item cbn e.o.: 
-    \begin{figure}[h]
+    \item cbn e.o.: Variable lookup operation for call-by-value 
+    variables is shown in figure~\ref{fig:cbn-varLookup}.
+
+    We note that whatever is the new interpreter's state \textit{s''}, we don't memoize it, as call-by-name semantics 
+    doesn't include any change of the memory's state.
+
+    \begin{figure}[t]
       \begin{align*}
         & \mathit{ (v', s') = (val, s), \hfill\ where } \\
         & \mathit{ v = ByNameArg \hfill\ expr, } \\
@@ -1419,16 +1456,12 @@ evaluation order (we use the abbrevation e.o. which stands for evaluation order)
     \caption{Variable lookup for call-by-name\label{fig:cbn-varLookup}}
     \end{figure}      
 
-      We note that whatever is the new interpreter's state \textit{s''}, we don't memoize it, as call-by-name semantics 
-      doesn't include any change of the memory's state.
-
     \item lazy e.o.: In this case (figure~\ref{fig:lazy-varlookup}) we have \textit{two} subcases.
     The subcases are whether \textit{b} is \textit{true} or \textit{false}, i.e. the lazy argument is evaluated and cached or
     not evaluated. In the latter case, the interpreter needs to evaluate the variable and update the frame, as shown below,
     in the appropriate case:
 
-    \begin{figure}[h]
-      \hrule
+    \begin{figure}[t]
       \[\mathit{v = LazyArg \hfill\ e \hfill\ b \hfill\ val}\]
       
       \begin{itemize}
@@ -1453,54 +1486,35 @@ evaluation order (we use the abbrevation e.o. which stands for evaluation order)
 \subsection{Function call}
 
 In this section, we describe the interpreter for a function call. The call is of the form:
+\[ 
+  \mathit{Expr = Call \hfill\ callee \hfill\ actuals,} 
+\]
+where we have the information about \textit{callee}'s name and the actual parameters from the function call. 
 
-\[ \mathit{Expr = Call \hfill\ callee \hfill\ actuals} \]
-
-, where we have the information about \textit{callee}'s name and the actual parameters from the function call. 
-
-First, we are going to present a function about constructing the function's arguments, given the actual parameters of the call 
-and the formal parameters from the function's signature, lying in the function definiton in \textit{FunctionsMap}. So, let's 
-pause for a while for the definition of this function, and then resume later for function call handling inside the 
-interpreter.
-
-The function, called \textit{makeArgs} has the following form:
-\begin{figure}[h]
-\[ \mathit{makeArgs :: [Actual] \times [Formal] \times State \rightarrow [FrameArg] \times State} \]
+\begin{figure}[htp]
+  \[ \mathit{makeArgs :: [Actual] \times [Formal] \times State \rightarrow [FrameArg] \times State}, \]
 \caption{Construction of frame arguments\label{fig:makeArgs}}
-\end{figure}
-, where the actuals and the formals are explained above and the \textit{State} is the interpreter's current state.
-
-For every actual corresponding to every formal, we have the following, depending whether the parameter is in 
-cbv, cbn or lazy evaluation order(abbr. e.o):
-\begin{itemize}
-  \item cbv e.o.: 
-  \begin{figure}[h]
-    \begin{align*}
-      \mathit{(v, state') = eval \hfill\ actual \hfill\ state} \\
-      \mathit{frameArg = StrictArg \hfill\ v}
-    \end{align*}
-  \caption{Construction of call-by-value frame argument\label{fig:makeCBVArg}}
-  \end{figure}
-  As shown in figure~\ref{fig:makeCBVArg} we have \textit{(frameArg, state')}, where 
-  \textit{frameArg} is added to \textit{[FrameArg]} and 
-  \textit{state'} is the next input state for \textit{makeArgs}. 
-  \item cbn e.o.:
+\end{figure} ~
+\begin{figure}[htp]
+  \begin{align*}
+    \mathit{(v, state') = eval \hfill\ actual \hfill\ state} \\
+    \mathit{frameArg = StrictArg \hfill\ v}
+  \end{align*}
+\caption{Construction of call-by-value frame argument\label{fig:makeCBVArg}}
+\end{figure} ~
+\begin{figure}[htp]
   \[ 
     \mathit{frameArg = ByNameArg \hfill\ actual} 
   \] 
-  , and thus \textit{(frameArg, state)} is returned.
-  \item lazy e.o.:
+\caption{Construction of call-by-name argument\label{fig:makeCBNArg}}
+\end{figure} ~
+\begin{figure}[htp]
   \[
     \mathit{frameArg = LazyArg \hfill\ actual \hfill\ false \hfill\ empty} 
   \]
-  , and thus \textit{(frameArg, state)} is returned.  
-\end{itemize}
-
-As it seems above, only cbv arguments are executed at this point, and the memory change they provoke are returned 
-in the state of the \textit{eval} function.
-
-Now, it is time to resume the presentation about the function call in the interpreter. 
-\begin{figure}[h]
+\caption{Construction of lazy argument\label{lazyArgConstruction}}
+\end{figure} ~
+\begin{figure}[htp]
   \begin{align*}
     & \mathit{eval \hfill\ (Call \hfill\ callee \hfill\ actuals, s) = (val, s'''),} \\ \mathit{where} \\
     & \mathit{(formals, funBody) = lookup \hfill\ callee \hfill\ FunctionsMap} \\
@@ -1515,8 +1529,37 @@ Now, it is time to resume the presentation about the function call in the interp
 \caption{Operational semantics for function call\label{fig:functionCall}}
 \end{figure}
 
+% \pagebreak
 
-\textbf{[Add a brief explanation here!]}
+First, we are going to present a function about constructing the function's arguments, given the actual parameters of the call 
+and the formal parameters from the function's signature, lying in the function definition in \textit{FunctionsMap}. So, let's 
+pause for a while for the definition of this function, and then resume later for function call handling inside the 
+interpreter.
+
+The function, called \textit{makeArgs} has the form, that is shown in figure~\ref{fig:makeArgs},
+where the actuals and the formals are explained above and the \textit{State} is the interpreter's 
+current state.For every actual corresponding to every formal, we have the following, depending 
+whether the parameter is in cbv, cbn or lazy evaluation order(abbr. e.o):
+\begin{itemize}
+  \item cbv e.o.: As shown in figure~\ref{fig:makeCBVArg} the function returns \textit{(frameArg, state')}, where 
+  \textit{frameArg} is added to \textit{[FrameArg]} and \textit{state'} is the next input state for 
+  \textit{makeArgs}. 
+  \item cbn e.o.: As shown in figure~\ref{fig:makeCBNArg}, the state remains unchanged and thus 
+  \textit{(frameArg, state)} is returned.
+  \item lazy e.o.: As shown in figure~\ref{lazyArgConstruction} the state does not change, 
+  and thus \textit{(frameArg, state)} is returned.  
+\end{itemize}
+
+As it seems above, only cbv arguments are executed at this point, and the memory change they provoke, 
+is returned in the state of the \textit{eval} function.
+
+Now, it' s time to resume the presentation about the function call in the interpreter.
+The operational meaning of a function call is shown in figure~\ref{fig:functionCall}. 
+Every time we have a function call a new frame is pushed to the memory. Then, the interpreter 
+evaluates the body of the function, and finally we reset the environment for the next operation 
+handled by the interpreter.
+
+
 
 \subsection{Pattern matching}
 
@@ -1528,26 +1571,14 @@ More specifically a branch for a pattern matching is:
                | IPat { pattVal :: Int }          -- pattern matching on integers 
 \end{minted}
 
-\begin{figure}[b]
-  \hrule
+\begin{figure}[htp]
   \begin{align*}
     \mathit{caseExpr = Case \hfill\ caseId \hfill\ e \hfill\ branches}
   \end{align*}
 \caption{Case expression\label{fig:case}}
-% \hrule
-\end{figure}
-
-The case expression is shown in the figure~\ref{fig:case}. For its evaluation, the interpreter 
-does the following:
-\begin{itemize}
-  \item First, we evaluate the scrutinized expression, shown in figure~\ref{fig:scrueval}.
-  \item Next, in figure~\ref{fig:intPattMatch} we show how the interpreter works for 
-        integer pattern matching.
-  \item Finally, the pattern matching on constructors is shown in figure~\ref{fig:consPattMatch}.
-\end{itemize}
-
-\begin{figure}[h]
-  \hrule
+\end{figure} ~
+\begin{figure}[htp]
+  % \hrule
   \begin{align*}
     &  \mathit{eval \hfill\ (e, s) = (e', s'),}  \\
     \mathit{where} \\
@@ -1557,10 +1588,8 @@ does the following:
     &  \mathit{c = Susp \hfill\ (cn, \_) \hfill\ \_}  
   \end{align*}
 \caption{Evaluation of the scrutinee\label{fig:scrueval}}
-\end{figure}
-
-
-\begin{figure}[h]
+\end{figure} ~
+\begin{figure}[htp]
   \begin{align*}
     & \mathit{eval \hfill\ (caseExpr, s) = (eval \hfill\ e'' \hfill\ s', s'),} \\
     \mathit{where} \\
@@ -1570,10 +1599,8 @@ does the following:
     \hfill\ evaluation.}
   \end{align*}
 \caption{Integer pattern matching operational semantics\label{fig:intPattMatch}}
-\end{figure}
-
-
-\begin{figure}[h]
+\end{figure}~
+\begin{figure}[htp]
   \begin{align*}
     & \mathit{eval \hfill\ (caseExpr, s) = (eval \hfill\ e'' \hfill\ s'', s''), } \\ 
     \mathit{where} \\
@@ -1584,8 +1611,20 @@ does the following:
     & \mathit{s'' = (updFrame \hfill\ mem' \hfill\ frameId \hfill\ frame', \hfill\ frameId, \hfill\ n)}
   \end{align*}
 \caption{Pattern matching on constructors operational semantics\label{fig:consPattMatch}}
-\hrule
+% \hrule
 \end{figure}
+
+
+
+The case expression is shown in the figure~\ref{fig:case}. For its evaluation, the interpreter 
+does the following:~
+\begin{itemize}
+  \item First, we evaluate the scrutinized expression, shown in figure~\ref{fig:scrueval}.
+  \item Next, in figure~\ref{fig:intPattMatch} we show how the interpreter works for 
+        integer pattern matching.
+  \item Finally, the pattern matching on constructors is shown in figure~\ref{fig:consPattMatch}.
+\end{itemize}
+
 
 In the above definitions, \textit{indexOfPatterns} gives as output the index of the pattern 
 in the \textit{patterns} list, and this list is retrieved by the \textit{branches} list 
@@ -1631,8 +1670,7 @@ pattern matching. As we mentioned earlier (section 2.2.4), the evaluation
 of a term is forced, when such variables are needed to be evaluated.
 The \textit{eval} function of \textit{constructor projection} is shown in 
 figure~\ref{fig:consproj}.
-
-\begin{figure}[h]
+\begin{figure}[htp]
   \begin{align*}
     & \mathit{eval \hfill\ (CProj \hfill\ caseId \hfill\ cpos, s) = (val, s'),} \\
     \mathit{where } \\
@@ -1644,7 +1682,6 @@ figure~\ref{fig:consproj}.
   \end{align*}
 \caption{Constructor projection operational semantics\label{fig:consproj}}
 \end{figure}
-
 First, we find the $\mathit{susp}$ inside the $\mathit{susps}$ in the current frame. Then, 
 from the expression list $\mathit{el}$ we find the right constructor in the $\mathit{cpos}$ 
 position. After evaluating this expression, we have the result-value and the next state 
@@ -1984,12 +2021,5 @@ benchmarks.
 % \appendix
 
 % \chapter{General}
-
-
-% TODO: Clinger citation~\cite{Clinger:1998:PTR:277650.277719}.
-
-% TODO: citation for further details on the GIC memory model~\cite{Fourtounis14}.
-
-%%%  End of document
 
 \end{document}
