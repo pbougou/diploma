@@ -426,7 +426,7 @@ requiring a mechanism such as a thunk, first appeared in ALGOL60~\cite{Naur78}. 
 works prove a relation between call-by-name and call-by-value~\cite{Wadler03}, supporting our interest 
 to investigate call-by-name as an evaluation order present in our core language.
 
-A first example in order to showcase the importance of CBN semantics is:
+A first example in order to showcase how a programmer can put CBN semantics to good use, is:
 
 \begin{minted}{haskell}
   loop x = loop x
@@ -682,10 +682,8 @@ More specifically, in section 3.1 we provide examples for integers (values alway
 for almost all the cases of handling lists (`lazy' data constructors): 
 consuming (`sum'), constructing (`makelist'), consuming and constructing (`map'). 
 In section 3.2, an example for tail-recursion modulo cons is presented. It is an extension of classic 
-tail-call optimisation, first appeared in Prolog [2].
-In section 3.3, there is an example that illustrates the intermediate list-node removal. First, in an example 
-that this optimisation can't apply and then an example that makes the optimisation possible and led us to 
-the data-driven analysis, that will be described later on.
+tail-call optimisation, first appeared in Prolog implementations.
+
 
 \section {Classic tail-call optimisation}
 
@@ -976,12 +974,20 @@ properly annotate strict arguments.
 After defunctionalization transformation and strictness analysis are performed, we also 
 perform some more transformations to the source language in order the intermediate 
 language to reach the final form, which is the input of the analysis, presented in later section.
-\textbf{[TODO : Write more about the following transformations]}
+
+
 \begin{itemize}
-  \item alpha-renaming
-  \item if to case transform 
-  \item wrapper functions 
-  \item constructor projections
+  \item \textbf{Alpha-renaming:}  This transformation renames all variables bound by pattern matching.
+  Every `case' expression opens a new scope and variable names in this scope are bound to the closest 
+  `case' pattern. This transformation also handles name shadowing. 
+  \item \textbf{If-to-case transform:}  When the language supports pattern matching on data 
+  (constructors), `if' expression is useless. It can be transformed to pattern matching on 
+  the nullary boolean constructor. Haskell does not have `if' expression as builtin; it only allows
+  syntactic use (as syntactic sugar for boolean patterns).
+  \item \textbf{Constructor projections:}  Every variable bound by a `case' pattern has to be 
+  transformed to a special syntactic node in the core language, which contains the case unique identifier
+  and the position inside the expression list in the constructor pattern. The `case' id is 
+  unique inside a function definiton (locally).
 \end{itemize}
 
 \section {Syntax}
@@ -1083,8 +1089,8 @@ differences from the one shown in the figure:
 \chapter {Execution model}
 In this chapter, we will present technical details the operational semantics for the 
 language we studied in this thesis as well as the technical details about the implementation of
-the interpreter, on which we evaluate our technique for the tail-call optimisation and the intermediate
-list-node removal. 
+the interpreter, on which we evaluate our technique for the tail-call optimisation and the 
+tail-recursion modulo cons.
 \newline 
 \par In section 5.1 there is a high-level description of the machine; section 5.2 follows 
 with the call-by-name and call-by-need semantics and finally in section 5.3 the runtime structs and the 
@@ -1393,7 +1399,7 @@ The procedure is the following (this is equivalent to lookup the variable inside
 Once we have found the proper frame argument, we have \textit{three} cases, depending whether the variable is in cbv, cbn or lazy 
 evaluation order (we use the abbrevation e.o. which stands for evaluation order). Later, we give the v' and s' for 
 
-  \[eval (v, s) = (v', s') \]
+  \[\mathit{eval (v, s) = (v', s')} \]
 
   \begin{itemize}
     \item cbv e.o.: 
@@ -1407,24 +1413,26 @@ evaluation order (we use the abbrevation e.o. which stands for evaluation order)
     \begin{figure}[h]
       \begin{align*}
         & \mathit{ (v', s') = (val, s), \hfill\ where } \\
-        &  \mathit{ v = ByNameArg \hfill\ expr, } \\
+        & \mathit{ v = ByNameArg \hfill\ expr, } \\
         & \mathit{(val, s'') = eval \hfill\ expr \hfill\ (mem, prevFrameId, nr\_frames)} \\
       \end{align*}
     \caption{Variable lookup for call-by-name\label{fig:cbn-varLookup}}
     \end{figure}      
+
       We note that whatever is the new interpreter's state \textit{s''}, we don't memoize it, as call-by-name semantics 
       doesn't include any change of the memory's state.
 
-    \item lazy e.o.: In this case we have \textit{two} subcases.
+    \item lazy e.o.: In this case (figure~\ref{fig:lazy-varlookup}) we have \textit{two} subcases.
     The subcases are whether \textit{b} is \textit{true} or \textit{false}, i.e. the lazy argument is evaluated and cached or
     not evaluated. In the latter case, the interpreter needs to evaluate the variable and update the frame, as shown below,
     in the appropriate case:
 
     \begin{figure}[h]
-      \[v = LazyArg \hfill\ e \hfill\ b \hfill\ val\]
+      \hrule
+      \[\mathit{v = LazyArg \hfill\ e \hfill\ b \hfill\ val}\]
       
       \begin{itemize}
-          \item \textit{b} is \textit{true}: \[ (v', s') = (val, s) \]
+          \item \textit{b} is \textit{true}: \[ \mathit{(v', s') = (val, s)} \]
           \item \textit{b} is \textit{false}:
             \begin{align*}
                 & \mathit{(v', s') = (val', (updFrame \hfill\ mem' \hfill\ frameId \hfill\ frame', frameId, nr\_frames')), where} \\
@@ -1433,6 +1441,7 @@ evaluation order (we use the abbrevation e.o. which stands for evaluation order)
             \end{align*}
       \end{itemize}
     \caption{Variable lookup for call-by-need\label{fig:lazy-varlookup}}
+    \hrule
   \end{figure}
 
 
@@ -1472,13 +1481,18 @@ cbv, cbn or lazy evaluation order(abbr. e.o):
     \end{align*}
   \caption{Construction of call-by-value frame argument\label{fig:makeCBVArg}}
   \end{figure}
-  , and thus we have \textit{(frameArg, state')}, where \textit{frameArg} is added to \textit{[FrameArg]} and 
+  As shown in figure~\ref{fig:makeCBVArg} we have \textit{(frameArg, state')}, where 
+  \textit{frameArg} is added to \textit{[FrameArg]} and 
   \textit{state'} is the next input state for \textit{makeArgs}. 
   \item cbn e.o.:
-  \[frameArg = ByNameArg \hfill\ actual \] 
+  \[ 
+    \mathit{frameArg = ByNameArg \hfill\ actual} 
+  \] 
   , and thus \textit{(frameArg, state)} is returned.
   \item lazy e.o.:
-  \[frameArg = LazyArg \hfill\ actual \hfill\ false \hfill\ empty \]
+  \[
+    \mathit{frameArg = LazyArg \hfill\ actual \hfill\ false \hfill\ empty} 
+  \]
   , and thus \textit{(frameArg, state)} is returned.  
 \end{itemize}
 
@@ -1488,15 +1502,15 @@ in the state of the \textit{eval} function.
 Now, it is time to resume the presentation about the function call in the interpreter. 
 \begin{figure}[h]
   \begin{align*}
-    &\mathit{eval \hfill\ (Call \hfill\ callee \hfill\ actuals, s) = (val, s'''),} \\ \mathit{where} \\
-    &\mathit{(formals, funBody) = lookup \hfill\ callee \hfill\ FunctionsMap} \\
-    &\mathit{(frameArgs, (mem', \_, nr\_frames')) = makeArgs \hfill\ actuals \hfill\ formals  \hfill\ state} \\
-    &\mathit{newFrame = Frame \hfill\ callee \hfill\ frameArgs \hfill\ [] \hfill\ frameId} \\
-    &\mathit{mem'' = push \hfill\ mem' \hfill\ newFrame \hfill\ (nr\_frames + 1) \hfill\ frameId} \\
-    &\mathit{s' = (mem'', lastFrameId \hfill\ mem'', nr\_frames + 1)} \\
-    &\mathit{(val, s'') = eval \hfill\ funBody \hfill\ s'} \\
-    &\mathit{(s'' = (mem''', _, nr\_frames''))} \\
-    &\mathit{s''' = (mem''', frameId, nr\_frames'')}
+    & \mathit{eval \hfill\ (Call \hfill\ callee \hfill\ actuals, s) = (val, s'''),} \\ \mathit{where} \\
+    & \mathit{(formals, funBody) = lookup \hfill\ callee \hfill\ FunctionsMap} \\
+    & \mathit{(frameArgs, (mem', \_, nr\_frames')) = makeArgs \hfill\ actuals \hfill\ formals  \hfill\ state} \\
+    & \mathit{newFrame = Frame \hfill\ callee \hfill\ frameArgs \hfill\ [] \hfill\ frameId} \\
+    & \mathit{mem'' = push \hfill\ mem' \hfill\ newFrame \hfill\ (nr\_frames + 1) \hfill\ frameId} \\
+    & \mathit{s' = (mem'', lastFrameId \hfill\ mem'', nr\_frames + 1)} \\
+    & \mathit{(val, s'') = eval \hfill\ funBody \hfill\ s'} \\
+    & \mathit{(s'' = (mem''', _, nr\_frames''))} \\
+    & \mathit{s''' = (mem''', frameId, nr\_frames'')}
   \end{align*}
 \caption{Operational semantics for function call\label{fig:functionCall}}
 \end{figure}
@@ -1514,43 +1528,77 @@ More specifically a branch for a pattern matching is:
                | IPat { pattVal :: Int }          -- pattern matching on integers 
 \end{minted}
 
-The case expression is of the following form:
-\begin{figure}[h]
-\[ \mathit{caseExpr = Case \hfill\ caseId \hfill\ e \hfill\ branches} \]
+\begin{figure}[b]
+  \hrule
+  \begin{align*}
+    \mathit{caseExpr = Case \hfill\ caseId \hfill\ e \hfill\ branches}
+  \end{align*}
 \caption{Case expression\label{fig:case}}
+% \hrule
 \end{figure}
 
-First, we evaluate the scrutinized expression, as following:
-\[eval \hfill\ (e, s) = (e', s'),  \]
-, where 
-\[s' = (mem', savedFrameId, n), \hfill\ and \]
-\[e' = VI \hfill\ i, \hfill\ integer \hfill\ pattern \hfill\ matching \] 
-\[e' = VC \hfill\ c, \hfill\ constructor \hfill\ pattern \hfill\ matching \]
-\[c = Susp \hfill\ (cn, \_) \hfill\ \_ \]
+The case expression is shown in the figure~\ref{fig:case}. For its evaluation, the interpreter 
+does the following:
+\begin{itemize}
+  \item First, we evaluate the scrutinized expression, shown in figure~\ref{fig:scrueval}.
+  \item Next, in figure~\ref{fig:intPattMatch} we show how the interpreter works for 
+        integer pattern matching.
+  \item Finally, the pattern matching on constructors is shown in figure~\ref{fig:consPattMatch}.
+\end{itemize}
 
-Next, we are going to show how the interpreter works for integer pattern matching, which is as following:
-\[eval \hfill\ (caseExpr, s) = (eval \hfill\ e'' \hfill\ s', s') \]
-, where 
-\[e'' = lookup \hfill\ (IPat \hfill\ i) \hfill\ cases \]
-, and \textit{s'} is the state after scrutinee's evaluation.
-\newline
-\par Integer pattern matching can't be exhaustive, because integer domain consists of infinite elements, and thus we 
+\begin{figure}[h]
+  \hrule
+  \begin{align*}
+    &  \mathit{eval \hfill\ (e, s) = (e', s'),}  \\
+    \mathit{where} \\
+    &  \mathit{s' = (mem', savedFrameId, n), \hfill\ and} \\
+    &  \mathit{e' = VI \hfill\ i, \hfill\ integer \hfill\ pattern \hfill\ matching, or} \\
+    &  \mathit{e' = VC \hfill\ c, \hfill\ constructor \hfill\ pattern \hfill\ matching} \\
+    &  \mathit{c = Susp \hfill\ (cn, \_) \hfill\ \_}  
+  \end{align*}
+\caption{Evaluation of the scrutinee\label{fig:scrueval}}
+\end{figure}
+
+
+\begin{figure}[h]
+  \begin{align*}
+    & \mathit{eval \hfill\ (caseExpr, s) = (eval \hfill\ e'' \hfill\ s', s'),} \\
+    \mathit{where} \\
+    & \mathit{e'' = lookup \hfill\ (IPat \hfill\ i) \hfill\ cases} \\
+    % \mathit{, and} \\
+    & \mathit{\textit{s'} \hfill\ is \hfill\ the \hfill\ state \hfill\ after \hfill\ scrutinee's 
+    \hfill\ evaluation.}
+  \end{align*}
+\caption{Integer pattern matching operational semantics\label{fig:intPattMatch}}
+\end{figure}
+
+
+\begin{figure}[h]
+  \begin{align*}
+    & \mathit{eval \hfill\ (caseExpr, s) = (eval \hfill\ e'' \hfill\ s'', s''), } \\ 
+    \mathit{where} \\
+    & \mathit{pattIndex = indexOfPattern \hfill\ cn \hfill\ patterns} \\
+    & \mathit{(\_, e'') = branches \hfill\ [pattIndex]} \\
+    & \mathit{susps' = (caseId, c) \hfill\ : \hfill\ susps} \\
+    & \mathit{frame' = Frame \hfill\ caller \hfill\ funArgs \hfill\ susps' \hfill\ prevFrameId} \\
+    & \mathit{s'' = (updFrame \hfill\ mem' \hfill\ frameId \hfill\ frame', \hfill\ frameId, \hfill\ n)}
+  \end{align*}
+\caption{Pattern matching on constructors operational semantics\label{fig:consPattMatch}}
+\hrule
+\end{figure}
+
+In the above definitions, \textit{indexOfPatterns} gives as output the index of the pattern 
+in the \textit{patterns} list, and this list is retrieved by the \textit{branches} list 
+by ignoring the second value.
+
+Integer pattern matching can't be exhaustive, because integer domain consists of infinite elements, and thus we 
 assume that \textit{IPat i} is a pattern that exists in the patterns list. Otherwise, the interpreter will throw an exception.
-\newline
-\par At last, the pattern matching on constructors is:
-\[eval \hfill\ (caseExpr, s) = (eval \hfill\ e'' \hfill\ s'', s'') \], where
-\[pattIndex = indexOfPattern \hfill\ cn \hfill\ patterns \]
-\[(\_, e'') = branches \hfill\ !! \hfill\ pattIndex \]
-\[susps' = (caseId, c) \hfill\ : \hfill\ susps \]
-\[frame' = Frame \hfill\ caller \hfill\ funArgs \hfill\ susps' \hfill\ prevFrameId \]
-\[s'' = (updFrame \hfill\ mem' \hfill\ frameId \hfill\ frame', \hfill\ frameId, \hfill\ n) \]
-\newline
-\par In the above definitions, \textit{indexOfPatterns} gives as output the index of the pattern in the \textit{patterns} list, 
-and this list is retrieved by the \textit{branches} list by ignoring the second value.
-\newline
-\par We note that even though our interpreter works for lists, this is applied to every data constructor, when `case' works 
-in the same way as Haskell's builtin `case'. The `constructor' representation would be the same for every constructor definition, 
-as constructors are also functions themselves. The latter is obvious taking into consideration that we work on a functional language; 
+
+
+We note that even though our interpreter works for lists, this is applied to every data constructor, 
+when `case' works in the same way as Haskell's builtin `case'. The `constructor' representation 
+would be the same for every constructor definition, as constructors are also functions themselves. 
+The latter is obvious taking into consideration that we work on a functional language; 
 a programming language with \textit{functions as first-class citizens}.
 
 \subsection{Constructor application}
@@ -1558,21 +1606,49 @@ a programming language with \textit{functions as first-class citizens}.
 In the case of having a constructor application of a \textit{lazy data constructor},
 this is equivalent to a memory allocation of a thunk. In our case, this is 
 a suspended execution of lazy data constructor, the one explained in section 5.3.2.
-More specifically, the \textit{eval} for a lazy constructor application is:
+More specifically, the \textit{eval} for a lazy constructor application 
+is shown in figure~\ref{fig:consAppl}.
 
-\[eval \hfill\ (ConstrF \hfill\ tag \hfill\ exprs, s) = (VC \hfill\ (Susp \hfill\ (tag, exprs) \hfill\ frameId), s) \]
-, where \textit{frameId} is the id of the current frame existing in the interpeter's state, 
-\textit{tag} is the name of the constructor.
+\begin{figure}[h]
+  \begin{align*}
+    & \mathit{eval \hfill\ (ConstrF \hfill\ tag \hfill\ exprs, s) = (VC \hfill\ (Susp \hfill\ (tag, exprs) \hfill\ frameId), s)} \\
+    \mathit{, where} \\
+    &  \mathit{\textit{frameId}: \hfill\ the \hfill\ id \hfill\ of \hfill\ the 
+    \hfill\ current \hfill\ frame \hfill\ existing \hfill\ in \hfill\ the \hfill\ interpeter's 
+    \hfill\ state,} \\
+    &  \mathit{\textit{tag}: \hfill\ the \hfill\ name \hfill\ of \hfill\ the \hfill\ 
+    constructor.}
+  \end{align*}
+\caption{Lazy list constructor application operational semantics\label{fig:consAppl}}
+\end{figure}
+
+\textbf{[More constructor applications here]}
 
 \subsection{Constructor projection}
 
 In this case, the interpreter has come across a variable bound by 
 pattern matching. As we mentioned earlier (section 2.2.4), the evaluation 
 of a term is forced, when such variables are needed to be evaluated.
+The \textit{eval} function of \textit{constructor projection} is shown in 
+figure~\ref{fig:consproj}.
 
-The \textit{eval} function of \textit{constructor projection} is the following:
-\[eval \hfill\ (CProj \hfill\ caseId \hfill\ constructorPos, s) = (val, s'),
-\hfill\ where \]
+\begin{figure}[h]
+  \begin{align*}
+    & \mathit{eval \hfill\ (CProj \hfill\ caseId \hfill\ cpos, s) = (val, s'),} \\
+    \mathit{where } \\
+    & \mathit{s' = mem' \hfill\ frameId \hfill\ nr\_frames'} \\
+    & \mathit{susp = lookup \hfill\ cid \hfill\ susps} \\
+    & \mathit{Susp \hfill\ (\_, el) \hfill\ savedFrameId = susp} \\
+    & \mathit{e' = el[cpos]} \\
+    & \mathit{(val, (mem', \_, nr\_frames')) = eval \hfill\ (e', s)}
+  \end{align*}
+\caption{Constructor projection operational semantics\label{fig:consproj}}
+\end{figure}
+
+First, we find the $\mathit{susp}$ inside the $\mathit{susps}$ in the current frame. Then, 
+from the expression list $\mathit{el}$ we find the right constructor in the $\mathit{cpos}$ 
+position. After evaluating this expression, we have the result-value and the next state 
+for our interpreter.
 
 \chapter{Analysis: Searching for optimisation opportunities}
 
@@ -1699,15 +1775,24 @@ then we can have \textit{x `:' tail recursive call to the function}. Details on 
 % Global analysis
 
 \chapter {Runtime evaluator for optimisations}
+
 In this chapter, we will present how the optimisations are implemented in the interpreter.
 More specifically there will be presented:
-\[eval \hfill\ (e, s) = (e', s') \]
+\[ \mathit{eval \hfill\ (e, s) = (e', s')} \]
 where:
 \begin{itemize}
-\item in section 7.1 we have the evaluation of:
-\[e = TailCall \hfill\ callee \hfill\ actuals \] 
-\item and in section 7.2 we have the evaluation of:
-\[e = TRMC \hfill\ tag \hfill\ exprs \].
+\item in section 7.1 we have the evaluation of tail-call optimisation, first expression 
+      shown in figure~\ref{fig:annos},
+\item and in section 7.2 we have the evaluation of tail recursion modulo cons shown
+      also in figure~\ref{fig:annos}.
+\begin{figure}[h]
+  \begin{align*}
+    & \mathit{e = TailCall \hfill\ callee \hfill\ actuals} \\
+    & \mathit{e = TRMC \hfill\ tag \hfill\ exprs} 
+  \end{align*}
+\caption{Annotated expressions\label{fig:annos}}
+\end{figure}
+
 \end{itemize}
 The first is the classic tail-call optimisation, while the latter is the tail-recursion 
 modulo cons. There will be a comprehensive explanation of how we mutated the frames and how we counted them for 
@@ -1719,19 +1804,12 @@ Classic tail call evaluation contains one major \textit{operation}, which makes 
 feasible: this is \textit{frame mutation}. This operation includes the replacement of the current frame's arguments 
 with the arguments necessary for the construction of the frame for the next function call. For this operation,
 it is mandatory that the caller's arguments don't escape and for those that escape we correctly passed them 
-to the new frame.
-\textbf{[Some more explanation here, e.g. we cannot have a very big frame containing everything so far, 
-we only need those we keep and that's the point of the analysis.]}
+to the new frame. 
 
-The \textit{eval} for the \textit{TailCall} follows; we remind that this is actually optimisable as the analysis 
-revealed, although we make few, inexpensive extra checks for some cases:
-\[eval \hfill\ (TailCall \hfill\ callee \hfill\ actuals, s) = (e', s')\], where
-\[(formals, funBody) = lookup \hfill\ FunctionsMap \hfill\ callee \]
-\[e' = eval \hfill\ (funBody, s') \]
-\[s' = checkMutate \hfill\ formals \hfill\ actuals \hfill\ funArgs \hfill\ s \]
-
+The \textit{eval} for the \textit{TailCall} follows in figure~\ref{fig:tco}; we remind that this is actually optimisable as the analysis 
+revealed, although we make few, inexpensive extra checks for some cases.
 The functionality of \textit{checkMutate} will be explained later on in this section. The other variables 
-here are:
+, shown in figure~\ref{fig:tco} are:
 \begin{itemize}
   \item \textit{formals} are the formal parameters of the function definition of the callee function,
   \item \textit{actuals} are the actual parameter of this tail-call optimisable function call,
@@ -1739,27 +1817,62 @@ here are:
   \item and \textit{s} is the current state of the interpreter.
 \end{itemize}
 
-At this point, we are ready to provide the definition for \textit{checkMutate}. 
-\[checkMutate :: [Actual] \times [Formal] \times [FrameArg] \times State \rightarrow State \]
-, which is a function that given the current interpreter's state performs the runtime mutation of the frame
-and produces the next state of the interpreter. 
 
-\[checkMutate (actuals, formals, funArgs, s) = s' \]
-, where 
-\[(mem, frameId, nr\_frames) = s \]
-\[(callerFormals, \_) = lookup \hfill\ callee \hfill\ FunctionsMap \]
-\[(funArgs', s'') = mutate \hfill\ callerFormals \hfill\ formals \hfill\ funArgs \hfill\ actuals \hfill\ s \]
-\[(mem', frameId', nr\_frames') = s'' \]
-\[frame'' = Frame \hfill\ callee \hfill\ funArgs' \hfill\ [] \hfill\ prevFrameId \]
-\[s' = (updFrame \hfill\ mem' \hfill\ frameId \hfill\ frame'', frameId, nr\_frames') \]
+\begin{figure}[h]
+  \begin{align*}
+    & \mathit{eval \hfill\ (TailCall \hfill\ callee \hfill\ actuals, s) = (e', s'),} \\
+    \mathit{where} \\
+    & \mathit{(formals, funBody) = lookup \hfill\ FunctionsMap \hfill\ callee} \\
+    & \mathit{e' = eval \hfill\ (funBody, s')} \\
+    & \mathit{s' = checkMutate \hfill\ formals \hfill\ actuals \hfill\ funArgs \hfill\ s} 
+  \end{align*}
+\caption{Tail-call optimisation operational semantics \label{fig:tco}}
+\end{figure}
 
-Now, we are going to describe an auxiliary function used in order to constructor the function's arguments 
-of the mutated frame; specifically in the definition of \textit{funArgs'} the function called \textit{mutate}.
 
-We have the following declaration for \textit{mutate}:
-\[mutate :: [Formal] \times [Formal] \times [FrameArg] \times [Actual] \times State \rightarrow [FrameArg] \times State \]
+At this point, we are ready to provide the definition for \textit{checkMutate}, which 
+is a function that given the current interpreter's state performs the runtime mutation 
+of the frame and produces the next state of the interpreter. Its declaration is given in 
+the figure~\ref{fig:checkdecl} and the operational meaning of the function in the 
+figure~\ref{fig:checkMutate}.
 
-So, \textit{mutate} is a function that takes as input:
+\begin{figure}[h]
+  \begin{align*}
+    \mathit{checkMutate :: [Actual] \times [Formal] \times [FrameArg] \times State \rightarrow State} 
+  \end{align*}
+\caption{Declaration of $\mathit{checkMutate}$ operation\label{fig:checkdecl}}
+\end{figure}
+
+ 
+
+\begin{figure}[h]
+  \begin{align*}
+    & \mathit{checkMutate \hfill\ (actuals, formals, funArgs, s) = s', } \\
+    \mathit{where } \\
+    & \mathit{(mem, frameId, nr\_frames) = s} \\
+    & \mathit{(callerFormals, \_) = lookup \hfill\ callee \hfill\ FunctionsMap} \\
+    & \mathit{(funArgs', s'') = mutate \hfill\ callerFormals \hfill\ formals \hfill\ funArgs \hfill\ actuals \hfill\ s } \\
+    & \mathit{(mem', frameId', nr\_frames') = s''} \\
+    & \mathit{frame'' = Frame \hfill\ callee \hfill\ funArgs' \hfill\ [] \hfill\ prevFrameId} \\
+    & \mathit{s' = (updFrame \hfill\ mem' \hfill\ frameId \hfill\ frame'', frameId, nr\_frames')}
+  \end{align*}
+\caption{checkMutate operational semantics\label{fig:checkMutate}}
+\end{figure}
+
+Now, we are going to describe an auxiliary function used in order to constructor 
+the function's arguments of the mutated frame; specifically in the definition of 
+\textit{funArgs'} the function called \textit{mutate}.
+
+
+\begin{figure}[h]
+  \begin{align*}
+    \mathit{mutate :: [Formal] \times [Formal] \times [FrameArg] \times [Actual] \times State \rightarrow [FrameArg] \times State} 
+  \end{align*}
+\caption{Declaration of $\mathit{mutate}$ operation\label{fig:mutatedecl}}
+\end{figure}
+
+We have the declaration for \textit{mutate}, shown in figure~\ref{fig:mutatedecl}.
+From the figure, we have that \textit{mutate} is a function that takes as input:
 \begin{itemize}
   \item The formal parameters of the caller function,
   \item the formal parameters of the callee function,
@@ -1806,39 +1919,6 @@ Give graph results from the microbenchmarks.
 
 \chapter{Related work}
 
-Find something Haskell-ish for classic tail-calls.
-
-fusion vs. tail-recursion modulo cons.
-
-% intermediate data eliminations and listlessness/deforestation.
-
-\chapter{Future work}
-summary of what is done.
-extension of the tail-call optimisation for strict
-languages.
-what is missing (only used for lists, booleans).
-generalization for constructors.
-can be used for Haskell? Simply sketch something.
-
-% \chapter{Overview}
-
-
-\selectlanguage{greek}
-
-%%%  Bibliography
-
-\bibliographystyle{softlab-thesis}
-\bibliography{thesis}
-
-
-%%%  Appendices
-
-\backmatter
-
-\appendix
-
-\chapter{General}
-
 Implementations of programming languages use a stack for function calls, 
 where activation records are pushed for every function invocation: this permits recursion 
 and has good performance. Stack allocation for function calls has been an old technique, 
@@ -1865,17 +1945,50 @@ continuations~\cite{Sperber10}, higher-order return
 values~\cite[p.~103]{Appel92}\cite{Steele78},
 backtracking~\cite{Bobrow73}, or non-strict evaluation, and
 implementations in continuation-passing style~\cite[p.~103]{Appel92},
-may allocate activation records on the heap. Tail-call optimization is
-also important for implementations of logic languages~\cite{Bigot99}.
+may allocate activation records on the heap. 
 
-Tail-call optimization in C: GCC~\cite{Probst01}, LLVM~\cite{Pandey:2015:LC:2842773}.
+Tail-call optimization is also important for implementations of logic languages~\cite{Bigot99},
+functional programming languages running on the Java virtual machine~\cite{Madsen:2018:TCE:3178372.3179499},
+imperative languages such as C~\cite{Probst01}, or even low-level compiler-targeted languages such as
+LLVM~\cite{Pandey:2015:LC:2842773}.
 
-Tail-call optimization for functional programming languages running on
-the Java virtual machine~\cite{Madsen:2018:TCE:3178372.3179499}.
+Find something Haskell-ish for classic tail-calls.
 
-TODO: Clinger citation~\cite{Clinger:1998:PTR:277650.277719}.
+fusion vs. tail-recursion modulo cons.
 
-TODO: citation for further details on the GIC memory model~\cite{Fourtounis14}.
+% intermediate data eliminations and listlessness/deforestation.
+
+\chapter{Future work}
+summary of what is done.
+extension of the tail-call optimisation for strict
+languages.
+what is missing (only used for lists, booleans).
+generalization for constructors.
+can be used for Haskell? Simply sketch something.
+benchmarks.
+
+
+
+\selectlanguage{greek}
+
+%%%  Bibliography
+
+\bibliographystyle{softlab-thesis}
+\bibliography{thesis}
+
+
+%%%  Appendices
+
+\backmatter
+
+% \appendix
+
+% \chapter{General}
+
+
+% TODO: Clinger citation~\cite{Clinger:1998:PTR:277650.277719}.
+
+% TODO: citation for further details on the GIC memory model~\cite{Fourtounis14}.
 
 %%%  End of document
 
