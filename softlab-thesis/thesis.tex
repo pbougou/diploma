@@ -209,13 +209,13 @@ Our major contributions, presented in this thesis, are:
 An overview of the contents of each chapter follows:
 \begin{itemize}
   \item In \textit{Chapter~\ref{ch:background}}, we provide the necessary background for the reader in 
-        order to follow the next chapters. There is a comprehensive explanation of classic 
+        order to follow the next chapters. We give a comprehensive explanation of classic 
         tail-call optimisation (section~\ref{sec:tco}), an overview of the evaluation order choices we study 
         in this thesis (section~\ref{sec:evaluation-order}), an overview of static analysis (section~\ref{sec:static-analysis}). Finally, 
-        in section~\ref{sec:abstract-machines} there is an overview of abstact machines and interpreters, focusing on 
+        in section~\ref{sec:abstract-machines} we give an overview of abstact machines and interpreters, focusing on 
         lazy functional languages.
 
-  \item In \textit{Chapter~\ref{ch:overview}}, there is an overview of the thesis; we provide the intuition 
+  \item In \textit{Chapter~\ref{ch:overview}}, we give an overview of the thesis; we provide the intuition 
         for our key ideas presented in the rest of the thesis.
 
   \item In \textit{Chapter~\ref{ch:language}}, we present the language we studied. Briefly, we describe 
@@ -233,7 +233,7 @@ An overview of the contents of each chapter follows:
   \item In \textit{Chapter~\ref{ch:evaluator}}, how we operationally treat inside the interpreter the 
         tail call optimisable function calls and tail recursion modulo cons.
 
-  \item In \textit{Chapter~\ref{ch:evaluation}}, there is an evaluation of our optimisations on microbenchmarks.
+  \item In \textit{Chapter~\ref{ch:evaluation}}, we give an evaluation of our optimisations on microbenchmarks.
 
   \item \textit{Chapter~\ref{ch:related}} and \textit{Chapter`\ref{ch:future}} are related work and future wok respectively.
 
@@ -517,7 +517,7 @@ When we call `head' with [42, loop 42] the following happens:
   It also binds `x', `xs' to `x1', `x2' successively.
   \item At this point, `case' knows which branch to pick from the previous step. As `l' is not an empty list, it picks the 
   second branch. 
-  \item On the right-hand side of the second branch, there is the variable `x'. Now, the value of `x' is needed, and thus 
+  \item On the right-hand side of the second branch, there is variable `x'. Now, the value of `x' is needed, and thus 
   it evaluates `x1', that is evaluates the content of the pointer and finally it returns 42.
   \item An important notice is that because pattern matching variable `xs' doesn't exist on the right hand side 
   of the branch, it doesn't evaluate `xs' and thus the program doesn't diverge.
@@ -526,8 +526,9 @@ When we call `head' with [42, loop 42] the following happens:
 \subsection{BangPatterns: Haskell with strictness}
 \label{sec:bangpatterns}
 
-In Haskell's de-facto compiler, Glasgow Haskell Compiler (GHC), there is a language extension, the bang patterns, 
-available both in the interactive environment (ghci) with:
+Haskell's de facto compiler, the Glasgow Haskell Compiler (GHC),
+contains a language extension, ``bang patterns'', available both in
+the interactive environment (\texttt{ghci}) with:
 \begin{minted}{haskell}
   ghci -XBangPatterns
 \end{minted}
@@ -1060,12 +1061,12 @@ defunctionalization transformation as well as the other transformations of the p
 section. We run the analysis algorithm to spot tail-call positions with input 
 the language from this section. The interpreter is also built for that language; the evaluator for 
 the optimisations are also implemented inside the interpreter for this language.
-\newline
-\par In figure~\ref{fig:grammar}, there is the abstract syntax of 
+
+Figure~\ref{fig:grammar} shows the abstract syntax of 
 the first order intermediate language.
 We need to highlight the following points, before we dive deeper into the language:
 \begin{itemize}
-  \item In the source language there is an `if' expression syntactically. In the syntax figure there isn't.
+  \item The source language contains an `if' expression syntactically. In the syntax figure there is no such construct.
   This is because `case' is much more powerful than `if' and an `if' can be transformed to a `case'. 
   Actually, we have (boolean are constructed data as well):
   \begin{minted}{haskell}
@@ -1073,8 +1074,8 @@ We need to highlight the following points, before we dive deeper into the langua
   \end{minted}
   \item There aren't any partial applications, neither in function nor in constructor applications.
   This means that the arguments in a function call are the same in number as in the function definition.
-  \item There is not `let' expression in the core language. Instead we assume that our language 
-  fully depends upon the lambda lifter ; Johnson style \textit{full laziness} lambda lifter~\cite{Johnsson:1985:LLT:5280.5292}
+  \item There is no `let' expression in the core language. Instead we assume that our language 
+  fully depends upon a lambda lifter; a Johnson-style \textit{full laziness} lambda lifter~\cite{Johnsson:1985:LLT:5280.5292}
   will get the work done.
   \item Case patterns are simple and do not allow wildcard patterns. Turning a complex case pattern into
   a simple case pattern is a well studied topic~\cite{Au85,Wadler87}.
@@ -1156,8 +1157,8 @@ In this chapter, we will present technical details the operational semantics for
 language we studied in this thesis as well as the technical details about the implementation of
 the interpreter, on which we evaluate our technique for the tail-call optimisation and
 tail recursion modulo cons.
-\newline 
-\par In section~\ref{sec:execution-model-overview} there is a high-level description of the machine; section ?? follows 
+
+Section~\ref{sec:execution-model-overview} gives a high-level description of the machine; section ?? follows 
 with the call-by-name and call-by-need semantics and finally in section ?? the runtime data structures and the 
 design decisions will become clear to the reader.
 
@@ -1195,7 +1196,7 @@ includes the following high-level properties:
 \section {Runtime system}
 \label{sec:runtime-system}
 
-In this section, there is a detailed explanation of the prototype implementation of the interpreter we 
+This section contains a detailed explanation of the prototype implementation of the interpreter we 
 used for the language. First, we are going to present the data structures used in the runtime; then, 
 we present the operational features of our interpreter. 
 
@@ -1204,8 +1205,8 @@ we present the operational features of our interpreter.
 Here, there are the definitions of the runtime structures, as they are used in the implementation. The 
 implementation is in Haskell, but the code will be simple, so that every reader with a basic background of a functional 
 language can understand.
-\newline
-\par There is an authoring convention for next sections that will describe the runtime structures. At first, a definition 
+
+In the next sections that will describe the runtime structures, we will use the following convention. At first, a definition 
 will appear; probably accompanied with one or more definitions. If it contains more complex data in its body, it will be 
 described later in the section or there will be a pointer to another section.
 
@@ -1549,7 +1550,7 @@ Later, we give the v' and s' for:
   \end{figure}
 
 
-  We note that, at this point, where there is memory change, and probably evaluation of the expression provokes 
+  We note that, at this point, where memory change happens, and probably evaluation of the expression provokes 
   the creation of new frames, we update the memory state as well as the frame counter. 
 
   \end{itemize}
