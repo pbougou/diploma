@@ -558,13 +558,13 @@ Our major contributions, presented in this thesis, are:
 An overview of the contents of each chapter follows:
 \begin{itemize}
   \item In \textit{Chapter~\ref{ch:background}}, we provide the necessary background for the reader in 
-        order to follow the next chapters. There is a comprehensive explanation of classic 
+        order to follow the next chapters. We give a comprehensive explanation of classic 
         tail-call optimisation (section~\ref{sec:tco}), an overview of the evaluation order choices we study 
         in this thesis (section~\ref{sec:evaluation-order}), an overview of static analysis (section~\ref{sec:static-analysis}). Finally, 
-        in section~\ref{sec:abstract-machines} there is an overview of abstact machines and interpreters, focusing on 
+        in section~\ref{sec:abstract-machines} we give an overview of abstact machines and interpreters, focusing on 
         lazy functional languages.
 
-  \item In \textit{Chapter~\ref{ch:overview}}, there is an overview of the thesis; we provide the intuition 
+  \item In \textit{Chapter~\ref{ch:overview}}, we give an overview of the thesis; we provide the intuition 
         for our key ideas presented in the rest of the thesis.
 
   \item In \textit{Chapter~\ref{ch:language}}, we present the language we studied. Briefly, we describe 
@@ -582,7 +582,7 @@ An overview of the contents of each chapter follows:
   \item In \textit{Chapter~\ref{ch:evaluator}}, how we operationally treat inside the interpreter the 
         tail call optimisable function calls and tail recursion modulo cons.
 
-  \item In \textit{Chapter~\ref{ch:evaluation}}, there is an evaluation of our optimisations on microbenchmarks.
+  \item In \textit{Chapter~\ref{ch:evaluation}}, we give an evaluation of our optimisations on microbenchmarks.
 
   \item \textit{Chapter~\ref{ch:related}} and \textit{Chapter`\ref{ch:future}} are related work and future wok respectively.
 
@@ -866,7 +866,7 @@ When we call `head' with [42, loop 42] the following happens:
   It also binds `x', `xs' to `x1', `x2' successively.
   \item At this point, `case' knows which branch to pick from the previous step. As `l' is not an empty list, it picks the 
   second branch. 
-  \item On the right-hand side of the second branch, there is the variable `x'. Now, the value of `x' is needed, and thus 
+  \item On the right-hand side of the second branch, there is variable `x'. Now, the value of `x' is needed, and thus 
   it evaluates `x1', that is evaluates the content of the pointer and finally it returns 42.
   \item An important notice is that because pattern matching variable `xs' doesn't exist on the right hand side 
   of the branch, it doesn't evaluate `xs' and thus the program doesn't diverge.
@@ -875,8 +875,9 @@ When we call `head' with [42, loop 42] the following happens:
 \subsection{BangPatterns: Haskell with strictness}
 \label{sec:bangpatterns}
 
-In Haskell's de-facto compiler, Glasgow Haskell Compiler (GHC), there is a language extension, the bang patterns, 
-available both in the interactive environment (ghci) with:
+Haskell's de facto compiler, the Glasgow Haskell Compiler (GHC),
+contains a language extension, ``bang patterns'', available both in
+the interactive environment (\texttt{ghci}) with:
 \begin{minted}{haskell}
   ghci -XBangPatterns
 \end{minted}
@@ -968,19 +969,43 @@ The definitions below are also used in this thesis' language.
 \section {Static analysis}
 \label{sec:static-analysis}
 
-\subsection{General background}
+%% \subsection{General background}
 
-Static program analysis is the analysis of computer software that is performed in compile-time, without 
-actually executing programs. Static analysis has two large subcategories: intraprocedural (local) and 
-interprocedural (global) analysis. If it uses the whole program in order to deduct, it is called 
-global analysis, while if it uses only a function or a procedure in order to deduct, it is called 
-local analysis. 
 
-\subsection{Abstract interpretation}
+Static program analysis attempts to predict all possible runtime
+behaviour of a program~\cite{Nielson:2010:PPA:1965094}. This analysis
+happens without running the program, using just the program text (or
+equivalent intermediate representation). This permits the analysis to
+run before the program runs and can thus be used to guide decisions
+such as compile-time optimizations.
 
-Use case for strictness analysis, an instance of 
-abstract interpretation. Explanation and citations
-for that.
+In practice, all realistic programming language implementations
+incorporate a set of static analysis that help apply optimizations,
+check type annotations, detect errors, or otherwise catch program
+behavior before it happens.
+
+Of particular interest to this thesis is strictness
+analysis~\cite{PeytonJones:1991:UVF:645420.652528,Holdermans:2010:MSM:2088270.2088274},
+an analysis especially useful for lazy languages, where laziness can
+be overriden by a ``strictness'' annotation (such as the functionality
+described in section~\ref{sec:bangpatterns}). This analysis runs on a
+lazy program and determines which expressions can be evaluated
+efficiently using call-by-value, instead of lazy evaluation, without
+changing the meaning of the program. More details about this analysis will be given in section~\ref{sec:strictness-analysis}.
+
+%% In the rest of this thesis, we
+%% will assume that the strictness information can either come from the
+%% user or from such an analysis.
+
+In Chapter~\ref{ch:analysis}, we will also give our own static
+analysis that will be able to detect the program points where
+tail-call optimization can be applied.
+
+%% \subsection{Abstract interpretation}
+
+%% Use case for strictness analysis, an instance of 
+%% abstract interpretation. Explanation and citations
+%% for that.
 
 \section{Abstract machines and Interpreters}
 \label{sec:abstract-machines}
@@ -1315,10 +1340,8 @@ And it's more than that. Let's look again the sum program of section~\ref{sec:ex
 Here, lazy argument `acc', which is a thunk in each function call is evaluated once, when the program's 
 execution flow reaches the base case. This \textit{arbitrary} evaluation of lazy arguments seems not to 
 be so arbitrary after all. We do know when `acc' is going to be evaluated.
-\newline
-\par Well, the question is what makes `acc' so predictable? 
 
-From the example above, we have the following information for `acc':
+The question is: what makes `acc' so predictable? From the example above, we have the following information for `acc':
 \begin{itemize}
   \item `acc' is an integer, always added to another integer.
   \item `acc' is the result of the function.
@@ -1326,12 +1349,20 @@ From the example above, we have the following information for `acc':
 
 From these observations we can deduct that `acc' is going to be evaluated (second observation) and 
 all intermediate values are needed for its evaluation, as `acc' is an integer (first observation).
-\newline
-\par Although in this thesis we used integers and lists, strictness analysis can be applied except for 
-integer domain to any other domain, using abstract interpretation.
-\newline
-\par Strictness analysis is performed in the defunctionalized higher-order language in order to 
-properly annotate strict arguments.
+
+Although in this thesis we used integers and lists, strictness
+analysis can be applied except for integer domain to any other domain,
+using abstract interpretation. In practice, strictness analysis is a
+core analysis of Haskell
+implementations~\cite{PeytonJones:1991:UVF:645420.652528,burn:lemetayer:1996,Holdermans:2010:MSM:2088270.2088274}.
+
+In our model, strictness analysis may be performed in the
+defunctionalized higher-order language in order to properly annotate
+strict arguments. Strictness annotations are also available in the
+language syntax, and thus the programmer can manually give such
+annotations. The origin of the strictness annotations (analysic
+vs. manual input) is thus not imporant for the aims of this thesis; we
+only assume that such annotations are available.
 
 \section {Other transformations}
 \label{sec:other-transformations}
@@ -1364,12 +1395,12 @@ defunctionalization transformation as well as the other transformations of the p
 section. We run the analysis algorithm to spot tail-call positions with input 
 the language from this section. The interpreter is also built for that language; the evaluator for 
 the optimisations are also implemented inside the interpreter for this language.
-\newline
-\par In figure~\ref{fig:grammar}, there is the abstract syntax of 
+
+Figure~\ref{fig:grammar} shows the abstract syntax of 
 the first order intermediate language.
 We need to highlight the following points, before we dive deeper into the language:
 \begin{itemize}
-  \item In the source language there is an `if' expression syntactically. In the syntax figure there isn't.
+  \item The source language contains an `if' expression syntactically. In the syntax figure there is no such construct.
   This is because `case' is much more powerful than `if' and an `if' can be transformed to a `case'. 
   Actually, we have (boolean are constructed data as well):
   \begin{minted}{haskell}
@@ -1377,8 +1408,8 @@ We need to highlight the following points, before we dive deeper into the langua
   \end{minted}
   \item There aren't any partial applications, neither in function nor in constructor applications.
   This means that the arguments in a function call are the same in number as in the function definition.
-  \item There is not `let' expression in the core language. Instead we assume that our language 
-  fully depends upon the lambda lifter ; Johnson style \textit{full laziness} lambda lifter~\cite{Johnsson:1985:LLT:5280.5292}
+  \item There is no `let' expression in the core language. Instead we assume that our language 
+  fully depends upon a lambda lifter; a Johnson-style \textit{full laziness} lambda lifter~\cite{Johnsson:1985:LLT:5280.5292}
   will get the work done.
   \item Case patterns are simple and do not allow wildcard patterns. Turning a complex case pattern into
   a simple case pattern is a well studied topic~\cite{Au85,Wadler87}.
@@ -1465,6 +1496,7 @@ tail recursion modulo cons.
 then in section~\ref{sec:runtime-structs} the runtime 
 data structures and the design decisions will become clear to the reader.
 
+
 \section {Overview of the execution model}
 \label{sec:execution-model-overview}
 
@@ -1499,7 +1531,7 @@ includes the following high-level properties:
 \section {Runtime system}
 \label{sec:runtime-system}
 
-In this section, there is a detailed explanation of the prototype implementation of the interpreter we 
+This section contains a detailed explanation of the prototype implementation of the interpreter we 
 used for the language. First, we are going to present the data structures used in the runtime; then, 
 we present the operational features of our interpreter. 
 
@@ -1508,8 +1540,8 @@ we present the operational features of our interpreter.
 Here, there are the definitions of the runtime structures, as they are used in the implementation. The 
 implementation is in Haskell, but the code will be simple, so that every reader with a basic background of a functional 
 language can understand.
-\newline
-\par There is an authoring convention for next sections that will describe the runtime structures. At first, a definition 
+
+In the next sections that will describe the runtime structures, we will use the following convention. At first, a definition 
 will appear; probably accompanied with one or more definitions. If it contains more complex data in its body, it will be 
 described later in the section or there will be a pointer to another section.
 
@@ -1853,7 +1885,7 @@ Later, we give the v' and s' for:
   \end{figure}
 
 
-  We note that, at this point, where there is memory change, and probably evaluation of the expression provokes 
+  We note that, at this point, where memory change happens, and probably evaluation of the expression provokes 
   the creation of new frames, we update the memory state as well as the frame counter. 
 
   \end{itemize}
@@ -2463,7 +2495,7 @@ LLVM~\cite{Pandey:2015:LC:2842773}.
 Find something Haskell-ish for classic tail-calls. GHC used Cmm and 
 later LLVM to support tail calls~\cite{Terei:2010:LBG:1863523.1863538}.
 
-fusion vs. tail recursion modulo cons.
+Fusion vs. tail recursion modulo cons: functional programming \emph{short cut fusion}~\cite{Gill:1993:SCD:165180.165214,Pardo16} is based on work initially started with the listlessness optimization~\cite{Wadler84}. Listlessness is closely related to tail recursion modulo cons: ``programs for the listless machine are related to programs compiled using an optimization called tail recursion, particularly tail recursion modulo cons''~\cite{Wadler84}.
 
 
 \chapter{Future work}
