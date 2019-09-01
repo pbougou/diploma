@@ -2426,7 +2426,7 @@ a list that accumulates the result of every iteration.
   $\mathit{\hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ 
             arg = args[callerIx]}$ \\
   $\mathit{\hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ 
-            (arg', s') = mutate~(calleeEO, callerEO, arg, s)}$ \\
+            (arg', s') = transform~(calleeEO, callerEO, arg, s)}$ \\
   $\mathit{mutate~(callerfs,~calleefs,~args,~(a@(EInt~n)~:~as),~ix,~acc,~s)}$ \\
   $\mathit{\hfill\ =~mutate~(callerfs,~calleefs,~args,~as,~(ix+1),(arg~:~acc), ~s)}$ \\
   $\mathit{\hfill\ \hfill\ where~calleeEO=getEvaluationOrder~calleefs[ix]}$ \\
