@@ -136,7 +136,356 @@ Tail-call optimisation, lazy evaluation, static analysis, interpreter.
 \mainmatter
 
 \chapter{Εισαγωγή}
-Μπλα μπλα...
+
+
+\section{Σκοπός}
+Σκοπός της εργασίας είναι η ενσωμάτωση της βελτιστοποίησης κλήσης ουράς σε συναρτησιακές γλώσσες 
+προγραμματισμού με την παρουσία πολλαπλών επιλογών σειράς αποτίμησης 
+(κλήση κατ' αξία, κλήση κατ' όνομα, κλήση κατ' ανάγκη). Η βελτιστοποίησή μας μπορεί να συνδυαστεί με το
+μετασχηματισμό defunctionalization, έτσι ώστε η 
+βελτιστοποίηση απόδοσης που προκύπτει να υποστηρίζει επίσης συναρτησιακές γλώσσες υψηλότερης τάξης.
+
+\section{Κίνητρο}
+
+Η βελτιστοποίηση κλήσεων ουράς για συναρτησιακές γλώσσες με αυστηρή αποτίμηση είναι ένα καλά 
+μελετημένο θέμα, αλλά αποτυγχάνει στην
+παρουσία οκνηρής αποτίμησης (lazy): ο υπολογισμός ενός οκνηρού όρου μπορεί να συμβεί αυθαίρετα 
+κατά τη διάρκεια της εκτέλεσης
+του προγράμματος και έτσι οι οκνηροί όροι δραπετεύουν από το περιβάλλον τους 
+πιο εύκολα από τους αυστηρούς.
+Από τη μία πλευρά, η οκνηρότητα δίνει στους προγραμματιστές μεγάλες επιλογές: 
+να χρησιμοποιούν άπειρες δομές δεδομένων,
+να ορίσουν τη ροή ελέγχου (δομές) ως αφαιρέσεις (abstaractions), 
+να αυξήσουν την απόδοση
+αποφεύγοντας τους περιττούς υπολογισμούς και αποφεύγοντας τις περιπτώσεις σφάλματος 
+κατά την αξιολόγηση σύνθετων εκφράσεων.
+Αλλά αυτή η ευελιξία έρχεται με κόστος: τα πολύ οκνηρά προγράμματα μπορεί 
+να οδηγήσουν σε κακή απόδοση, ακόμη και σε διαρροές μνήμης.
+Από την άλλη πλευρά, η αυστηρότητα επιτρέπει στους προγραμματιστές να μετρούν
+την επίδοση του προγράμματος πιο εύκολα, αλλά τα προγράμματα μπορούν
+εμπίπτουν σε ανεπιθύμητη συμπεριφορά, όπως η απόκλιση.
+
+Σε αυτή τη διατριβή, παίρνουμε το καλύτερο και των δύο κόσμων: τα προγράμματά μας δεν χρειάζεται 
+να είναι πολύ οκνηρά ούτε πολύ αυστηρά. Χρησιμοποιώντας επισημειώσεις σειράς αποτίμησης, υποστηρίζουμε τη 
+βελτιστοποίηση κλήσεων ουράς σε οκνηρές
+συναρτησιακές γλώσσες προγραμματισμού, εξαλείφοντας έτσι την δέσμευση επιπλέον μνήμης που σχετίζεται 
+με την αναδρομή, όπως και στις αυστηρές συναρτησιακές γλώσσες.
+
+\section{Σύνοψη της διπλωματικής}
+
+Σε αυτή τη διατριβή, ενσωματώνουμε την βελτιστοποίηση κλήσεων ουράς σε συναρτησιακή
+γλώσσα με την παρουσία πολλαπλών σειρών αποτίμησης (κλήση κατ' αξία, κλήση κατ' όνομα, κλήση κατ' ανάγκη).
+Η βελτιστοποίησή μας υποστηρίζει τύπους δεδομένων που έχουν οριστεί από τον χρήστη με αντιστοίχιση 
+μοτίβων (pattern matching) και συνεπώς μπορούν να συνδυαστούν με το
+μετασχηματισμό defunctionalization, έτσι ώστε να υποστηρίζονται επίσης λειτουργικές γλώσσες ανώτερης τάξης. 
+Η γλώσσα πηγής, παρόμοια με τη Haskell,
+μετασχηματίζεται (μέσω defunctionalization) σε μια χαμηλού επιπέδου, ελάχιστη, πρώτης τάξης συναρτησιακή 
+γλώσσα
+με μη αυστηρή σημασιολογία, οκνηρή αποτίμηση και οκνηρά δομημένα δεδομένα καθώς και επισημειώσεις 
+αυστηρότητας. Για να βρούμε ευκαιρίες για βελτιστοποίηση, κάνουμε μια στατική ανάλυση για τη
+συναρτησιακή γλώσσα χαμηλού επιπέδου, για τον εντοπισμό θέσεων κλήσης ουράς. Το δύσκολο κομμάτι,
+σε σύγκριση με τις γλώσσες με αυστηρή σημασιολογία, είναι ότι η οκνηρή σημασιολογία κάνει τις τιμές 
+του προγράμματος να ξεφύγουν από την εμβέλεια του ονόματός τους
+και, συνεπώς, η εύρεση θέσεων κλήσης ουράς δεν είναι τόσο εύκολη. Αυτή η βελτιστοποίηση αξιολογήθηκε
+σε έναν διερμηνέα της γλώσσας που δεσμεύει ρητά και μετράει πλαίσια, έτσι ώστε
+στις θέσεις που βρέθηκαν από την ανάλυση, να μπορούμε να αντικαταστήσουμε σωστά τις περιττές παραμέτρους
+πλαισίου με αυτές που απαιτούνται από το πλαίσιο που αντιπροσωπεύει την επόμενη αναδρομική κλήση.
+Η βελτιστοποίηση είτε βελτιώνει την απόδοση του προγράμματος είτε δεν την αλλάζει. Επίσης, 
+στην περίπτωση προγραμμάτων με αυστηρή σημασιολογία, η βελτιστοποίησή μας είναι ισοδύναμη με την κλασική 
+βελτιστοποίηση κλήσεων ουράς. Συμπερασματικά,
+σε μια μη αυστηρή, οκνηρή συναρτησιακή γλώσσα με οκνηρούς κατασκευαστές δεδομένων και 
+επισημειώσεις αυστηρότητας, για όλους τα προγράμματα που χρησιμοποιούμε ως αναφορά, υπάρχει πάντα 
+βελτιστοποίηση μνήμης, 
+και για την πλειοψηφία
+από αυτά υπάρχει σημαντική βελτιστοποίηση μνήμης με ενίσχυση της απόδοσης.
+
+\section{Συνεισφορά}
+
+Οι σημαντικότερες συνεισφορές μας, που παρουσιάζονται σε αυτή τη διατριβή, είναι:
+
+
+Παρουσιάζουμε πώς η βελτιστοποίηση της κλήσης ουράς μπορεί να εφαρμοστεί σε μια συναρτησιακή 
+γλώσσα με μεικτή σειρά αποτίμησης. Βασική συνεισφορά μας είναι πώς μπορεί να εφαρμοστεί
+την παρουσία της οκνηρής αποτίμησης, μετατρέποντας έτσι αυτή τη βελτιστοποίηση σε επέκταση της 
+βελτιστοποίησης κλήσεων ουράς για γλώσσες με κλήση κατ' αξία.
+
+Μια πρωτότυπη υλοποίηση ενός διερμηνέα με ρητή δέσμευση πλαισίων, καθώς και μηχανισμό μέτρησης 
+πλαισίων, για μια συναρτησιακή γλώσσα με κλήση κατ' αξία, κλήση κατ' όνομα και κλήση κατ' ανάγκη, οκνηρούς 
+κατασκευαστές δεδομένων και pattern matching.
+
+Ένας αλγόριθμος στατικής ανάλυσης για την εύρεση πραγματικών θέσεων κλήσης ουράς 
+και την υλοποίηση του συστήματος χρόνου εκτέλεσης για αυτές τις βελτιστοποιήσεις που είναι 
+ενσωματωμένες στον διερμηνέα.
+
+Η αξιολόγηση αυτής της βελτιστοποίησης σε προγράμματα αναφοράς δείχνει ότι είτε βελτιώνει 
+τη μνήμη ή δεν την αλλάζει. Η αξιολόγηση φαίνεται να προσεγγίζει σε πολλές περιπτώσεις τον αριθμό της
+δέσμευσης πλαισίων σε γλώσσες ανά κλήση ανά αξία, που είναι το καλύτερο αποτέλεσμα που μπορούμε να έχουμε.
+
+%
+
+\chapter{Η γλώσσα}
+
+Σε αυτό το κεφάλαιο, θα περιγράψουμε τη γλώσσα που μελετήσαμε σε αυτή τη διατριβή.
+Η σημασιολογία της γλώσσας θα γίνει σαφής στον αναγνώστη, καθώς και
+η ειδική αντιμετώπιση των πολλαπλών ειδών αποτίμησης στον τελικό πυρήνα της
+γλώσσας, η οποία χρησιμοποιήθηκε για τη στατική ανάλυση και για τις βελτιστοποιήσεις. Εν συντομία, 
+υπάρχει μια
+περιεκτική περιγραφή της διαδρομής από μια συναρτησιακή γλώσσα ανώτερης τάξης
+σε μια συναρτησιακή γλώσσα πρώτης τάξης με τις επισημειωμένες των σειρών αποτίμησης.
+
+\section{Επισκόπηση της γλώσσας}
+
+Η γλώσσα που μελετήσαμε είναι μια λειτουργική γλώσσα
+με πολλαπλές σειρές αποτίμησης (κλήση κατ' ανάγκη ή
+οκνηρή, κλήση κατ' όνομα και κλήση κατ' αξία ή αυστηρή).
+Θεωρούμε την οκνηρότητα ως κάτι που συμβαίνει φυσικά στη γλώσσα, ενώ
+οι άλλες δύο σειρές αποτίμησης χρησιμοποιούνται ως επεκτάσεις γλώσσας,
+χρησιμοποιώντας κατάλληλες επισημειώσεις.
+
+Οι επισημειώσεις αποτίμησης μπορούν να εμφανιστούν συντακτικά (δηλ. 
+ο προγραμματιστής μπορεί να τις χρησιμοποιήσει στον κώδικα στις
+στις τυπικές παράμετρους στον ορισμό της συνάρτησης) ή
+μετά την εφαρμογή των μετασχηματισμών, που περιγράφονται στα τμήματα 3.2 έως 3.4,
+στη γλώσσα πηγής. Το τελευταίο
+είναι μόνο η περίπτωση αυστηρών όρων που αποκαλύπτονται από την ανάλυση αυστηρότητας.
+
+\section{Μετασχηματισμός defunctionalization}
+
+Πρόκειται για μια τεχνική μετασχηματισμού χρόνου μεταγλώτισσης που καταργεί τις εφαρμογές 
+υψηλότερης τάξης
+αντικαθιστώντας τις με μία μόνο συνάρτηση πρώτης τάξης, που παρουσιάστηκε από τον 
+John Reynolds.
+Η παρατήρηση του Reynolds ήταν ότι ένα δεδομένο πρόγραμμα περιέχει μόνο πεπερασμένα 
+πολλές αφαιρέσεις λειτουργιών, έτσι ώστε το καθένα μπορεί
+να ανατεθεί σε (και να αντικατασταθεί από) ένα μοναδικό αναγνωριστικό. Στη συνέχεια 
+αντικαθίσταται κάθε εφαρμογή συνάρτησης μέσα στο πρόγραμμα
+από μια κλήση προς τη λειτουργία εφαρμογής με το αναγνωριστικό λειτουργίας 
+ως το πρώτο επιχείρημα. Η μόνη δουλειά της εφαρμογής είναι η συνάρτηση
+να εφαρμόζεται σε αυτό το πρώτο επιχείρημα και, στη συνέχεια, να εκτελείται
+τις εντολές που αντιστοιχούν με το αναγνωριστικό συνάρτησης στην εντολή με τα 
+υπόλοιπες παραμέτρους.
+
+% Μια επιπλοκή σε αυτή τη βασική ιδέα είναι ότι οι αθροιστικές λειτουργίες μπορούν να αναφέρουν ελεύθερες μεταβλητές. Σε τέτοιες καταστάσεις,
+% η αποσταθεροποίηση πρέπει να προηγείται από μετατροπή κλεισίματος (ανύψωση λάμδα), έτσι ώστε οποιεσδήποτε ελεύθερες μεταβλητές μιας συνάρτησης
+% αφαίρεση περνούν ως πρόσθετα επιχειρήματα για να εφαρμοστούν. Επιπλέον, εάν τα πώματα υποστηρίζονται ως τιμές πρώτης τάξης,
+% καθίσταται αναγκαίο να αντιπροσωπεύονται αυτές οι δεσμεύσεις που έχουν ληφθεί δημιουργώντας δομές δεδομένων.
+
+Ο μετασχηματισμός αποκοπής χρησιμοποιήθηκε στο MLton, ένας βελτιστοποιημένος μεταγλωττιστής για ML. 
+Η γλώσσα πυρήνα πρώτης τάξης δημιούργησε ευκαιρίες για ανάλυση ολόκληρου του προγράμματος και 
+οδήγησε σε εξαιρετική απόδοση.
+
+Ως παράδειγμα του μετασχηματισμού, ακολουθεί η συνάρτηση map του Prelude.
+
+\begin{minted}{haskell}
+  map :: (a -> b) -> [a] -> [b]
+  map f []     = []
+  map f (x:xs) = f x : map f xs
+
+  inc :: Int -> Int 
+  inc a = a + 1
+  
+  result = map inc [1,2,3]
+\end{minted}
+
+Μετά την εκτέλεση του defunctionalization, το `map 'είναι (instantiated για ακεραίους):
+\begin{minted}{haskell}
+  data Func = Inc 
+
+  apply :: Func -> b -> b
+  apply f x =
+    case f of
+      Inc -> inc x
+
+  map :: Func -> [a] -> [b]
+  map f l =
+  case l of
+    []     -> acc
+    x : xs -> apply f x : map f xs
+
+  inc :: Int -> Int 
+  inc a = a + 1
+
+  result :: [Int]
+  result = map Inc [1, 2, 3] []
+\end{minted}
+
+Οι διαφορές μεταξύ των δύο εκδόσεων είναι:
+\begin{itemize}
+\item Η υψηλής τάξης συνάρτηση, το πρώτο όρισμα της `map '(f :: a -> b)
+μετασχηματίζεται σε \textit{μοναδικό} αναγνωριστικό, το οποίο είναι ο κατασκευαστής δεδομένων `Inc'.
+\item Για την εφαρμογή μέσα στο σώμα της συνάρτησης `result', έχουμε την συνάρτηση πρώτης τάξης 
+\textit{apply} η οποία αντιστοιχεί τα μοναδικά αναγνωριστικά που εφαρμόζονται στη `map'.
+\end{itemize}
+
+Δεν δίνονται περισσότερες λεπτομέρειες και φορμαλισμός του μετασχηματισμού defunctionalization εδώ.
+Ο αναγνώστης μπορεί να αναφερθεί στη δημοσίευση του Reynolds για περισσότερες πληροφορίες 
+σχετικά με αυτό το μετασχηματισμό.
+
+\section{Ανάλυση αυστηρότητας}
+
+Η τετμημένη αξιολόγηση αξιολογεί μόνο όρους σε τιμές όταν χρειάζεται. αυτό παρέχει το
+ευκαιρία για άπειρες δομές δεδομένων και προγράμματα που δεν αποκλίνουν, όπως αυτά στο
+αυστηρές γλώσσες προγραμματισμού. Αλλά όλα έρχονται με κόστος: η αξιολόγηση μπορεί να συμβεί
+αυθαίρετα και ως εκ τούτου τεμπέλης επιχειρήματα μπορούν να ξεφύγουν από το περιβάλλον τους.
+
+Αλλά ο Mycroft παρατήρησε ότι ορισμένοι οκνηροί όροι είναι στην πραγματικότητα αυστηροί υπό τις 
+κατάλληλες συνθήκες. Για παράδειγμα, το `case' αποτιμά τον όρο που εξετάζεται (scrutinee),
+προκαλώντας τον έτσι να γίνει αυστηρός, παρόμοια με την αυστηρότητα των BangPatterns.
+
+Και είναι κάτι παραπάνω από αυτό. Ας δούμε ξανά το πρόγραμμα sum:
+\begin{minted}{haskell}
+  sum :: [Int] -> Int -> Int
+  sum [] acc = acc
+  sum (x: xs) acc = sum xs (x + acc)
+\end{minted}
+
+Εδώ, ο οκνηρός όρος `acc', το οποίο είναι ένα thunk σε κάθε κλήση λειτουργίας αποτιμάται μία φορά,
+όταν το πρόγραμμα κατά τη ροή εκτέλεσης του φτάνει στη βασική περίπτωση. Αυτή η αυθαίρετη αποτίμηση 
+των οκνηρών όρων φαίνεται να μην είναι τόσο αυθαίρετη. Γνωρίζουμε πότε πρόκειται να αξιολογηθεί το 
+'acc'.
+
+Λοιπόν, το ερώτημα είναι, τι είναι αυτό που κάνει το `acc 'τόσο προβλέψιμο;
+Από το παραπάνω παράδειγμα, έχουμε τις ακόλουθες πληροφορίες για το `acc' :
+\begin{itemize}
+  \item `acc' είναι ένας ακέραιος αριθμός, που πάντα προστίθεται σε έναν άλλο ακέραιο αριθμό.
+  \item `acc' είναι το αποτέλεσμα της συνάρτησης.
+\end{itemize}
+
+Από αυτές τις παρατηρήσεις μπορούμε να συμπεράνουμε ότι το acc πρόκειται να αξιολογηθεί 
+(δεύτερη παρατήρηση) και όλες οι ενδιάμεσες τιμές είναι απαραίτητες για την αποτίμησή του, καθώς 
+το `acc 'είναι ένας ακέραιος αριθμός (πρώτη παρατήρηση), οπότε και μπορούν να αποτιμώνται κάθε φορά.
+
+Αν και σε αυτή τη διατριβή χρησιμοποιήσαμε ακέραιους αριθμούς και λίστες, η ανάλυση αυστηρότητας 
+μπορεί να εφαρμοστεί εκτός από ακεραίους και σε οποιοδήποτε άλλες τιμές βασικού τύπου, 
+χρησιμοποιώντας αφηρημένη ερμηνεία(abstract interpretation).
+Η ανάλυση αυστηρότητας εκτελείται στη γλώσσα της ανώτερης τάξης μετά το defunctionalization για να 
+εντοπίσει τούς αυστηρούς όρους.
+
+\section{Άλλοι μετασχηματισμοί}
+
+Μετά από το μετασχηματισμό defunctionalization και την ανάλυση αυστηρότητας, έχουμε επίσης
+εκτελέσει μερικούς μετασχηματισμούς στη γλώσσα, προκειμένου η ενδιάμεση
+γλώσσα να φτάσει στην τελική μορφή, η οποία είναι η είσοδος της ανάλυσης, που 
+παρουσιάζεται στην επόμενη ενότητα.
+
+
+\begin{itemize}
+\item \textbf{Άλφα-μετονομασία:} Αυτός ο μετασχηματισμός μετονομάζει όλες τις μεταβλητές που δεσμεύονται από την αντιστοίχιση προτύπων.
+Κάθε έκφραση `case' ανοίγει ένα νέο πεδίο εφαρμογής και τα ονόματα μεταβλητών σε αυτό το πεδίο δεσμεύονται στο πλησιέστερο
+«περίπτωση». Αυτή η μεταμόρφωση επίσης χειρίζεται τη σκίαση ονόματος.
+\item \textbf{Μετατροπή του if σε case:} Όταν η γλώσσα υποστηρίζει αντιστοίχιση προτύπων στα δεδομένα
+(κατασκευαστές), η έκφραση `if' είναι άχρηστη. Μπορεί να μετατραπεί σε αντιστοίχιση προτύπου
+το μηδενικό boolean κατασκευαστή. Ο Haskell δεν έχει έκφραση `if 'ως ενσωματωμένη (builtin). 
+Eπιτρέπει μόνο συντακτική χρήση (ως συντακτική ζάχαρη για μοτίβα boolean).
+\item \textbf{Προβολές κατασκευαστών (constructor projections):} Κάθε μεταβλητή που δεσμεύεται από ένα μοτίβο 
+`case 'πρέπει να είναι μετασχηματισμένο σε έναν ειδικό συντακτικό κόμβο στη γλώσσα του πυρήνα, 
+ο οποίος περιέχει το μοναδικό αναγνωριστικό της περίπτωσης και η θέση μέσα στη λίστα έκφρασης 
+στο πρότυπο κατασκευαστή~\cite{Fourtounis:2013:GIT:2769663.2769674}. 
+Το αναγνωριστικό "case" είναι μοναδικό μέσα σε έναν ορισμό συνάρτησης (τοπικά).
+\end{itemize}
+
+\section{Σύνταξη}
+
+Σε αυτή την ενότητα δίνεται η σύνταξη της βασικής μας γλώσσας.
+Αυτό είναι το αποτέλεσμα της ανάλυσης αυστηρότητας και
+μετασχηματισμού καθυστέρησης, καθώς και των άλλων μετασχηματισμών της προηγούμενης
+Ενότητα. Εκτελούμε τον αλγόριθμο ανάλυσης για να εντοπίσουμε θέσεις κλήσης ουράς με είσοδο
+τη γλώσσα από αυτήν την ενότητα. Ο διερμηνέας είναι επίσης χτισμένος για τη γλώσσα αυτή. 
+ο αξιολογητής για
+οι βελτιστοποιήσεις εφαρμόζονται επίσης στο εσωτερικό του διερμηνέα για αυτή τη γλώσσα.
+
+Στο σχήμα~\ref{fig:elgrammar}, υπάρχει η αφηρημένη σύνταξη του
+η ενδιάμεση γλώσσα πρώτης τάξης.
+Πρέπει να επισημάνουμε τα ακόλουθα σημεία, πριν εμβαθύνουμε βαθύτερα στη γλώσσα:
+\begin{itemize}
+  \item Στη γλώσσα προέλευσης υπάρχει μια έκφραση `if 'συντακτικά. Στο συντακτικό σχήμα δεν υπάρχει.
+Αυτό οφείλεται στο ότι η `case' είναι πολύ πιο ισχυρή από το `if 'και το` if' μπορεί να μετατραπεί 
+σε `case'. Στην πραγματικότητα έχουμε (boolean είναι κατασκευασμένα δεδομένα επίσης) pattern matching 
+σε booleans:
+\begin{minted}{haskell}
+    if cond then e1 else e2 => case cond of {True -> e1; False -> e2}
+\end{minted}
+\item Δεν υπάρχουν μερικές εφαρμογές, ούτε σε συναρτήσεις ούτε σε εφαρμογές κατασκευαστών.
+Αυτό σημαίνει ότι τα επιχειρήματα σε μια κλήση λειτουργίας είναι ίδια στον αριθμό με τον ορισμό 
+της λειτουργίας.
+\item Δεν υπάρχει έκφραση `let' στην γλώσσα. Αντ 'αυτού υποθέτουμε ότι η γλώσσα μας εξαρτάται 
+πλήρως από τον ανυψωτή λάμδα(lambda lifter). O lambda lifter του Johnson 
+\textit{πλήρης οκνηρότητας} θα κάνει τη δουλειά.
+\item Τα μοτίβα των περιπτώσεων είναι απλά και δεν επιτρέπουν τα μοτίβα μπαλαντέρ (wildcard). 
+Μετατρέποντας ένα πολύπλοκο μοτίβο σε ένα απλό είναι ένα καλά μελετημένο θέμα.
+\end{itemize}
+
+
+% Η σύνταξη στο σχήμα είναι μια σύνταξη μιας λειτουργικής γλώσσας πρώτης τάξης. Η σύνταξή μας έχει δύο κύριες
+% διαφορές από αυτές που φαίνονται στο σχήμα:
+\begin{figure}[t]
+  \hrule
+  \begin{grammar}
+      <p> ::= <fdef>\textsuperscript{+} \hfill\ Program
+  
+      <fdef> ::= \textit{f v\textsubscript{1} ... v\textsubscript{n}} = <expression> \hfill\ Function Definition
+  
+      <expr> ::= \textit{v} \hfill\ Variable
+      \alt <integer> \hfill\ Integer
+      \alt \textit{f e\textsubscript{1} ... e\textsubscript{n}} \hfill\ Function application
+      \alt \textit{c e\textsubscript{1} ... e\textsubscript{n}} \hfill\ Constructor application
+      \alt \texttt{case} \textit{e\textsubscript{0}} \texttt{of} \textit{patt\textsubscript{1} $\rightarrow$ e\textsubscript{1} | ... | patt\textsubscript{n} $\rightarrow$ e\textsubscript{n}} \hfill\ Case expression
+       
+      <patt> ::= \textit{c v\textsubscript{1} ... v\textsubscript{n}} \hfill\ Constructor pattern
+      \alt <integer> \hfill\ Integer pattern
+  
+      <integer> ::= 1, 2, ... \hfill\ Integer domain
+  
+  \end{grammar}
+  \hrule
+\caption{Η γραμματική της γλώσσας\label{fig:elgrammar}}
+\end{figure}
+
+% \ begin {itemize}
+%   \ item Η συγκεκριμένη σύνταξη της βασικής γλώσσας έχει σημειώσεις τάξης αξιολόγησης προκειμένου να
+%   να διακρίνει μεταξύ της σημασιολογίας κατά τη διέλευση των παραμέτρων. Έχουμε ήδη αναφέρει το
+%   τα σχόλια αυστηρότητας που προστίθενται από την ανάλυση αυστηρότητας.
+%   Πιο συγκεκριμένα, ο προγραμματιστής μπορεί συγκεκριμένα να σχολιάσει τις μορφές στον ορισμό της λειτουργίας με:
+%     \ begin {itemize}
+%       \ item {`! ' για μια αυστηρή τυπική παράμετρο,}
+%       \ item {`\ # 'για τυπική παράμετρο κλήσης με όνομα, ενώ}
+%       \ item {Λανθασμένα επιχειρήματα δεν σχολιάζονται, επειδή θεωρούμε την τεμπελιά ως κάτι που φυσικά συμβαίνει
+%       στη γλώσσα.}
+%     \ end {itemize}
+%   
+%   Όσον αφορά την αφηρημένη σύνταξη, οι τυπικές παράμετροι ενός ορισμού συνάρτησης είναι:
+%   \ begin {minted} {haskell}
+%     τύπος Formal = (VN, (EvalOrder, Type))
+%     τύπου VN = String
+%     τύπος EvalOrder = CBV | CBN | Τεμπέλης
+%     δεδομένα Τύπος = TInt | Τύπος TCons - μια τιμή τύπου ακέραιος (TInt) ή
+%                                   - μια λίστα τιμών με τύπο Τύπος
+%   \ end {minted}
+%   όπου ο κατασκευαστής τύπου μιας τυπικής παραμέτρου έχει τις πληροφορίες σχετικά με το όνομα της παραμέτρου και
+%   τη στατική πληροφορία της εντολής αξιολόγησης και τον τύπο της. Υποθέτουμε τους τύπους βάσης ως ακέραιους αριθμούς και αργότερα
+%   το τμήμα ανάλυσης, θα εξηγήσουμε γιατί αυτό αρκεί.
+
+%   \ item Υπάρχει ένας ακόμα κόμβος στο δέντρο συντακτικής: \ textit {constructor projections}. Ο μετασχηματισμός γι 'αυτό
+%   ο συγκεκριμένος κόμβος σύνταξης έχει εξηγηθεί νωρίτερα (τμήμα ~ \ ref {sec: other-transformations}).
+%   \ begin {minted} {haskell}
+%     δεδομένα Expr = ... | CProj CaseID CPos
+%   \ end {minted}
+%   Σε μια προβολή κατασκευαστή, το πρώτο επιχείρημα «CaseID» δείχνει τη θέση της περίπτωσης όπου το όρισμα ανήκει
+%   και το δεύτερο επιχείρημα είναι η θέση της μεταβλητής στην αριστερή πλευρά ενός μοτίβου κατασκευαστή σε κλάδο «case».
+%   
+%   Ο σκοπός των προβολών του κατασκευαστή είναι να δεσμεύσει τις μεταβλητές στη δεξιά πλευρά του κλάδου με τις μεταβλητές
+%   στην αριστερή πλευρά του κλάδου. Με τον τρόπο αυτό, οι μεταβλητές αυτές διακρίνονται από τις μεταβλητές ανώτερου επιπέδου, δηλ.
+%   οι τυπικές παράμετροι στον ορισμό της λειτουργίας και προσφέρουν τη δυνατότητα να γνωρίζουν τη θέση στο πλαίσιο,
+%   ένας λόγος που θα γίνει σαφέστερος στο επόμενο κεφάλαιο, όπου θα δώσουμε τις λεπτομέρειες του
+%   μοντέλο εκτέλεσης.
+% \ end {itemize}
+
+
+
+
+
+
+
 
 \englishtext
 
@@ -621,8 +970,11 @@ The definitions below are also used in this thesis' language.
 
 \subsection{General background}
 
-Static program analysis is the analysis of computer software that is performed without actually executing programs.
-The analysis is performed in compile-time, before the program actually starts executing. 
+Static program analysis is the analysis of computer software that is performed in compile-time, without 
+actually executing programs. Static analysis has two large subcategories: intraprocedural (local) and 
+interprocedural (global) analysis. If it uses the whole program in order to deduct, it is called 
+global analysis, while if it uses only a function or a procedure in order to deduct, it is called 
+local analysis. 
 
 \subsection{Abstract interpretation}
 
@@ -636,30 +988,14 @@ for that.
 \subsection {Stack Environment Control Dump machine (SECD)}
 \label{sec:secd}
 
-The SECD machine is a highly influential 
-virtual machine and abstract 
+The SECD machine is a highly influential virtual machine and abstract 
 machine intended as a target for functional programming 
-language compilers. The letters stand for Stack, Environment, 
+language compilers, introduced in 1964~\cite{La64}, and later explained
+in detail~\cite{Danvy:2004:RDL:2154439.2154443}. The letters stand for Stack, Environment, 
 Control, Dump, the internal registers of the machine. 
 The registers Stack, Control, and Dump point to (some 
 realisations of) stacks, and Environment points to (some 
 realisation of) an associative array.
-
-The machine was the first to be specifically designed to 
-evaluate lambda calculus expressions. It was originally 
-described by Peter J. Landin in "The Mechanical Evaluation 
-of Expressions"[1] in 1964. The description published by 
-Landin was fairly abstract, and left many implementation 
-choices open (like an operational semantics). Hence the SECD 
-machine is often presented in a more detailed form, such as 
-Peter Henderson's Lispkit Lisp compiler, which has been 
-distributed since 1980. Since then it has been used as the 
-target for several other experimental compilers.
-
-In 1989 researchers at the University of Calgary worked 
-on a hardware implementation of the machine.
-
-Original citation:~\cite{La64}. Recent work on how the thing works:~\cite{Danvy:2004:RDL:2154439.2154443}.
 
 \subsection{Three-instruction machine (TIM)}
 \label{sec:tim}
@@ -908,7 +1244,7 @@ The defunctionalization transformation was used in MLton, an optimising compiler
 core language created oportunities for whole-program analysis and led to great performance~\cite{mlton}.
 
 As an example of defunctionalization, Prelude's `map' follows. The transformation leads to 
-the non tail-recursive version of `map', shown in section ??.
+the non tail-recursive version of `map'.
 
 Prelude's `map':
 
@@ -1125,9 +1461,9 @@ language we studied in this thesis as well as the technical details about the im
 the interpreter, on which we evaluate our technique for the tail-call optimisation and
 tail recursion modulo cons.
 \newline 
-\par In section~\ref{sec:execution-model-overview} there is a high-level description of the machine; section ?? follows 
-with the call-by-name and call-by-need semantics and finally in section ?? the runtime data structures and the 
-design decisions will become clear to the reader.
+\par In section~\ref{sec:execution-model-overview} there is a high-level description of the machine; 
+then in section~\ref{sec:runtime-structs} the runtime 
+data structures and the design decisions will become clear to the reader.
 
 \section {Overview of the execution model}
 \label{sec:execution-model-overview}
@@ -1168,7 +1504,7 @@ used for the language. First, we are going to present the data structures used i
 we present the operational features of our interpreter. 
 
 \section{Runtime data structures}
-
+\label{sec:runtime-structs}
 Here, there are the definitions of the runtime structures, as they are used in the implementation. The 
 implementation is in Haskell, but the code will be simple, so that every reader with a basic background of a functional 
 language can understand.
@@ -1791,6 +2127,7 @@ expression in the core language, called \textit{TailCall}. When the interpreter 
 optimisation, while the program is executing.
 
 \subsection{Control-flow analysis: Spotting tail-call positions}
+\label{sec:control-flow}
 
 For a call-by-value language, this step reveals each and every true tail-call position. For a language with mixed evaluation order, and specifically 
 with call-by-need semantics this isn't enough, as it has been already sketched in section~\ref{sec:example2}, as lazy arguments are arbitrarily evaluated and thus 
@@ -1833,10 +2170,33 @@ reveal true tail call positions, depending by the evaluation order of caller and
 is all about passing the control from the caller to the callee. This step is omitted in call-by-value languages as there is 
 only one evaluation order and the semantics allow the optimisation quite naturally.
 
-Although it seems that the rules are applied in a second analysis pass, this is done for clarity purposes; in the implementation we can 
-only do that in-place, in a single analysis pass just after a tail call (and thus potentially a true tail call) is revealed.
+Although it seems that the rules are applied in a second analysis pass, this is done for clarity 
+purposes; in the implementation we can do that in-place, in a single analysis pass just after a 
+tail call (and thus potentially a true tail call) is revealed.
 
-\textbf{[TODO: Write the rules here!]}
+The rules for a potential tail call (revealed by control flow analysis from 
+section~\ref{sec:control-flow}) to be a true tail call are:
+\begin{itemize}
+  \item Actual parameters in the function call are not dependent by the formal parameters of 
+  the caller function. For example, these actual parameters can be constants. 
+  \item Actual parameters in the function call are variables. If they are variables we can 
+  statically predict when the runtime mutation is possible. The reader can also refer to 
+  figure~\ref{fig:mutate} for possible cases. We perform the mutation for all the nine 
+  combinations, except for a subcase in two cases. 
+  \item Actual parameter is an expression, but it is in call-by-value position. In this case, we 
+  have two subcases:
+    \begin{itemize}
+      \item The expression is a base type expression. This is easier as such expressions,
+      when they are evaluated, they reduce to a base type value and thus they do not leave thunks. 
+      In this subcase, we could also have data like ML-lists, which also reduce to a value.
+      \item The expression is constructed data. In this case, we find all variables inside the 
+      expression. If these variables are reduced to value (base type values or deeply evaluated 
+      data), then the function call is tail-call optimisable.
+    \end{itemize}
+\end{itemize}
+
+Function calls that are not subject to the rules above are not tail call optimisable.
+
 
 \section{Tail recursion modulo cons}
 \label{sec:modulo-cons-analysis}
@@ -2023,6 +2383,7 @@ a list that accumulates the result of every iteration.
   \\%
   $\mathit{mutate :: [Formal] \times [Formal] \times [FrameArg]
             \times [Actual] \times Index \times State \rightarrow [FrameArg] \times State} $ \\
+  $\mathit{mutate~(\_,~[],\_,[],\_,~acc,~s)=(acc,~s)}$ \\
   $\mathit{mutate~(callerfs,~calleefs,~args,~(EVar~v~:~as),~ix,~acc,~s)}$ \\
   $\mathit{\hfill\ =~mutate~(callerfs,~calleefs,~args,~as,~(ix+1),(arg'~:~acc), ~s')}$ \\
   $\mathit{\hfill\ \hfill\ where~calleeEO=getEvaluationOrder~calleefs[ix]}$ \\
