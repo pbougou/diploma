@@ -1965,16 +1965,7 @@ figure~\ref{fig:checkMutate}.
 Now, we are going to describe an auxiliary function used in order to constructor 
 the function's arguments of the mutated frame; specifically in the definition of 
 \textit{funArgs'} the function called \textit{mutate}.
-
-
-\begin{figure}[h]
-  \begin{align*}
-    \mathit{mutate :: [Formal] \times [Formal] \times [FrameArg] \times [Actual] \times State \rightarrow [FrameArg] \times State} 
-  \end{align*}
-\caption{Declaration of $\mathit{mutate}$ operation\label{fig:mutatedecl}}
-\end{figure}
-
-We have the declaration for \textit{mutate}, shown in figure~\ref{fig:mutatedecl}.
+The operational semantics for \textit{mutate} operation is shown in figure~\ref{fig:mutate}.
 From the figure, we have that \textit{mutate} is a function that takes as input:
 \begin{itemize}
   \item The formal parameters of the caller function,
@@ -2000,11 +1991,63 @@ in the actual parameters list is equal to the number of formals of the callee fu
 terminates when these two lists are empty at the same iteration, or else it throws an exception. Its execution starts 
 and continues until it terminates by processing each and every actual parameter of the function call. The result is 
 a list that accumulates the result of every iteration. 
-\newline
-\par Let us now show the functionality of \textit{mutate}:
 
-\textbf{[TODO: How mutate works]}
 
+\begin{figure}[h]
+  $\mathit{getIndex :: VN \times EvaluationOrder \times Type \times [Formal] \rightarrow Index}$ \\
+  $\mathit{getIndex~(vn,~eo,~type)~fs=elemIndex~(vn,(eo,type))~fs}$ \\
+  \\
+  $\mathit{getEvaluationOrder :: Formal \rightarrow EvaluationOrder} $ \\
+  $\mathit{getEvaluationOrder :: (\_, (eo, \_)) = eo}$ \\
+  \\%
+  $\mathit{signOfVar :: [Formal] \times VN \rightarrow EvalutionOrder \times Type } $ \\
+  $\mathit{signOfVar~formals~vn = lookup~vn~formals}$ \\
+  \\%
+  $\mathit{transform :: CallerEO \times CalleeEO \times FrameArg \times 
+            State \rightarrow FrameArg \times State}$ \\
+  $\mathit{transform~(CBV, CBV, arg, s) = (arg, s)}$ \\
+  $\mathit{transform~(CBN, CBN, arg, s) = (arg, s)}$ \\
+  $\mathit{transform~(Lazy, Lazy, arg, s) = (arg, s)}$ \\
+  $\mathit{transform~(CBV, CBN, ByNameArg~e, s) = (StrictArg~v, s'),}$ \\
+  $\mathit{\hfill\ \hfill\ where~(v, s') = eval~(e, s)}$ \\
+  $\mathit{transform~(CBV, Lazy, LazyArg~e~b~v, s) = 
+              if~b~then~(StrictArg~v, s)~else~(val, s'),}$ \\
+  $\mathit{\hfill\ \hfill\ where~(val, s') = eval~(e, s)} $ \\
+  $\mathit{transform~(CBN, CBV, StrictArg~(VI~v),s)=(ByNameArg~(EInt~v),s)}$ \\
+  $\mathit{transform~(CBN, CBV, StrictArg~(VC~c),s)=error}$ \\
+  $\mathit{transform~(CBN, Lazy, LazyArg~e~true~(VI~v), s) = (ByNameArg~(EInt~v), s)}$ \\
+  $\mathit{transform~(CBN, Lazy, LazyArg~e~true~(VC~c), s) = error}$ \\
+  $\mathit{transform~(CBN, Lazy, LazyArg~e~false~v, s) = (ByNameArg~e, s)}$ \\
+  $\mathit{transform~(Lazy, CBV, StrictArg~v, s) = (LazyArg~e~true~v, s)}$ \\
+  $\mathit{transform~(Lazy, CBN, ByNameArg~e, s) = (LazyArg~e~false~null, s)}$ \\
+  \\%
+  $\mathit{mutate :: [Formal] \times [Formal] \times [FrameArg]
+            \times [Actual] \times Index \times State \rightarrow [FrameArg] \times State} $ \\
+  $\mathit{mutate~(callerfs,~calleefs,~args,~(EVar~v~:~as),~ix,~acc,~s)}$ \\
+  $\mathit{\hfill\ =~mutate~(callerfs,~calleefs,~args,~as,~(ix+1),(arg'~:~acc), ~s')}$ \\
+  $\mathit{\hfill\ \hfill\ where~calleeEO=getEvaluationOrder~calleefs[ix]}$ \\
+  $\mathit{\hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ 
+            sign@(callerEO, callerType) = signOfVar~(vn, callerfs)}$ \\
+  $\mathit{\hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ 
+            callerIx = getIndex~(vn, sign)~callerfs}$ \\
+  $\mathit{\hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ 
+            arg = args[callerIx]}$ \\
+  $\mathit{\hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ 
+            (arg', s') = mutate~(calleeEO, callerEO, arg, s)}$ \\
+  $\mathit{mutate~(callerfs,~calleefs,~args,~(a@(EInt~n)~:~as),~ix,~acc,~s)}$ \\
+  $\mathit{\hfill\ =~mutate~(callerfs,~calleefs,~args,~as,~(ix+1),(arg~:~acc), ~s)}$ \\
+  $\mathit{\hfill\ \hfill\ where~calleeEO=getEvaluationOrder~calleefs[ix]}$ \\
+  $\mathit{\hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ 
+      if~calleeEO=CBV~then~StrictArg~(VI~n)~else~if~calleeEO=CBN~then~ByNameArg~a~else~LazyArg~a~false~null}$ \\
+  $\mathit{mutate~(callerfs,~calleefs,~args,~(a~:~as),~ix,~acc,~s)}$ \\ 
+  $\mathit{\hfill\ =if~calleeEO=CBV~then~mutate~(callerfs,~calleefs,~args,~as,~(ix+1),(arg'~:~acc), ~s')}$ \\
+  $\mathit{\hfill\ \hfill\ where~calleeEO=getEvaluationOrder~calleefs[ix]}$ \\  
+  $\mathit{\hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ 
+            (v, s') = eval~(a, s)}$ \\
+  $\mathit{\hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ 
+            arg'=StrictArg~v}$ \\
+\caption{Operational semantics for $\mathit{mutate}$ operation\label{fig:mutate}}
+\end{figure}
 
 \section {Evaluator for tail recursion modulo cons}
 \label{sec:tco-modulo-cons-eval}
@@ -2056,11 +2099,11 @@ functional programming languages running on the Java virtual machine~\cite{Madse
 imperative languages such as C~\cite{baueran:mthesis:2003,Probst01}, or even low-level compiler-targeted languages such as
 LLVM~\cite{Pandey:2015:LC:2842773}.
 
-Find something Haskell-ish for classic tail-calls. GHC used Cmm and later LLVM to support tail calls~\cite{Terei:2010:LBG:1863523.1863538}.
+Find something Haskell-ish for classic tail-calls. GHC used Cmm and 
+later LLVM to support tail calls~\cite{Terei:2010:LBG:1863523.1863538}.
 
 fusion vs. tail recursion modulo cons.
 
-% intermediate data eliminations and listlessness/deforestation.
 
 \chapter{Future work}
 \label{ch:future}
