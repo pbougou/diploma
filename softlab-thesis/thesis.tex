@@ -2053,10 +2053,10 @@ may allocate activation records on the heap.
 
 Tail-call optimization is also important for implementations of logic languages~\cite{Bigot99},
 functional programming languages running on the Java virtual machine~\cite{Madsen:2018:TCE:3178372.3179499},
-imperative languages such as C~\cite{Probst01}, or even low-level compiler-targeted languages such as
+imperative languages such as C~\cite{baueran:mthesis:2003,Probst01}, or even low-level compiler-targeted languages such as
 LLVM~\cite{Pandey:2015:LC:2842773}.
 
-Find something Haskell-ish for classic tail-calls.
+Find something Haskell-ish for classic tail-calls. GHC used Cmm and later LLVM to support tail calls~\cite{Terei:2010:LBG:1863523.1863538}.
 
 fusion vs. tail recursion modulo cons.
 
