@@ -323,10 +323,10 @@ John Reynolds.
 
 \section{Ανάλυση αυστηρότητας}
 
-Η τετμημένη αξιολόγηση αξιολογεί μόνο όρους σε τιμές όταν χρειάζεται. αυτό παρέχει το
-ευκαιρία για άπειρες δομές δεδομένων και προγράμματα που δεν αποκλίνουν, όπως αυτά στο
-αυστηρές γλώσσες προγραμματισμού. Αλλά όλα έρχονται με κόστος: η αξιολόγηση μπορεί να συμβεί
-αυθαίρετα και ως εκ τούτου τεμπέλης επιχειρήματα μπορούν να ξεφύγουν από το περιβάλλον τους.
+Η κλήση κατ' ανάγκη μόνο όρους σε τιμές όταν χρειάζεται. Αυτό παρέχει την
+ευκαιρία για άπειρες δομές δεδομένων και προγράμματα που δεν αποκλίνουν, όπως αυτά σε
+αυστηρές γλώσσες προγραμματισμού. H αξιολόγηση μπορεί να συμβεί
+αυθαίρετα και ως εκ τούτου οι οκνηροι όροι μπορούν να ξεφύγουν από το περιβάλλον τους.
 
 Αλλά ο Mycroft παρατήρησε ότι ορισμένοι οκνηροί όροι είναι στην πραγματικότητα αυστηροί υπό τις 
 κατάλληλες συνθήκες. Για παράδειγμα, το `case' αποτιμά τον όρο που εξετάζεται (scrutinee),
@@ -416,8 +416,6 @@ Eπιτρέπει μόνο συντακτική χρήση (ως συντακτ�
 \end{itemize}
 
 
-% Η σύνταξη στο σχήμα είναι μια σύνταξη μιας λειτουργικής γλώσσας πρώτης τάξης. Η σύνταξή μας έχει δύο κύριες
-% διαφορές από αυτές που φαίνονται στο σχήμα:
 \begin{figure}[t]
   \hrule
   \begin{grammar}
@@ -441,52 +439,644 @@ Eπιτρέπει μόνο συντακτική χρήση (ως συντακτ�
 \caption{Η γραμματική της γλώσσας\label{fig:elgrammar}}
 \end{figure}
 
-% \ begin {itemize}
-%   \ item Η συγκεκριμένη σύνταξη της βασικής γλώσσας έχει σημειώσεις τάξης αξιολόγησης προκειμένου να
-%   να διακρίνει μεταξύ της σημασιολογίας κατά τη διέλευση των παραμέτρων. Έχουμε ήδη αναφέρει το
-%   τα σχόλια αυστηρότητας που προστίθενται από την ανάλυση αυστηρότητας.
-%   Πιο συγκεκριμένα, ο προγραμματιστής μπορεί συγκεκριμένα να σχολιάσει τις μορφές στον ορισμό της λειτουργίας με:
-%     \ begin {itemize}
-%       \ item {`! ' για μια αυστηρή τυπική παράμετρο,}
-%       \ item {`\ # 'για τυπική παράμετρο κλήσης με όνομα, ενώ}
-%       \ item {Λανθασμένα επιχειρήματα δεν σχολιάζονται, επειδή θεωρούμε την τεμπελιά ως κάτι που φυσικά συμβαίνει
-%       στη γλώσσα.}
-%     \ end {itemize}
-%   
-%   Όσον αφορά την αφηρημένη σύνταξη, οι τυπικές παράμετροι ενός ορισμού συνάρτησης είναι:
-%   \ begin {minted} {haskell}
-%     τύπος Formal = (VN, (EvalOrder, Type))
-%     τύπου VN = String
-%     τύπος EvalOrder = CBV | CBN | Τεμπέλης
-%     δεδομένα Τύπος = TInt | Τύπος TCons - μια τιμή τύπου ακέραιος (TInt) ή
-%                                   - μια λίστα τιμών με τύπο Τύπος
-%   \ end {minted}
-%   όπου ο κατασκευαστής τύπου μιας τυπικής παραμέτρου έχει τις πληροφορίες σχετικά με το όνομα της παραμέτρου και
-%   τη στατική πληροφορία της εντολής αξιολόγησης και τον τύπο της. Υποθέτουμε τους τύπους βάσης ως ακέραιους αριθμούς και αργότερα
-%   το τμήμα ανάλυσης, θα εξηγήσουμε γιατί αυτό αρκεί.
+Η σύνταξη στο σχήμα είναι μια σύνταξη μιας συναρτησιακής γλώσσας πρώτης τάξης. Η σύνταξή μας έχει 
+δύο κύριες διαφορές από αυτές που φαίνονται στο σχήμα:
+\begin{itemize}
+\item Η συγκεκριμένη σύνταξη της βασικής γλώσσας έχει σημειώσεις τάξης αξιολόγησης προκειμένου να
+να διακρίνει μεταξύ της σημασιολογίας κατά τη διέλευση των παραμέτρων. Έχουμε ήδη αναφέρει το
+τα σχόλια αυστηρότητας που προστίθενται από την ανάλυση αυστηρότητας.
+Πιο συγκεκριμένα, ο προγραμματιστής μπορεί συγκεκριμένα να σχολιάσει τις μορφές στον ορισμό 
+της λειτουργίας με:
+\begin{itemize}
+\item {`!' για μια αυστηρή τυπική παράμετρο,}
+\item {`\# 'για τυπική παράμετρο κλήσης με όνομα, ενώ}
+\item {Οι οκνηρές τυπικές παράμετροι δεν σχολιάζονται, επειδή θεωρούμε την 
+οκνηρότητα ως κάτι που φυσικά συμβαίνει στη γλώσσα.}
+\end{itemize}%
 
-%   \ item Υπάρχει ένας ακόμα κόμβος στο δέντρο συντακτικής: \ textit {constructor projections}. Ο μετασχηματισμός γι 'αυτό
-%   ο συγκεκριμένος κόμβος σύνταξης έχει εξηγηθεί νωρίτερα (τμήμα ~ \ ref {sec: other-transformations}).
-%   \ begin {minted} {haskell}
-%     δεδομένα Expr = ... | CProj CaseID CPos
-%   \ end {minted}
-%   Σε μια προβολή κατασκευαστή, το πρώτο επιχείρημα «CaseID» δείχνει τη θέση της περίπτωσης όπου το όρισμα ανήκει
-%   και το δεύτερο επιχείρημα είναι η θέση της μεταβλητής στην αριστερή πλευρά ενός μοτίβου κατασκευαστή σε κλάδο «case».
-%   
-%   Ο σκοπός των προβολών του κατασκευαστή είναι να δεσμεύσει τις μεταβλητές στη δεξιά πλευρά του κλάδου με τις μεταβλητές
-%   στην αριστερή πλευρά του κλάδου. Με τον τρόπο αυτό, οι μεταβλητές αυτές διακρίνονται από τις μεταβλητές ανώτερου επιπέδου, δηλ.
-%   οι τυπικές παράμετροι στον ορισμό της λειτουργίας και προσφέρουν τη δυνατότητα να γνωρίζουν τη θέση στο πλαίσιο,
-%   ένας λόγος που θα γίνει σαφέστερος στο επόμενο κεφάλαιο, όπου θα δώσουμε τις λεπτομέρειες του
-%   μοντέλο εκτέλεσης.
-% \ end {itemize}
+Όσον αφορά την αφηρημένη σύνταξη, οι τυπικές παράμετροι ενός ορισμού συνάρτησης είναι:
+\begin{minted}{haskell}
+  type Formal = (VN, (EvalOrder, Type))
+  type VN = String 
+  type EvalOrder = CBV | CBN | Lazy 
+  data Type = TInt | TCons Type -- an value of type integer (TInt) or 
+                                -- a list of values with type Type
+\end{minted}
+όπου ο κατασκευαστής τύπου μιας τυπικής παραμέτρου έχει τις πληροφορίες σχετικά με το όνομα της παραμέτρου και
+τη στατική πληροφορία της εντολής αξιολόγησης και τον τύπο της. Υποθέτουμε τους τύπους βάσης ως ακέραιους αριθμούς και αργότερα
+το τμήμα ανάλυσης, θα εξηγήσουμε γιατί αυτό αρκεί.
+
+\item Υπάρχει ένας ακόμα κόμβος στο συντακτικό δέντρο: οι προβολές κατασκευαστών (\textit{constructor projections}). 
+Ο μετασχηματισμός γι 'αυτό, ο συγκεκριμένος κόμβος σύνταξης έχει εξηγηθεί νωρίτερα σε προηγούμενη ενότητα και η σύνταξη σε
+όρους Haskell είναι:
+\begin{minted}{haskell}
+data Expr = ... | CProj CaseID CPos
+\end{minted}
+
+Σε μια προβολή κατασκευαστή, το  `CaseID' δείχνει τη θέση του `case' όπου ανήκει o όρος, μέσα στο σώμα της συνάρτησης,
+και το δεύτερο όρισμα (`CPos') είναι η θέση της μεταβλητής στη λίστα εκφράσεων του μοτίβου κατασκευαστή σε διακλάδωση του `case'.
 
 
+Ο σκοπός των προβολών του κατασκευαστή είναι να `δέσει' τις μεταβλητές στη δεξιά πλευρά της διακλάδωσης με τις μεταβλητές
+στην αριστερή πλευρά. Με τον τρόπο αυτό, οι μεταβλητές αυτές διακρίνονται από τις μεταβλητές ανώτερου επιπέδου, δηλ.
+από τις τυπικές παραμέτρους στον ορισμό της συνάρτησης και προσφέρουν τη δυνατότητα να γνωρίζουμε τη θέση τους στο πλαίσιο,
+ένας λόγος που θα γίνει σαφέστερος στο επόμενο κεφάλαιο, όπου θα δώσουμε τις λεπτομέρειες του μοντέλου εκτέλεσης.
+\end{itemize}
+
+
+\chapter{Μοντέλο εκτέλεσης}
+
+Σε αυτό το κεφάλαιο, θα παρουσιάσουμε τις τεχνικές λεπτομέρειες του μοντέλου εκτέλεσης για
+τη γλώσσα που μελετήσαμε σε αυτή τη διατριβή καθώς και τις τεχνικές λεπτομέρειες σχετικά με την υλοποιήση και τη λειτουργία 
+τον διερμηνέα, στον οποίο αξιολογούμε την τεχνική μας για την βελτιστοποίηση της κλήσης ουράς.
+
+Στην επόμενη ενότητα υπάρχει μια περιγραφή υψηλού επιπέδου του μοντέλου.
+Στη συνέχεια παρουσιάζονται οι δομές δεδομένων που χρησιμοποιούνται κατά το χρόνο εκτέλεσης 
+και στη συνέχεια η λειτουργία του διερμηνέα παρουσιάζεται με τη μορφή λειτουργικής σημασιολογίας (operational semantics) για τη γλώσσα.
+
+
+\section{Περιγραφή υψηλού επιπέδου του μοντέλου εκτέλεσης}
+
+In this section, we present a high-level description for the execution model; this will be helpful for the reader
+to follow the technical details from the next sections. Also, it will be easier to compare to other existing 
+abstract machines and interpreters that exist for a lazy functional language.
+
+Το μοντέλο μας, βασισμένο στον  GIC~\cite{Fourtounis14}, 
+includes the following high-level properties:
+\begin{itemize}
+\item Υλοποιούμε μια  αφηρημένη μηχανή πρώτης τάξης. Πρώτης τάξης, διότι δεν υποστηρίζουμε πέρασμα συναρτήσεων υψηλής τάξης ως παραμέτρους σε συνάρτηση
+, καθώς και μερική αποτίμηση. Η οκνηρότητα είναι η προεπιλεγμένη σημασιολογία για το μοντέλο μας.
+\item Έχουμε ένα μοντέλο βασισμέμο στη δέσμευση πλαισίων για τη γλώσσα μας, αλλά τα πλαίσια δεσμεύονται στο σωρό αντί για στοίβα (heap allocated frames).
+Ο λόγος γι' αυτό είναι ότι η οκνηρή αποτίμηση δε συμβαδίζει με την ακολουθιακή ροή της εκτέλεσης του προγράμματος, κάτι το οποίοπ καθιστά αδύνατη 
+τη δέσμευση/αποδέσμευση πλαισίων με τις λειτουργίες push/pop.
+\item Ο διερμηνέας μας υποστηρίζει τη ρητή δέσμευση πλαισίων, η οποία χρειάζεται για το μετασχηματισμό των πλαισίων στη βελτιστοποίηση 
+καθώς και την αξιολόγηση της τεχνικής μας, όπως επίσης και ένα μηχανισμό καταμέτρησης των πλαισίων.
+\item Η γλώσσα μας  υποστηρίζει πολλαπλά είδη αποτίμησης και έτσι ο διερμηνέας μας τα χειρίζεται και αυτά (call-by-value, call-by-name, call-by-need)
+με κατάλληλο τρόπο.
+\item Τα δεδομένα μας κατασκευάζονται από οκνηρούς κατασκευαστές δεδομένων, αλλά μπορούμε επίσης να υποστηρίξουμε ML-λίστες (δεδομένα με βαθιά αποτίμηση, όπως στη γλώσσα ML).
+\item Στις κλήσεις συναρτήσεων ακολουθούμε την πολιτική push/enter. Πριν εισέλθουμε στο σώμα της συνάρτησης,
+δεσμεύουμε το πλαίσιο και αποτιμούμε όλες τις πραγματικές παραμέτρους, σεβόμενοι τη σημασιολογία τους.
+\item Το μοντέλο μας υποστηρίζει pattern matching (σε δεδομένα και τιμές βασικόυ τύπου) με παρόμοιο τρόπο, όπως στη Haskell. 
+Αυτό αποτελεί το πιο σύνθετο γνώρισμα μιας οκνηρής συναρτησιακής γλώσσας, ειδικά αν αναλογιστούμε ότι οι πρώτες αφηρημένες μηχανές γι' αυτές τις γλώσσες δεν παρείχαν 
+υποστήριξη για το συγκεκριμένο γνώρισμα.
+\end{itemize}
+
+\section{Σύστημα χρόνου εκτέλεσης}
+
+Αυτή η ενότητα περιέχει μια λεπτομερή εξήγηση για την πρωτότυπη εφαρμογή του διερμηνέα μας
+που χρησιμοποιείται στη γλώσσα. Πρώτον, θα παρουσιάσουμε τις δομές δεδομένων που χρησιμοποιούνται κατά τη διάρκεια εκτέλεσης. Έπειτα,
+παρουσιάζουμε τα λειτουργικά χαρακτηριστικά του διερμηνέα μας.
+
+\section{Δομές δεδομένων κατά το χρόνο εκτέλεσης}
+
+Εδώ υπάρχουν ορισμοί των δομών χρόνου εκτέλεσης, όπως χρησιμοποιούνται στην υλοποίηση. Αν και η εφαρμογή είναι σε Haskell, ο κώδικας θα είναι απλός, έτσι ώστε κάθε αναγνώστης με ένα βασικό υπόβαθρο 
+συναρτησιακού προγραμματισμού να μπορεί να το καταλάβει.
+
+Στις επόμενες ενότητες που θα περιγράψουμε τις δομές χρόνου εκτέλεσης, θα χρησιμοποιήσουμε την ακόλουθη σύμβαση. Στην αρχή, ένας ορισμός
+θα εμφανιστεί, ενώ στξ συνέχια πιθανώς θα συνοδεύεται από έναν ή περισσότερους ορισμούς. Αν περιέχει πιο πολύπλοκα δεδομένα στο σώμα του, θα 
+περιγράφεται αργότερα στην ενότητα ή θα υπάρχει ένας δείκτης σε μια άλλη ενότητα που θα περιέχει λεπτομέρειες γι' αυτόν τον ορισμό.
+
+\subsection{Μνήμη}
+
+Σε αυτή την ενότητα παρέχουμε τον ορισμό της δομής της μνήμης(\textit{memory}), ένα \textit{mutable} χώρο αποθήκευσης, 
+όπου αποθηκεύονται τα πλαίσια.
+
+
+Για τη δομή \textit{memory}, έχουμε τα παρακάτω:
+\begin{minted}{haskell}
+  type FrameId = Int
+  data Mem = Mem {
+    memFrames :: Map FrameId Frame, lastFrameId :: FrameId
+  }
+\end{minted}
+
+Ο αναγνώστης μπορεί να σκεφτεί τη δομή αυτή ως μνήμη σε έναν υπολογιστή: κάθε κύτταρο μνήμης έχει μια διεύθυνση (\textit{FrameId}) και
+η διεύθυνση έχει ένα περιεχόμενο (\textit{frame}). Μια παρόμοια αναπαράσταση με το mutable σωρό του Launchbury για οκνηρή αποτίμηση.
+Εδώ να σημειώσουμε ότι όλα τα πλαίσια δεν έχουν την ίδια χωρητικότητα. Λεπτομέρειες θα δοθούν σε επόμενη ενότητα για ένα πλαίσιο.
+
+
+Αυτή η προαναφερθείσα δομή δεδομένων συνοδεύεται από τις τρεις ακόλουθες λειτουργίες, που δίνονται αμέσως μετά. 
+\begin{itemize}
+  \item Προσθήκη ενός πλαισίου στη μνήμη με τη λειτουργία \textit{push}(σχήμα~\ref{fig:pushEL}).
+  \item Get a frame from the memory given its unique identifier (\textit{getFrame})
+  (figure~\ref{fig:getFrameEL}).
+  \item Update the content of a memory's frame, given its unique identifier (\textit{updFrame})
+  (figure~\ref{fig:updFrameEL}).
+\end{itemize}
+
+Αργότερα θα χρησιμοποιήσουμε τα ονόματα των λειτουργιών 
+\textit{push}, \textit{getFrame} και \textit{updFrame} για να αναφερθούμε σε αυτές χωρίς περαιτέρω επεξήγηση. 
+
+
+\begin{figure}[htp]
+  $ \mathit{push} :: \mathit{Mem \times Frame \rightarrow Mem} $ \\
+  $ \mathit{push~(mem, frame) = mem'} $ \\
+  $ \mathit{mem' = Mem~\{~memFrames = frames', lastFrameId = lastId~\} } $ \\
+  $ \mathit{frames' = frame : (memFrames~mem)} $ \\
+  $ \mathit{lastId = lastFrameId~mem + 1} $
+\caption{Push λειτουργία για τη μνήμη\label{fig:pushEL}}
+\end{figure}~
+\begin{figure}[htp]
+  $ \mathit{getFrame} :: \mathit{Mem \times FrameId \rightarrow Frame} $ \\
+  $ \mathit{getFrame~(mem, id) = frame} $ \\
+  $ \mathit{frame = lookup~id~(memFrames~mem)} $
+\caption{GetFrame λειτoυργία\label{fig:getFrameEL}}
+\end{figure}~
+\begin{figure}[htp]
+  $ \mathit{updFrame} :: \mathit{Mem \times FrameId \times Frame \rightarrow Mem} $ \\
+  $ \mathit{upFrame~(mem, frameId, frame) = 
+      mem~\{memFrames = insert~frameId~frame~(memFrames~mem)~\} } $ 
+\caption{UpdateFrame λειτουργία\label{fig:updFrameEL}}
+\end{figure}
+
+
+\subsection{Προσωρινά σταματημένη εκτέλεση από δεδομένα (suspensions)}
+
+Ο ορισμός για τα  suspensions είναι:
+\begin{minted}{haskell}
+  data Susp = Susp (CN, [Expr]) FrameId
+\end{minted}
+
+Ένα \textit{Susp} περιέχει:
+\begin{itemize}
+  \item Το όνομα του κατασκευαστή \textit{CN} μαζί με τα ορίσματα του σε μια λίστα εκφράσεων. 
+  \item Ένα δείκτη με τη μορφή αναγνωριστικού (\textit{FrameId}) για το πλαίσιο που είναι το περιβάλλον του suspension.
+Αυτό είναι το περιβάλλον μέχρι τη στιγμή που αυτό το suspension δημιουργήθηκε. Όταν η εκτέλεση του προγράμματος επιβάλλει την αποτίμησή του,
+αυτό θα είναι το περιβάλλον που θα χρησιμοποιήσει.
+\end{itemize}
+
+\subsection{Τιμές}
+
+Μια τιμή μπορεί να είναι ένας ακέραιος (ή γενικά μια τιμή βασικού τύπου) ή ένα suspension.
+\begin{minted}{haskell}
+  data Value = 
+    VI Integer 
+  | VC Susp 
+\end{minted}
+
+Από τον παραπάνω ορισμό, έχουμε ότι μια τιμή μπορεί να είναι είτε ένας ακέραιος (ή γενικά ένας τύπος βάσης) ή αναστολή κατασκευασμένων δεδομένων. 
+Ενώ η πρώτη είναι προφανής, ειδικά για τους περισσότερους προγραμματιστές που χρησιμοποιούν αυστηρές γλώσσες, το τελευταίο είναι κάτι που συμβαίνει σε οκνηρές
+γλώσσες προγραμματισμού. Οι υπολογισμοί μπορεί να μην αποτιμώνται βαθιά και έτσι μπορούν να δημιουργήσουν thunks ή
+αφήνουν thunks που μπορεί να αποτιμηθούν αργότερα.
+
+\subsection{Πλαίσια}
+
+Η βασική μονάδα από τη μηχανή εκτέλεσης είναι το πλαίσιο. Ένα πλαίσιο περιέχει όλες τις απαραίτητες πληροφορίες
+για μια κλήση συνάρτησης. Δεσμεύεται κάθε φορά που πραγματοποιείται μια νέα κλήση συνάρτησης. Τότε, μπορεί να ενημερωθεί σε περίπτωση που περιέχει
+μια οκνηρή παράμετρο.
+\newline
+\par Ακολουθεί ο ορισμός του πλαισίου:
+\begin{minted}{haskell}
+  type FN      = String 
+  type CaseID  = Int 
+  type FrameId = Int 
+
+  data Frame   = Frame {
+    fName  :: FN,                  -- Function Name
+    fArgs  :: [FrameArg],          -- Bindings of formals with actuals
+    fSusps :: [(CaseID, Susp)],    -- Data deconstruction forced by `case'
+    fPrev  :: FrameId              -- pointer to previous stack frame 
+  }
+\end{minted}
+
+Ένα πλαίσιο έχει τις ακόλουθες πληροφορίες κατά τη διάρκεια της ζωής του:
+\begin{itemize}
+  \item Το όνομα της συνάρτησης (\textit{FN}). Αυτή η πληροφορία είναι σημαντική για την αναζήτηση του ορισμού της συνάρτησης στη δομή
+  \textit{functions map}, μια δομή που θα εξηγηθεί αργότερα, για να προχωρήσει η εκτέλεση του προγράμματος.
+  \item Οι πραγματικές παράμετροι που συνδέονται με τις τυπικές παραμέτρους του ορισμού της συνάρτησης \textit{`FN'}.
+  \item Πληροφορίες για τα suspensions, δημιουργία thunk και αποτίμηση που επιβάλλεται από την `case'. Κάθε \textit{`CaseID'}, 
+  είναι μοναδικό στο σώμα της συνάρτησης και περιέχει δείκτες στα δικά του thunks.
+  \item Ένα δείκτη με τη μορφή αναγνωριστικόυ στο προηγούμενο πλαίσιο (\textit{fPrev}). Αυτό είναι το \textit{περιβάλλον} στην υλοποίηση του 
+  διερμηνέα, το οποίο υπονοείται και δεν υπάρχει ρητά στο \textit{state} του.
+\end{itemize} 
+
+Ένα όρισμα που ζει στα `fArg :: [FrameArg]', έχει τον ακόλουθο ορισμό:
+\begin{minted}{haskell}
+  data FrameArg = 
+    StrictArg { val :: Value }
+  | ByNameArg { expr :: Expr }
+  | LazyArg   { expr :: Expr, isEvaluated :: Bool, cachedVal :: Maybe Value }  
+\end{minted}
+
+Ένα όρισμα μπορεί να είναι:
+\begin{itemize}
+  \item Αυστηρό και να περιέχει μόνο μια \textit{τιμή}.
+  \item Σε σημασιολογία της κλήσης κατ΄ όνομα και έτσι να περιέχει μόνο μια έκφραση, ένα thunk χωρίς επιλογή για
+  απομνημόνευση.
+  \item Lazy και έτσι να περιέχει μια έκφραση, με τον ίδιο τρόπο όπως τα ορίσματα call-by-name, 
+  αλλά επίσης και μια \textit{σημαία}(flag) για το αν είναι αποτιμημένο ή όχι (εξασφαλίζοντας έτσι την ιδιότητα της αποτίμησης άπαξ, ή στα αγγλικά \textit{single evaluation property}) 
+  και επίσης χώρο για την αποθηκευμλενη του τιμή (\textit{cached value}).
+\end{itemize}
+
+\section{Διερμηνέας}
+
+Ο διερμηνέας είναι μια συνάρτηση που λαμβάνει ένα \textit{expression}, έναν \textit{στατικό} χώρο μνήμης ενός προγράμματος που περιέχει
+πληροφορίες σχετικά με τους ορισμούς συναρτήσεων και ένα \textit{state}, και 
+φτάνει σε ένα \textit{τελικό state} και \textit{επιστρέφει μια τιμή}, όπου είναι μια έκφραση από τις εκφράσεις της σύνταξης
+που παρουσιάζεται σε προηγούμενη ενότητα. Ο ορισμός του \textit{state} ακολουθεί αργότερα στην ενότητα.
+
+Από εδώ και πέρα, η συνάρτηση $\mathit{eval}$ αντιστοιχεί στη λειτουργία του διερμηνέα. Η δήλωση του \textit{eval}
+η λειτουργία εμφανίζεται στο σχήμα~\ref{fig:evalEL}:
+\begin{figure}[h]
+  $
+    \mathit{eval} :: \mathit{Expr} \times \mathit{FunctionsMap} \times \mathit{State} \rightarrow 
+    \mathit{State} \times \mathit{Value}
+  $
+\caption{Δήλωση της συνάρτησης \textit{eval}\label{fig:evalEL}}
+\end{figure}
+
+\begin{figure}[t]
+$
+  \mathit{State :: (Mem, FrameId, NRFrames)}
+$
+\caption{Κατάσταση (state) του διερμηνέα\label{fig:stateEL}}
+\end{figure} 
+
+To \textit{State} της \textit{eval} φαίνεται στο σχήμα~\ref{fig:stateEL},
+όπου οι ορισμοί για \textit{Mem}, \textit{FrameId} δίνονται νωρίτερα στο κεφάλαιο. Το πεδίο \textit{NRFrames}
+δίνει τον αριθμό από τα πλαίσια που δεσμεύτηκαν έως τώρα. 
+
+H δομή \textit{FunctionsMap} είναι μια δομή που δημιουργείται κατά το χρόνο μεταγλώττισης και παραμένει ζωντανή στο χρόνο εκτέλεσης. 
+Δεν αλλάζει κατά την εκτέλεση του προγράμματος και αποτελείται από ζευγάρια κλειδιού-τιμής, όπου:
+\begin{itemize} 
+  \item Τα κλειδιά είναι τα ονόματα από τις top-level συναρτήσεις.
+  \item Οι τιμές είναι ένα ζεύγος τυπικών παραμέτρων με τις στατικές τους πληροφορίες (είδος αποτίμησης, τύπος)
+  της συνάρτησης καθώς και το σώματ της συνάρτησης.
+\end{itemize}
+
+Ο ορισμός δίνεται στο σχήμα~\ref{fig:functionsmapel}:
+\begin{figure}[h]
+\begin{minted}{haskell}
+  type FN = String 
+  data FunctionsMap = Map FN ([Formal], Expr)
+\end{minted}
+\caption{FunctionsMap\label{fig:functionsmapel}}
+\end{figure}
+
+Το αποτέλεσμα του διερμηνέα είναι το αποτέλεσμα της εκτέλεσης του σώματος της συνάρτησης κορυφαίου επιπέδου \textit{main}.
+Αυτή η συνάρτηση είναι μια ειδική περίπτωση συνάρτησης και θεωρείται ότι δεν έχει κανένα όρισμα. Έτσι, η αρχική έκφραση
+\textit{expr0} είναι: 
+\begin{minted}{haskell}
+  (_, expr0) = Map.lookup "main" functionsMap
+\end{minted}
+
+Το \textit{αρχικό state} του διερμηνέα είναι:
+\begin{figure}[h]
+$ 
+  \mathit{State0 = (mem0, frameId0, nr\_frames0) }
+$
+\caption{Αρχικό state του διερμηνέα\label{fig:state0el}}
+\end{figure}
+
+Στο αρχικό state, που φαίνεται στο σχήμα~\ref{fig:state0el}, έχουμε:
+\begin{itemize}
+  \item Το αρχικό state της μνήμης \textit{mem0}, είναι:
+    \begin{minted}{haskell}
+      -- cTOPFRAMED: last frame id available when execution starts
+      mem0   = push (Mem Map.empty 0) frame0 
+      frame0 = Frame "main" [] [] cTOPFRAMEID 
+    \end{minted}
+  \item Το αρχικό id από το πρώτο frame στη μνήμη που είναι ελεύθερο:
+    \begin{minted}{haskell}
+      frameId0 = lastFrameId mem0
+    \end{minted}
+  \item Ο αρχικός αριθμός πλαισίων που έχουν δεσμευτεί, πριν ξεκινήσει η εκτέλεση της eval, είναι:
+    \begin{minted}{haskell}
+      nr_frames = 1
+    \end{minted}
+  , καθώς έχουμε \textit{μια} μια δέσμευση πλαισίου για τη συνάρτηση "main".
+\end{itemize}
+
+Σε αυτό το σημείο, έχουμε τα πάντα έτοιμα. Δηλώσαμε τη συνάρτηση του διερμηνέα \textit{eval} και έχουμε μια αρχική
+να ξεκινήσει η εκτίμησή μας με. Τώρα, ας δούμε την εκτέλεση κάθε έκφρασης του δένδρου σύνταξης της γλώσσας μας
+που παρουσιάζεται στην ενότητα της σύνταξης. Οι μικρές λεπτομέρειες εφαρμογής παραλείπονται για λόγους σαφήνειας. Αρχικά υποθέτουμε παντού την οκνηρότητα,
+ενώ αργότερα θα υπάρχει μια επισκόπηση του τρόπου με τον οποίο ο διερμηνέας εκτελείται παρουσία λιστών ML.
+
+Η δομή \textit{FunctionsMap} επίσης παραλείπεται ως όρισμα της eval. Υποθέτουμε ότι ψάχνουμε αυτό για τα τυπικές παραμέτρους και όταν θέλουμε να μεταβούμε στο σώμα μιας συνάρτησης, π.χ. στην 
+κλήση συναρήσεων.
+
+Σε κάθε βήμα εκτέλεσης η \textit{eval} αναζητά την τρέχουσα κατάσταση. Όπως έχουμε ήδη αναφέρει το state είναι
+ένα πεδίο με~\cite{Abel13}:
+
+\begin{minted}{haskell}
+  State = (Mem, FrameId, NRFrames) 
+  -- FrameId: id of the current frame
+\end{minted}
+, και έτσι κοιτάζοντας το frame του τρέχοντος state, παίρνουμε το τρέχον περιβάλλον, έχουμε:
+\begin{minted}{haskell}
+  thisFrame = getFrame mem frameId 
+  Frame caller funArgs susps prevFrameId = thisFrame 
+\end{minted}
+
+Με αυτόν τον τρόπο, έχουμε πληροφορίες για:
+\begin{itemize}
+  \item \textit{caller}: το όνομα της συνάρτησης που καλεί και είμαστε τώρα μέσα στο σώμα της,
+  \item \textit{funArgs}: τα τρέχοντα ορίσματα της τρέχουσας συνάρτησης που είναι κατασκευασμένα στο πλαίσιο (δείτε αργότερα πώς τα χτίζουμε
+  όταν γίνεται κλήση συνάρτησης),
+  \item \textit{susps}: προσωρινά σταματημένες εκτέλεσεις για δεδομένα που η εκτέλεσή τους επιβάλλεται από το pattern matching του case, 
+  \item \textit{prevFrameId}: Το αναγνωριστικό από το προηγούμενο πλαίσιο, σαν να είχαμε ένα δείκτη στο προηγούμενο πλαίσιο.
+\end{itemize}
+
+Αφού αποκτηθούν οι απαραίτητες πληροφορίες από την τρέχουσα κατάσταση, ο διερμηνέας χειρίζεται κάθε μια από τις εκφράσεις
+με τον ακόλουθο τρόπο, που παρουσιάζεται στις επόμενες ενότητες.
+
+\subsection{Αποτίμηση μεταβλητής}
+
+Υπενθυμίζουμε σε αυτό το σημείο ότι μια μεταβλητή δεσμευμένη στην αντιστοίχιση μοτίβων δεν αξιολογείται εδώ 
+λόγω του μετασχηματισμού της σε constructor projection που περιγράψαμε προηγουμένως, και επομένως σε αυτό το τμήμα μελετάμε 
+την αποτίμηση μεταβλητών που είναι δεμένες με τις τυπικές παραμέτρους μιας συνάρτησης.
+
+Μια μεταβλητή ανώτατου επιπέδου υπάρχει στις τυπικές παραμέτρους ενός ορισμού συνάρτησης. Στους όρους \textit{πλαισίου},
+ψάχνουμε για το σωστό \textit{FrameArg} στο πεδίο \textit{funArgs}, που αναφέρθηκε προηγουμένως όταν εξηγήσαμε
+την \textit{τρέχουσα κατάσταση} του διερμηνέα.
+
+Η διαδικασία είναι η ακόλουθη:
+\begin{itemize}
+  \item Πρώτον, βρίσκουμε τη θέση της μεταβλητής στο τρέχον frame.
+  \begin{itemize}
+    \item Ψάχνουμε τη συνάρτηση \textit{που καλεί} στη δομή \textit{FunctionsMap} για να βρόυμε την υπογραφή
+    (\textit{signature}) της συνάρτησης.
+    \item Άπαξ και βρούμε την υπογραφή, στη συνέχεια βρίσκουμε τη θέση της μεταβλητής στις τυπικές παραμέτρους της συνάρτησης, με χρήση του ονόματός της, 
+    δηλ. τον \textit{δείκτη (i)} του ορίσματος.
+  \end{itemize} 
+  \item Δεδομένου του δείκτη που υπολογίσαμε νωρίτερα, βρίσκουμε το κατάλληλο όρισμα στο τρέχον πλαίσιο.
+\end{itemize}
+
+Στη συνέχια έχουμε τρεις περιπτώσεις όσα και τα είδη αποτίμησης.
+
+Σε αυτό το σημείο, δίνουμε τα v' and s' για:
+  $ \mathit{eval (v, s) = (v', s')} $
+
+  \begin{itemize}
+    \item cbv: Αποτίμηση μεταβλητής για call-by-value 
+          μεταβλητές φαίνονται στο σχήμα~\ref{fig:cbv-varLookup-el}.
+      \begin{figure}[t]
+      \hrule
+        \begin{align*}
+           & \mathit{(v', s') = (val, s),} \\
+           \mathit{where} \\ 
+           & \mathit{v = StrictArg \hfill\ val}
+        \end{align*}
+      \caption{Αποτίμηση μεταβλητής για call-by-value\label{fig:cbv-varLookup-el}}
+      \end{figure}
+    \item cbn e.o.: Αποτίμηση μεταβλητής για call-by-name
+    φαίνεται στο σχήμα~\ref{fig:cbn-varLookup-el}.
+
+    \begin{figure}[t]
+      \begin{align*}
+        & \mathit{ (v', s') = (val, s), \hfill\ where } \\
+        & \mathit{ v = ByNameArg \hfill\ expr, } \\
+        & \mathit{(val, s'') = eval \hfill\ expr \hfill\ (mem, prevFrameId, nr\_frames)} \\
+      \end{align*}
+    \caption{Αποτίμηση μεταβλητής για call-by-name\label{fig:cbn-varLookup-el}}
+    \end{figure}      
+
+    \item lazy e.o.: Στο σχήμα~\ref{fig:lazy-varlookup-el}) έχουμε \textit{δυο} υποπεριπτώσεις.
+    Αυτές είναι αν το \textit{b} είναι \textit{true} ή \textit{false}, δηλ. ο οκνηρός όρος είναι αποτιμημένος και αποθηκευμένος
+    ή μη αποτιμημένος. Στην τελευταία περίπτωση, ο διερμηνέας χρειάζεται να αποτιμήσει τη μεταβλητή και να ενημερώσει το πλαίσιο, όπως φαίνεται και στο σχήμα.
+
+    \begin{figure}[t]
+      \[\mathit{v = LazyArg \hfill\ e \hfill\ b \hfill\ val}\]
+      
+      \begin{itemize}
+          \item \textit{b} is \textit{true}: \[ \mathit{(v', s') = (val, s)} \]
+          \item \textit{b} is \textit{false}:
+            \begin{align*}
+                & \mathit{(v', s') = (val', (updFrame \hfill\ mem' \hfill\ frameId \hfill\ frame', frameId, nr\_frames')), where} \\
+                & \mathit{(val', (mem', frameId', nr\_frames')) = eval \hfill\ e \hfill\ (mem, prevFrameId, nr\_frames)} \\
+                & \mathit{frame'[funArgs] = ( funArgs[i] = LazyArg \hfill\ e \hfill\ true \hfill\ val' )} \\
+            \end{align*}
+      \end{itemize}
+    \caption{Αποτίμηση μεταβλητής για call-by-need\label{fig:lazy-varlookup-el}}
+    \hrule
+  \end{figure}
+
+
+ Σημειώνουμε εδώ ότι όταν έχουμε αλλαγή στην κατάσταση της μνήμης, και πιθανή αποτίμηση της έκφρασης π[ροκαλεί τη δημιουργία νέου πλαισίου
+ ενημερώνουμε την κατάσταση της μνήμης και το μετρητή των πλαισίων.
+
+  \end{itemize}
+
+
+  \subsection{Κλήση συνάρτησης}
+
+  Σε αυτή την ενότητα, περιγράφεται η λειτουργία του διερμηνέα για κλήση συνάρτησης, όπου η έκφραση είναι:
+  $ \mathit{Expr = Call \hfill\ callee \hfill\ actuals,} $
+  όπου έχουμε τις πληροφορίες για το όνομα της συνάρτησης \textit{που καλείται} και τις πραγματικές παραμέτρους της κλήσης.
+  
+  \begin{figure}[htp]
+    \[ \mathit{makeArgs :: [Actual] \times [Formal] \times State \rightarrow [FrameArg] \times State}, \]
+  \caption{Δήλωση της συνάρτησης κατασκευής ορισμάτων\label{fig:makeArgs-el}}
+  \end{figure} ~
+  \begin{figure}[htp]
+    \begin{align*}
+      \mathit{(v, state') = eval \hfill\ actual \hfill\ state} \\
+      \mathit{frameArg = StrictArg \hfill\ v}
+    \end{align*}
+  \caption{Κατασκευή call-by-value ορίσματος στο πλαίσιο\label{fig:makeCBVArg-el}}
+  \end{figure} ~
+  \begin{figure}[htp]
+    \[ 
+      \mathit{frameArg = ByNameArg \hfill\ actual} 
+    \] 
+  \caption{Κατασκευή call-by-name ορίσματος στο πλαίσιο\label{fig:makeCBNArg-el}}
+  \end{figure} ~
+  \begin{figure}[htp]
+    \[
+      \mathit{frameArg = LazyArg \hfill\ actual \hfill\ false \hfill\ empty} 
+    \]
+  \caption{Κατασκευή οκνηρού ορίσματος στο πλαίσιο\label{fig:lazyArgConstruction-el}}
+  \end{figure} ~
+  \begin{figure}[htp]
+    \begin{align*}
+      & \mathit{eval \hfill\ (Call \hfill\ callee \hfill\ actuals, s) = (val, s'''),} \\ \mathit{where} \\
+      & \mathit{(formals, funBody) = lookup \hfill\ callee \hfill\ FunctionsMap} \\
+      & \mathit{(frameArgs, (mem', \_, nr\_frames')) = makeArgs \hfill\ actuals \hfill\ formals  \hfill\ state} \\
+      & \mathit{newFrame = Frame \hfill\ callee \hfill\ frameArgs \hfill\ [] \hfill\ frameId} \\
+      & \mathit{mem'' = push \hfill\ mem' \hfill\ newFrame \hfill\ (nr\_frames + 1) \hfill\ frameId} \\
+      & \mathit{s' = (mem'', lastFrameId \hfill\ mem'', nr\_frames + 1)} \\
+      & \mathit{(val, s'') = eval \hfill\ funBody \hfill\ s'} \\
+      & \mathit{(s'' = (mem''', _, nr\_frames''))} \\
+      & \mathit{s''' = (mem''', frameId, nr\_frames'')}
+    \end{align*}
+  \caption{Λειτουργική σημασιολογία για την κλήση συνάρτησης\label{fig:functionCall-el}}
+  \end{figure}
+  
+  % \pagebreak
+  
+Πρώτον, θα παρουσιάσουμε μια συνάρτηση για την κατασκευή των επιχειρημάτων, λαμβάνοντας υπόψη τις πραγματικές παραμέτρους της κλήσης
+και τις τυπικές παραμέτρους του ορισμού της συνάρτησης που βρίσκεται στη δομή \textit{FunctionsMap}.
+
+  
+Η συνάρτηση, που ονομάζεται \textit{makeArgs} έχει τη μορφή, που φαίνεται στο σχήμα~\ref{fig:makeArgs-el},
+όπου οι πραγματικοί και οι τυπικοί παράμετροι εξηγούνται παραπάνω και το \textit{State} αναπαριστά την τρέχουσα κατάσταση του διερμηνέα.
+
+Για κάθε πραγματική που αντιστοιχεί σε κάθε επίσημη παράμετρο, έχουμε τα ακόλουθα, ανάλογα
+αν η παράμετρος είναι σε cbv, cbn ή lazy:
+\begin{itemize}
+\item cbv: Όπως φαίνεται στο σχήμα~\ref{fig:makeCBVArg-el} η συνάρτηση επιστρέφει \textit{(frameArg, state')}, όπου το
+\textit{frameArg} προστίθεται στο \textit{[FrameArg]} και το \textit{state'} είναι η είσοδος στο όρισμα state της συνάρτησης
+\textit{makeArgs}.
+\item cbn: Όπως φαίνεται στο σχήμα~\ref{fig:makeCBNArg-el}, το state παραμένει αμετάβλητη και έτσι το  
+\textit{(frameArg, state)} επιστρέφεται.
+\item lazy: Όπως φαίνεται στο σχήμα~\ref{fig:lazyArgConstruction-el} το state δεν αλλάζει, με αποτέλεσμα  
+να επιστρέφεται το \textit{(frameArg, state)}.
+\end{itemize}
+  
+Όπως φαίνεται παραπάνω, μόνο τα επιχειρήματα cbv εκτελούνται σε αυτό το σημείο και η αλλαγή μνήμης που προκαλούν,
+επιστρέφεται στην κατάσταση της συνάρτησης \textit{eval}.
+
+Τώρα, είναι καιρός να ξαναρχίσουμε την παρουσίαση σχετικά με την κλήση λειτουργίας στον διερμηνέα.
+Η λειτουργική σημασία μιας κλήσης λειτουργίας εμφανίζεται στο σχήμα~\ref{fig:functionCall-el}.
+Κάθε φορά που έχουμε μια κλήση συνάρτησης, ένα νέο πλαίσιο δεσμεύεται στη μνήμη. Τότε, ο διερμηνέας
+αποτιμά το σώμα της συνάρτησης και τελικά επαναρυθμίζουμε το περιβάλλον για την επόμενη λειτουργία που
+χειρίζεται ο διερμηνέας. 
+
+%
+\subsection{Ταίριασμα προτύπων}
+
+Όπως έχει ήδη αναφερθεί, διαχωρίζουμε μεταξύ pattern matching σε ακεραίους και pattern matching σε δεδομένα.
+Μια διακλάδωση (branch) στο pattern matching είναι:
+\begin{minted}{haskell}
+  type Branch  = (Pattern, Expr)
+  data Pattern = CPat { tag :: CN, vars :: [VN] } -- pattern matching on constructors 
+               | IPat { pattVal :: Int }          -- pattern matching on integers 
+\end{minted}
+
+\begin{figure}[htp]
+  \begin{align*}
+    \mathit{caseExpr = Case \hfill\ caseId \hfill\ e \hfill\ branches}
+  \end{align*}
+\caption{Η έκφραση case\label{fig:case-el}}
+\end{figure} ~
+\begin{figure}[htp]
+  % \hrule
+  \begin{align*}
+    &  \mathit{eval \hfill\ (e, s) = (e', s'),}  \\
+    \mathit{where} \\
+    &  \mathit{s' = (mem', savedFrameId, n), \hfill\ and} \\
+    &  \mathit{e' = VI \hfill\ i, \hfill\ integer \hfill\ pattern \hfill\ matching, or} \\
+    &  \mathit{e' = VC \hfill\ c, \hfill\ constructor \hfill\ pattern \hfill\ matching} \\
+    &  \mathit{c = Susp \hfill\ (cn, \_) \hfill\ \_}  
+  \end{align*}
+\caption{Αποτίμηση του όρου που εξετάζεται\label{fig:scrueval-el}}
+\end{figure} ~
+\begin{figure}[htp]
+  \begin{align*}
+    & \mathit{eval \hfill\ (caseExpr, s) = (eval \hfill\ e'' \hfill\ s', s'),} \\
+    \mathit{where} \\
+    & \mathit{e'' = lookup \hfill\ (IPat \hfill\ i) \hfill\ cases} \\
+    % \mathit{, and} \\
+    & \mathit{\textit{s'} \hfill\ is \hfill\ the \hfill\ state \hfill\ after \hfill\ scrutinee's 
+    \hfill\ evaluation.}
+  \end{align*}
+\caption{Λειτουργική σημασιολογία για pattern matching σε ακεραίους\label{fig:intPattMatch-el}}
+\end{figure} ~
+\begin{figure}[htp]
+  \begin{align*}
+    & \mathit{eval \hfill\ (caseExpr, s) = (eval \hfill\ e'' \hfill\ s'', s''), } \\ 
+    \mathit{where} \\
+    & \mathit{pattIndex = indexOfPattern \hfill\ cn \hfill\ patterns} \\
+    & \mathit{(\_, e'') = branches \hfill\ [pattIndex]} \\
+    & \mathit{susps' = (caseId, c) \hfill\ : \hfill\ susps} \\
+    & \mathit{frame' = Frame \hfill\ caller \hfill\ funArgs \hfill\ susps' \hfill\ prevFrameId} \\
+    & \mathit{s'' = (updFrame \hfill\ mem' \hfill\ frameId \hfill\ frame', \hfill\ frameId, \hfill\ n)}
+  \end{align*}
+\caption{Λειτουργική σημασιολογία για pattern matching σε κατασκευαστές δεδομένων\label{fig:consPattMatch-el}}
+% \hrule
+\end{figure}
 
 
 
+Η σύνταξη της έκφρασης `case' φαίνεται στο σχήμα~\ref{fig:case-el}. Για την αποτίμηση της έκφρασης αυτής,
+ο διερμηνέας κάνει τα επόμενα βήματα:~
+\begin{itemize}
+  \item Πρώτα, αποτιμά τον όρο που εξετάζεται (scrutinee), η αποτίμηση του οποίου φαίνεται στο σχήαμα~\ref{fig:scrueval-el}.
+  \item Στη συνέχεια, στο σχήμα~\ref{fig:intPattMatch-el}, φαίνεται πώς συμπεριφέρεται ο διερμηνέας για pattern matching πάνω σε ακεραίους.
+  \item Τέλος, το pattern matching πάνω σε κατασκευαστές δεδομένων φαίνεται στο σχήμα~\ref{fig:consPattMatch-el}.
+\end{itemize}
 
 
+Στους παραπάνω ορισμούς, η \textit{indexOfPatterns} δίνει σαν έξοδο το δείκτη 
+στη λίστα των διακλαδώσεων, για να γνωρίζει ο διερμηνέας ποια θα είναι η επόμενη έκφραση που θα αποτιμήσει.
 
+Σημειώνουμε, σε αυτό το σημείο ότι, παρόλο που η υλοποίηση μας δουλεύει με λίστες, αντίστοιχα η λειτουργία μπορεί να γενικευτεί 
+για οπποιοδήποτε κατασκευαστή δεδομένων, καθώς αυτοί είναι επί της ουσίας συναρτήσεις. Το τελευταίο είναι προφανές αν αναλογιστούμε ότι δουλεύουμε σε μια 
+συναρτησιακή γλώσσα, όπου οι συναρτήσεις είναι πολίτες πρώτης κατηγορίας.
+
+
+\subsection{Εφαρμογή κατασκευαστή δεδομένων}
+
+Στην περίπτωση που έχει εφαρμογή ενός \textit{lazy κατασκευαστή δεδομένων} (lazy data constructor),
+αυτό είναι ισοδύναμο με την δέσμευση μνήμης ενός thunk. Στην περίπτωσή μας, αυτό είναι μια δέσμευση ενός 
+suspension, όπως εξηγήθηκε προηγουμένως.
+Πιο συγκεκριμένα, η \textit{eval} για μια εφαρμογή όρου σε lazy data constructor φαίνεται στο 
+σχήμα~\ref{fig:consAppl-el}.
+
+\begin{figure}[h]
+  \begin{align*}
+    & \mathit{eval \hfill\ (ConstrF \hfill\ tag \hfill\ exprs, s) = (VC \hfill\ (Susp \hfill\ (tag, exprs) \hfill\ frameId), s)} \\
+    \mathit{, where} \\
+    &  \mathit{\textit{frameId}: \hfill\ the \hfill\ id \hfill\ of \hfill\ the 
+    \hfill\ current \hfill\ frame \hfill\ existing \hfill\ in \hfill\ the \hfill\ interpeter's 
+    \hfill\ state,} \\
+    &  \mathit{\textit{tag}: \hfill\ the \hfill\ name \hfill\ of \hfill\ the \hfill\ 
+    constructor.}
+  \end{align*}
+\caption{Λειτουργική σημασιολογία για εφαρμογή οκνηρών κατασκευαστών\label{fig:consAppl-el}}
+\end{figure} ~
+% \begin{figure}[h]
+%   \begin{align*}
+%     & \mathit{eval~(SHConstrF~tag~(e~:~es), s) = (VC~(Susp~(tag, (e'~:~es))~frameId), s')} \\
+%     & \mathit{(e',s') = eval~(e, s)}
+%   \end{align*}
+% \caption{Strict head list constructor application\label{fig:shconsAppl}}
+% \end{figure} ~
+% \begin{figure}[h]
+%   \begin{align*}
+%     & \mathit{eval~(STConstrF~tag~(e~:~es), s) = (VC~(Susp~(tag, (e~:~es'))~frameId), s')} \\
+%     & \mathit{(es',s') = eval~(es, s)}
+%   \end{align*}
+% \caption{Strict tail list constructor application\label{fig:stconsAppl}}
+% \end{figure} ~
+% \begin{figure}[h]
+%   \begin{align*}
+%     & \mathit{eval~(MLConstrF~tag~(e~:~es), s) = (VC~(Susp~(tag, (e'~:~es'))~frameId), s'')} \\
+%     & \mathit{(e',s') = eval~(e, s)} \\
+%     & \mathit{(es', s'') = eval~(es, s')}
+%   \end{align*}
+% \caption{ML-list constructor application\label{fig:mlconsAppl}}
+% \end{figure}
+
+% \newpage
+
+\subsection{Προβολές κατασκευαστών}
+
+Σε αυτήν την περίπτωση, ο διερμηνέας έχει συναντήσει μια μεταβλητή που δεσμεύεται από
+pattern matching. Όπως αναφέρθηκε προηγουμένως, η αποτίμηση 
+ενός όρου αναγκάζεται, όταν πρέπει να αποτιμηθούν τέτοιες μεταβλητές.
+Η λειτουργία της \textit{eval} για την \textit{προβολή κατασκευαστή} εμφανίζεται στο
+σχήμα~\ref{fig:consproj-el}.
+
+\begin{figure}[htp]
+  \begin{align*}
+    & \mathit{eval \hfill\ (CProj \hfill\ caseId \hfill\ cpos, s) = (val, s'),} \\
+    \mathit{where } \\
+    & \mathit{s' = mem' \hfill\ frameId \hfill\ nr\_frames'} \\
+    & \mathit{susp = lookup \hfill\ cid \hfill\ susps} \\
+    & \mathit{Susp \hfill\ (\_, el) \hfill\ savedFrameId = susp} \\
+    & \mathit{e' = el[cpos]} \\
+    & \mathit{(val, (mem', \_, nr\_frames')) = eval \hfill\ (e', s)}
+  \end{align*}
+\caption{Λειτουργική σημασιολογία για την προβολή κατασκευαστή\label{fig:consproj-el}}
+\end{figure}
+
+Πρώτον, βρίσκουμε το κατάλληλο $\mathit{susp}$ μέσα στο πεδίο $\mathit{susps}$ του τρέχοντος πλαισίου. Στη συνέχεια, 
+από τη λίστα εκφράσεων $\mathit{el}$ βρίσκουμε τον κατάλληλοο κατασκευαστή στη θέση $\mathit{cpos}$ . 
+Μετά την αποτίμηση της έκφρασης έχουμε την τιμή-αποτέλεσμα και το επόμενο state του διερμηνέα μας.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \englishtext
 
 \chapter{Introduction}
