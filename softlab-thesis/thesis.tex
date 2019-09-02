@@ -1194,14 +1194,10 @@ pattern matching. Όπως αναφέρθηκε προηγουμένως, η α�
 \chapter {Υλοποίηση βελτιστοποίησης κλήσεων ουράς στο χρόνο εκτέλεσης}
 
 In this chapter, we will present how the optimisations are implemented in the interpreter.
-More specifically there will be presented:
-\[ \mathit{eval \hfill\ (e, s) = (e', s')} \]
-where:
-
+More specifically, we will present how \textit{eval} operates, when a tail call has come up (figure~\ref{fig:annos-el}).
 \begin{figure}[h]
-  \begin{align*}
-    & \mathit{e = TailCall \hfill\ callee \hfill\ actuals} 
-  \end{align*}
+$\mathit{eval \hfill\ (e, s) = (e', s'), }$ \\
+$\mathit{\hfill\ \hfill\ where \hfill\ e = TailCall \hfill\ callee \hfill\ actuals}$
 \caption{Επισημειωμένες εκφράσεις\label{fig:annos-el}}
 \end{figure}
 
@@ -1360,8 +1356,10 @@ a list that accumulates the result of every iteration.
 \caption{Λειτουργική σημασιολογία για τη λειτουργία $\mathit{mutate}$\label{fig:mutate-el}}
 \end{figure}
 
+%
+\chapter{Επίλογος}
 
-
+Μπλα μπλα μπλα.
 
 
 
