@@ -3341,16 +3341,16 @@ Give graph results from the microbenchmarks.
 \label{ch:related}
 
 Implementations of programming languages use a stack for function calls, 
-where activation records are pushed for every function invocation: this permits recursion 
+where stack frames (or \emph{activation records}) are pushed for every function invocation: this permits recursion 
 and has good performance. Stack allocation for function calls has been an old technique, 
 dating back at least to ALGOL~\cite{Dijkstra60,Naur78} and LISP~\cite{McCarthy60,Stoyan79}.
 
 Tail-calls are function calls that happen last inside a function and
 they can be implemented with a ``go to'' instruction. In the special
-case that the caller's activation record will not be needed again,
-\emph{tail-call optimization} can reuse it to construct the activation
-record of the callee, saving space, and making some programs run in
-constant space. Tail-calls can be further optimized by the
+case that the caller's frame will not be needed again, \emph{tail-call
+  optimization} can reuse it to construct the frame of the callee,
+saving space, and making some programs run in constant
+space. Tail-calls can be further optimized by the
 instruction-scheduling stage of a compiler~\cite[\S12.4.3]{Torczon12}.
 Tail-calls have been used to transform recursive functions to
 iterative (tail-recursive)
@@ -3359,14 +3359,14 @@ is an old idea~\cite[p.~7]{Gill65}\cite[p.~21]{Knuth74}, which is an
 established part of modern compilers.
 
 Some languages and implementations often offer features that are not
-easy to compose with tail-call optimization. Activation records may
+easy to compose with tail-call optimization. Frames may
 not be resized in-place for languages that support
 coroutines~\cite[p.~60]{Waite84}. Languages that support first-class
 continuations~\cite{Sperber10}, higher-order return
 values~\cite[p.~103]{Appel92}\cite{Steele78},
 backtracking~\cite{Bobrow73}, or non-strict evaluation, and
 implementations in continuation-passing style~\cite[p.~103]{Appel92},
-may allocate activation records on the heap. 
+may allocate frames on the heap. 
 
 Tail-call optimization is also important for implementations of logic languages~\cite{Bigot99},
 functional programming languages running on the Java virtual machine~\cite{Madsen:2018:TCE:3178372.3179499},
