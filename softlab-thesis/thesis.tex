@@ -2380,7 +2380,7 @@ a record of:
   State = (Mem, FrameId, NRFrames) 
   -- FrameId: id of the current frame
 \end{minted}
-, and thus by looking up the current's state frame, we can obtain the environment, as following:
+and thus by looking up the current's state frame, we can obtain the environment, as following:
 \begin{minted}{haskell}
   thisFrame = getFrame mem frameId 
   Frame caller funArgs susps prevFrameId = thisFrame 
