@@ -3345,14 +3345,14 @@ where stack frames (or \emph{activation records}) are pushed for every function 
 and has good performance. Stack allocation for function calls has been an old technique, 
 dating back at least to ALGOL~\cite{Dijkstra60,Naur78} and LISP~\cite{McCarthy60,Stoyan79}.
 
-Tail-calls are function calls that happen last inside a function and
+Tail calls are function calls that happen last inside a function and
 they can be implemented with a ``go to'' instruction. In the special
 case that the caller's frame will not be needed again, \emph{tail-call
   optimization} can reuse it to construct the frame of the callee,
 saving space, and making some programs run in constant
-space. Tail-calls can be further optimized by the
+space. Tail calls can be further optimized by the
 instruction-scheduling stage of a compiler~\cite[\S12.4.3]{Torczon12}.
-Tail-calls have been used to transform recursive functions to
+Tail calls have been used to transform recursive functions to
 iterative (tail-recursive)
 ones~\cite[\S{9}]{McCarthy62}\cite{Barron68}.  Tail-call optimization
 is an old idea~\cite[p.~7]{Gill65}\cite[p.~21]{Knuth74}, which is an
