@@ -45,14 +45,14 @@
 Οι συναρτησιακές γλώσσες προγραμματισμού είναι διάσημες για τη χρήση αναδρομής αντί για «βρόχους», 
 κάτι που υπάρχει και χαρακτηρίζει τις προστακτικές γλώσσες προγραμματισμού. Ενώ η αναδρομή είναι καλύτερη από 
 τους βρόχους σε ό,τι αφορά την καθαρότητα του κώδικα, καθώς είναι άμεσα συνδεδεμένη με το μαθηματικό ορισμό
-των συναρτήσεων, έχουν ένα βασικό ελάττωμα το οποίο συνδέεται με τη χρήση της μνήμης για την εκτέλεση των 
+των συναρτήσεων, έχει ένα βασικό ελάττωμα το οποίο συνδέεται με τη χρήση της μνήμης για την εκτέλεση των 
 προγραμμάτων. Το πρόβλημα αυτό είναι ότι ένας αλγόριθμος που χρησιμοποιεί σταθερό χώρο μνήμης για την εκτέλεση του
 σε μια προστακτική γλώσσα προγραμματισμού, μπορεί να χρησιμοποιήσει γραμμικό χώρο σε συναρτησιακή, εξαιτίας 
 της αναδρομής.
   
 
 Η λύση αυτού του προβλήματος, που δόθηκε στη δεκαετία του '70 για τη γλώσσα Scheme, ήταν η χρήση της βελτιστοποίησης
-κλήσεων ουράς, μια πολύ απλή αλλά, όπως αποδείχθηκε, πολύ αποτελεσματική για την εξάλειψη του παραπάνω προβλήματος.
+κλήσεων ουράς, μια πολύ απλή αλλά, όπως αποδείχθηκε, πολύ αποτελεσματική τεχνική για την εξάλειψη του παραπάνω προβλήματος.
 Εκτός από τη Scheme, η βελτιστοποίηση αυτή περιλαμβάνεται στις υλοποιήσεις των περισσότερων συναρτησιακών 
 γλωσσών με αυστηρή σημασιολογία, όπως η SML/NJ και η OCaml, καθώς και σε υλοποιήσεις προστακτικών 
 γλωσσών, όπως ο "Clang" μεταγλωττιστής για τη C/C++, κάτι το οποίο φανερώνει την αξία της συγκεκριμένης 
@@ -63,7 +63,7 @@
 συναρτησιακή γλώσσα προγραμματισμού με πολλαπλά είδη αποτίμησης (κλήση κατά αξία, κλήση κατ' όνομα και 
 κλήση κατ' ανάγκη). Συγκεκριμένα στην  περίπτωση της κλήσης κατ' ανάγκης, οι τιμές που υπακούουν σε αυτή τη
 σημασιολογία "δραπετεύουν" από τη εμβέλεια του ονόματος τους πιο εύκολα απ' ότι στην 
-κλήση κατ' αξία, με αποτέλεσμα να βρεθούν οι κλήσεις ουράς να είναι αρκετά πιο δύσκολο.
+κλήση κατ' αξία, με αποτέλεσμα να είναι αρκετά πιο δύσκολο να βρεθούν οι κλήσεις ουράς.
 
 
 \begin{keywordsgr}
@@ -624,8 +624,8 @@ includes the following high-level properties:
 Η βασική μονάδα από τη μηχανή εκτέλεσης είναι το πλαίσιο. Ένα πλαίσιο περιέχει όλες τις απαραίτητες πληροφορίες
 για μια κλήση συνάρτησης. Δεσμεύεται κάθε φορά που πραγματοποιείται μια νέα κλήση συνάρτησης. Τότε, μπορεί να ενημερωθεί σε περίπτωση που περιέχει
 μια οκνηρή παράμετρο.
-\newline
-\par Ακολουθεί ο ορισμός του πλαισίου:
+
+Ακολουθεί ο ορισμός του πλαισίου:
 \begin{minted}{haskell}
   type FN      = String 
   type CaseID  = Int 
@@ -1501,7 +1501,7 @@ In the example below, we have a `factorial' in OCaml:
       else 1
 \end{minted}
 
-Inside the function's body, there is a function call to `fact'. This is not a tail-call, because this call isn't 
+Inside the function's body, there is a function call to `fact'. This is not a tail-call, because this call is not 
 the last call performed in the function's body. In this example, `*' is the last operation performed, just before the function returns.
 Let's assume that we have a call to the function:
 \begin{minted}{OCaml}
@@ -1612,8 +1612,8 @@ During the execution we have the following memory snapshots:
 This is the tail-recursive form of the function, known from the previous section, that counts the number 
 of elements inside a list. As it seems above, the accumulator parameter `acc' is evaluated in every 
 function call, before the control of the call passes to the callee.
-\newline
-\par Now, let's take a look at a second example, where the accumulator is a list. The purpose for this 
+
+Now, let's take a look at a second example, where the accumulator is a list. The purpose for this 
 example is to highlight the difference between strict data constructors a la ML and lazy data constructors.
 It will become obvious in later section, when we will talk about laziness (section~\ref{sec:lazy}).
 
@@ -1709,8 +1709,8 @@ saving the cost of recomputing the argument.
 Haskell is a well known language that uses lazy evaluation. Because evaluation of expressions may happen arbitrarily 
 far into a computation, Haskell only supports side-effects (such as mutation) via the use of monads. This eliminates any 
 unexpected behavior from variables whose values change prior to their delayed evaluation.
-\newline
-\par Lazy evaluation is roughly guarded by two major priciples:
+
+Lazy evaluation is roughly guarded by two major priciples:
 \begin{itemize}
   \item \textit{Call-by-name} semantics, and
   \item \textit{single-evaluation} property, which makes the memoization compulsory.
@@ -1745,8 +1745,8 @@ When we call `head' with [42, loop 42] the following happens:
   second branch. 
   \item On the right-hand side of the second branch, there is variable `x'. Now, the value of `x' is needed, and thus 
   it evaluates `x1', that is evaluates the content of the pointer and finally it returns 42.
-  \item An important notice is that because pattern matching variable `xs' doesn't exist on the right hand side 
-  of the branch, it doesn't evaluate `xs' and thus the program doesn't diverge.
+  \item An important notice is that because pattern matching variable `xs' does not exist on the right hand side 
+  of the branch, it does not evaluate `xs' and thus the program does not diverge.
 \end{itemize}
 
 \subsection{BangPatterns: Haskell with strictness}
@@ -1794,9 +1794,9 @@ The program above has the following behaviour when executed:
   evaluation one more step. So, in contrast to the earlier example, `l' has a pointer to (x1:x2), where x1 contains a pointer to 
   `42' and x2 contains a pointer to `loop 42'. The \textit{thunk} is also marked as \textit{evaluated}.
   \item Then, `head' is evaluated. At this point, when `case' needs to evaluate `l', which is marked as evaluated, `case' knows 
-  which branch to follow, which is the same as earlier, and doesn't do anything else.
+  which branch to follow, which is the same as earlier, and does not do anything else.
   \item After the branch is picked, again the right hand side of the branch is evaluated and `42' is returned as a result.
-  \item An important notice here is that `!' doesn't force \textit{deep} evaluation of the data structure. It just moves the 
+  \item An important notice here is that `!' does not force \textit{deep} evaluation of the data structure. It just moves the 
   value from weak-head normal form to head normal form. For data, this means that the outermost value is evaluated.
 \end{itemize}
 
@@ -1829,8 +1829,8 @@ In the above data definition, `Cons' contains:
 In case that this list was used for `head', we finally have ML lists and the program 
 will diverge as it happens in a strict functional language like OCaml. `Deepseq' automatically can turn a data structure
 defined in Haskell into a ML-like data structure, by automatic instance derivation.
-\newline \newline
-\par In case the programmer needs more customization, he can use BangPatterns in every possible combination. 
+
+In case the programmer needs more customization, he can use BangPatterns in every possible combination. 
 The definitions below are also used in this thesis' language.
 \begin{minted}{haskell}
   -- 1. Haskell builtin lists.
@@ -1952,7 +1952,7 @@ tail-call optimisation, first appeared in Prolog implementations.
 
 
 % In the first example presented below the argument is in CBV evaluation order, 
-% while in the second it is in lazy evaluation order. \textbf{[1 or 2 examples (if 1 isn't enough) which makes clear the copy of values from 
+% while in the second it is in lazy evaluation order. \textbf{[1 or 2 examples (if 1 is not enough) which makes clear the copy of values from 
 % one frame to the next and also the importance of strictness.]}
 
 
@@ -1992,7 +1992,7 @@ will describe later in section~\ref{sec:strictness-analysis}.
 
 At the latter example, `acc' (an integer or WHNF) is strict. This means that `acc' is 
 fully evaluated in each execution step, and thus it can be tail-call optimised. This, of course,
-isn't possible if `acc' was, for example, a list, as we will illustrate with the following examples.
+is not possible if `acc' was, for example, a list, as we will illustrate with the following examples.
 
 
 \subsection {Example 2: Constructing lists}
@@ -2010,9 +2010,9 @@ makelist !n !acc =
     else acc
 \end{minted}
 
-Although the example above seems a perfect candidate for tail-call optimisation, it isn't, 
+Although the example above seems a perfect candidate for tail-call optimisation, it is not, 
 at least in the traditional point of view of tail-call optimisation. Here, lists are 
-lazy data constructors and aren't fully evaluated in every execution step. The bang (`!') doesn't 
+lazy data constructors and are not fully evaluated in every execution step. The bang (`!') does not 
 force deep evaluation of the data, but it forces the evaluation one more step. That means that the strict 
 `acc' constructs its \textit{backbone} (a memory thunk) in memory, along with a \textit{recipe} 
 (`n-1' and `n:acc' cells) for further evaluation. 
@@ -2074,8 +2074,8 @@ In Haskell, this is not the case. Actually, in Haskell's Prelude all functions a
 in the form below, where these programs are subject to many optimisations triggered 
 by Haskell's \textit{rewriting machine}, and performed in the runtime 
 (especially this program is subject to \textit{fusion}~\cite{Coutts07}). 
-\newline
-\par At this point, we showcase the use of tail recursion \textit{modulo cons}, instead of other optimisations
+
+At this point, we showcase the use of tail recursion \textit{modulo cons}, instead of other optimisations
 used in GHC.
 
 \begin{minted}{haskell}
@@ -2283,7 +2283,7 @@ We need to highlight the following points, before we dive deeper into the langua
   \begin{minted}{haskell}
     if cond then e1 else e2 => case cond of { True -> e1; False -> e2 }
   \end{minted}
-  \item There aren't any partial applications, neither in function nor in constructor applications.
+  \item There are not any partial applications, neither in function nor in constructor applications.
   This means that the arguments in a function call are the same in number as in the function definition.
   \item There is no `let' expression in the core language. Instead we assume that our language 
   fully depends upon a lambda lifter; a Johnson-style \textit{full laziness} lambda lifter~\cite{Johnsson:1985:LLT:5280.5292}
@@ -2328,7 +2328,7 @@ differences from the one shown in the figure:
     \begin{itemize}
       \item {`!' for a strict formal parameter,}
       \item { `\#' for a call-by-name formal parameter, while}
-      \item {lazy arguments aren't annotated, because we consider laziness as something that naturally happens 
+      \item {lazy arguments are not annotated, because we consider laziness as something that naturally happens 
       in the language.}
     \end{itemize}
   
@@ -2368,8 +2368,8 @@ In this chapter, we will present technical details the operational semantics for
 language we studied in this thesis as well as the technical details about the implementation of
 the interpreter, on which we evaluate our technique for the tail-call optimisation and
 tail recursion modulo cons.
-\newline 
-\par In section~\ref{sec:execution-model-overview} there is a high-level description of the machine; 
+
+In section~\ref{sec:execution-model-overview} there is a high-level description of the machine; 
 then in section~\ref{sec:runtime-structs} the runtime 
 data structures and the design decisions will become clear to the reader.
 
@@ -2385,7 +2385,7 @@ Our model, based on GIC~\cite{Fourtounis14},
 includes the following high-level properties:
 \begin{itemize}
   \item We implement a first-order lazy abstract machine. First-order as we do not support
-  function arguments can't be functions and partial evaluation. Laziness is the default semantics
+  function arguments cannot be functions and partial evaluation. Laziness is the default semantics
   for our model.
   \item We have a frame-based execution model for our language, but the frames are 
   \textit{heap-allocated frames}, instead of stack. The reason for this is that lazy evaluation 
@@ -2402,7 +2402,7 @@ includes the following high-level properties:
   to the semantics. 
   \item Our model supports pattern matching (constructors and base type values) similar to Haskell. 
   This is the most complicated feature in a lazy functional language, if we consider that initial 
-  abstract machine didn't provide support for that (section~\ref{sec:g-machine}).
+  abstract machine did not provide support for that (section~\ref{sec:g-machine}).
 \end{itemize}
 
 \section {Runtime system}
@@ -2446,8 +2446,8 @@ The reader can think of memory as the memory in a computer: every memory cell ha
 the address has a content (\textit{frame}). A similar representation to Launchbury's mutable heap for 
 lazy evaluation~\cite{La93}.
 Here, not all frames have the same capacity; the details will be given in later section for a frame.
-\newline
-\par This aforementioned data structure is accompanied with three operations in order to handle it:
+
+This aforementioned data structure is accompanied with three operations in order to handle it:
 \begin{itemize}
   \item Add a frame to the memory with \textit{push} operation (figure~\ref{fig:push}).
   \item Get a frame from the memory given its unique identifier (\textit{getFrame})
@@ -2523,8 +2523,8 @@ leave unevaluated thunks that can be evaluated later.
 The basic \textit{unit} of the execution machine is a \textit{frame}. A frame contains all necessary information 
 for a function call. It is allocated every time a new function call takes place; then, it can be mutated in case it contains
 a lazy parameter.
-\newline
-\par Here is the definition of a \textit{frame}:
+
+Here is the definition of a \textit{frame}:
 \begin{minted}{haskell}
   type FN      = String 
   type CaseID  = Int 
@@ -2603,7 +2603,7 @@ allocation} and this number is the \textit{goal number} for the tail-call optimi
 later section.
 
 The structure \textit{FunctionsMap} is a stucture that is created at compile time and it remains alive in the runtime 
-as well. It doesn't change during the execution of the program and is a \textit{map} of key-value pair, where:
+as well. It does not change during the execution of the program and is a \textit{map} of key-value pair, where:
 \begin{itemize} 
   \item Keys are the names of top-level functions.
   \item Values are a pair of formal parameters with their static information (evaluation order, type) 
@@ -2649,15 +2649,15 @@ The \textit{initial state} for the interpreter's execution to start with, is:
     \begin{minted}{haskell}
       nr_frames = 1
     \end{minted}
-  , as we have \textit{one} frame allocation for "main" function.
+  as we have \textit{one} frame allocation for "main" function.
 \end{itemize}
 
 At this point, we have everything set up. We declared the interpreter's function \textit{eval} and we have an initial 
 state to start our eval with. Now, let's dive into the execution of each expression of the syntax tree of our language 
 presented in section~\ref{sec:syntax}. Minor implementation details are omitted for clarity; at first we assume laziness everywhere, 
 while later there will be an overview of how the interpreter runs in the presence of ML-lists.
-\newline
-\par We finally begin our pattern matching on the expressions. The \textit{FunctionsMap} structure is also omitted as 
+
+We finally begin our pattern matching on the expressions. The \textit{FunctionsMap} structure is also omitted as 
 eval's argument; we assume that we lookup this for formals and we want to jump to a function's body, e.g. in the function  
 call expression.
 
@@ -2667,7 +2667,7 @@ a record of:
   State = (Mem, FrameId, NRFrames) 
   -- FrameId: id of the current frame
 \end{minted}
-, and thus by looking up the current's state frame, we can obtain the environment, as following:
+and thus by looking up the current's state frame, we can obtain the environment, as following:
 \begin{minted}{haskell}
   thisFrame = getFrame mem frameId 
   Frame caller funArgs susps prevFrameId = thisFrame 
@@ -2687,7 +2687,7 @@ in the following way, presented in the following sections.
 
 \subsection{Variable lookup}
 
-We remind at this point that a variable bound at case pattern matching isn't evaluated here because of the constructor 
+We remind at this point that a variable bound at case pattern matching is not evaluated here because of the constructor 
 projection transformation we described earlier in section~\ref{sec:other-transformations}, and thus in this section we are concerned about evaluation 
 of top-level variables. 
 
@@ -2729,7 +2729,7 @@ Later, we give the v' and s' for:
     variables is shown in figure~\ref{fig:cbn-varLookup}.
 
     We note that whatever is the new interpreter's state \textit{s''}, we do not memoize it, as call-by-name semantics 
-    doesn't include any change of the memory's state.
+    does not include any change of the memory's state.
 
     \begin{figure}[t]
       \begin{align*}
@@ -2915,7 +2915,7 @@ In the above definitions, \textit{indexOfPatterns} gives as output the index of 
 in the \textit{patterns} list, and this list is retrieved by the \textit{branches} list 
 by ignoring the second value.
 
-Integer pattern matching can't be exhaustive, because integer domain consists of infinite elements, and thus we 
+Integer pattern matching cannot be exhaustive, because integer domain consists of infinite elements, and thus we 
 assume that \textit{IPat i} is a pattern that exists in the patterns list. Otherwise, the interpreter will throw an exception.
 
 
@@ -3001,8 +3001,8 @@ In this chapter, we present the analysis performed in order to reveal true tail-
 First, we make some important high-level definitions for the reader to be able to follow up. 
 The presentation of the algorithms for each one of the optimisations will follow; section~\ref{sec:classic-tco-analysis} contains 
 the algorithm for classic tail-call optimisation and section~\ref{sec:modulo-cons-analysis} contains the algorithm for tail recursion modulo cons.
-\newline
-\par The input of the analysis is the core level language described in section~\ref{sec:syntax}, 
+
+The input of the analysis is the core level language described in section~\ref{sec:syntax}, 
 along with the operational semantics provided in the previous chapter. The output is appropriately 
 \textit{annotated} function calls which the enriched evaluator of the next chapter is going to handle.
 The analysis in this chapter reveals \textit{where} to apply the optimisations, while 
@@ -3040,7 +3040,7 @@ optimisation, while the program is executing.
 \label{sec:control-flow}
 
 For a call-by-value language, this step reveals each and every true tail-call position. For a language with mixed evaluation order, and specifically 
-with call-by-need semantics this isn't enough, as it has been already sketched in section~\ref{sec:example2}, as lazy arguments are arbitrarily evaluated and thus 
+with call-by-need semantics this is not enough, as it has been already sketched in section~\ref{sec:example2}, as lazy arguments are arbitrarily evaluated and thus 
 they escape their context. 
 
 This is a local analysis, performed locally in a function's body. The analysis is summarized in the following rules:
@@ -3060,7 +3060,7 @@ To illustrate the above, let's consider the following, very simple example:
 \end{minted}
 
 The body of `foo' function is in tail call position. This means that `if', which is the body, is in tail call position. 
-Thus, then/else are tail calls. Now in the `then' clause, where the multiplication takes place, the call to `foo' isn't in tail call position, 
+Thus, then/else are tail calls. Now in the `then' clause, where the multiplication takes place, the call to `foo' is not in tail call position, 
 according to the third rule.
 
 But if we had the following example:
@@ -3256,7 +3256,7 @@ and produces:
   for our evaluation that follows in the next chapter.
 \end{itemize}
 
-As the language is first-order, it doesn't support partial applications, and thus the number of arguments 
+As the language is first-order, it does not support partial applications, and thus the number of arguments 
 in the actual parameters list is equal to the number of formals of the callee function. The \textit{mutate} function 
 terminates when these two lists are empty at the same iteration, or else it throws an exception. Its execution starts 
 and continues until it terminates by processing each and every actual parameter of the function call. The result is 
