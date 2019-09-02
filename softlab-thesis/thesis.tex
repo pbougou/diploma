@@ -1464,7 +1464,7 @@ An overview of the contents of each chapter follows:
 
   \item In \textit{Chapter~\ref{ch:evaluation}}, we give an evaluation of our optimisations on microbenchmarks.
 
-  \item \textit{Chapter~\ref{ch:related}} and \textit{Chapter`\ref{ch:future}} are related work and future wok respectively.
+  \item \textit{Chapter~\ref{ch:related}} and \textit{Chapter`\ref{ch:conclusion}} are related work and conclude the thesis respectively.
 
 \end{itemize}
 
@@ -3379,18 +3379,42 @@ later LLVM to support tail calls~\cite{Terei:2010:LBG:1863523.1863538}.
 Fusion vs. tail recursion modulo cons: functional programming \emph{short cut fusion}~\cite{Gill:1993:SCD:165180.165214,Pardo16} is based on work initially started with the listlessness optimization~\cite{Wadler84}. Listlessness is closely related to tail recursion modulo cons: ``programs for the listless machine are related to programs compiled using an optimization called tail recursion, particularly tail recursion modulo cons''~\cite{Wadler84}.
 
 
-\chapter{Future work}
-\label{ch:future}
+\chapter{Conclusion}
+\label{ch:conclusion}
 
-summary of what is done.
-extension of the tail-call optimisation for strict
-languages.
-what is missing (only used for lists, booleans).
-generalization for constructors.
-can be used for Haskell? Simply sketch something.
-benchmarks.
+%% summary of what is done.
 
-Future work: integration with compiler (statically compile the decisions of interpreter).
+This thesis shows how to extend classic tail-call optimization to lazy
+languages supporting alternative evaluation order choices (such as
+call-by-value and call-by-name). Our prototype implementation is an
+interpreter that uses information from a local static analysis, in
+order to detect opportunities for tail-call optimization at tail-call
+positions.
+
+Our technique can also be implemented in a purely compile-time
+setting, integrated with a defunctionalizing compiler for lazy
+functional languages, such as GIC~\cite{Fourtounis14} or
+GRIN~\cite{Boquist96,Podlovics19}.  This integration needs a small
+code generator for stack frame mutation for tail calls, driven by the
+decisions currently made by our interpreter. Such an extension should
+be an obvious next step for our implementation.
+
+%% can be used for Haskell? Simply sketch something.
+%% benchmarks.
+
+Integration with a more complex compiler should also help with
+evaluating our technique with more realistic benchmarks, such as the
+\emph{nofib} benchmark suite~\cite{nofib}.
+
+%% > gfour: the tco described in this thesis is a superset of standard
+%% > tco for strict languages, so there is no future work here.
+%% extension of the tail-call optimisation for strict
+%% languages.
+
+%% > gfour: we used lists as an example, our technique works for any
+%% > data type, so there is no future work here.
+%% what is missing (only used for lists, booleans).
+%% generalization for constructors.
 
 \selectlanguage{greek}
 
