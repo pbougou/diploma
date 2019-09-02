@@ -1075,6 +1075,295 @@ pattern matching. Όπως αναφέρθηκε προηγουμένως, η α�
 από τη λίστα εκφράσεων $\mathit{el}$ βρίσκουμε τον κατάλληλοο κατασκευαστή στη θέση $\mathit{cpos}$ . 
 Μετά την αποτίμηση της έκφρασης έχουμε την τιμή-αποτέλεσμα και το επόμενο state του διερμηνέα μας.
 
+%
+
+\chapter{Ανάλυση: Σε αναζήτηση ευκαιριών βελτιστοποίησης}
+\label{ch:analysis}
+
+Σε αυτό το κεφάλαιο, παρουσιάζουμε την ανάλυση που εκτελείται προκειμένου να αποκαλυφθούν οι πραγματικές θέσεις κλήσης ουράς.
+Πρώτον, κάνουμε ορισμένους σημαντικούς ορισμούς υψηλού επιπέδου για να μπορέσει ο αναγνώστης να παρακολουθήσει τις επόμενες ενότητες.
+
+Η είσοδος της στατικής ανάλυσης μας είναι η γλώσσα πυρήνα πρώτης τάξης, που έχει δοθεί στο αντίστοιχο 
+κεφάλαιο, μαζί με τη λειτουργική σημασιολογία που παρουσιάστηκε στο προηγούμενο κεφάλαιο.
+Η έξοδος είναι κατάλληλα επισημειωμένες κλήσεις συναρτήσεων, όπου ο εμπλουτισμένος διερμηνέας του επόμενου κεφαλαίου θα διαχειριστεί κατάλληλα.
+Η ανάλυση που παρουσιάζεται σε αυτό το κεφάλαιο αποκαλύπτει που θα εφαρμοστεί η βελτιστοποίηση, ενώ στο επόμενο κεφάλαιο θα παρουσιαστεί η λειτουργία 
+κατά το χρόνο εκτέλεσης.
+
+
+
+% Analysis chapter 
+
+\section{Κλασική βελτιστοποίηση κλήσεων ουράς}
+
+Στο σημείο αυτό, αρχικά δίνουμε δυο ορισμούς: οφείλουμε να διευκρινήσουμε ότι ο όρος κλήσεις ουράς δεν είναι ο ίδιος με 
+τον όρο βελτιστοποιήσιμες κλήσεις ουράς. Ενώ οι δυο αυτοί όροι ταυτίζονται σε μια γλώσσα προγραμματισμού με αυστηρή σημασιολογία,
+αυτό δεν συμβαίνει σε μια γλώσσα υπό την παρουσία της οκνηρής αποτίμησης.
+
+\subsection{Ορισμοί}
+
+\paragraph{Ορισμός 4.1}
+Μια κλήση συνάρτησης είναι σε \textit{θέση κλήσης ουράς}, ή είναι \textit{κλήση ουράς}, \textit{αν και μόνο αν} η εκτέλεσή της πραγματοποιείται ακριβώς πριν επιστρέψει 
+η καλούσα συνάρτηση.
+
+\paragraph{Ορισμός 4.2}
+Μια κλήση ουράς είναι \textit{βελτιστοποιήσιμη}, ή είναι \textit{πραγματική κλήση ουράς}, \textit{αν και μόνο αν} αυτή είναι σε θέση κλήσης ουράς (ορισμός 4.1) και ικανοποιεί τους κανόνες που παρουσιάζονται 
+στην ενότητα~\ref{sec:data-driven-analysis-el}.
+
+Στις επόμενες ενότητες, παρουσιάζουμε τη διαδρομή από τις \textit{κλήσεις συναρτήσεων}, που υπάρχουν στη γλώσσα πυρήνα μας, στις \textit{θέσεις κλήσεων ουράς}, 
+και από εκεί στις \textit{βελτιστοποιήσιμες κλήσεις ουράς}. Οι τελευταίες επισημειώνονται από την ανάλυσή μας στη γλώσσα πυρήνα, 
+και συγκεκριμένα με την επισημείωση \textit{TailCall}. Όταν ο διερμηνέας μας συναντά αυτές τις εκφράσεις, πραγματοποιεί τη βελτιστοποίηση κατά το χρόνο εκτέλεσης.
+
+\subsection{Αναλυση ροής ελέγχου προγράμματος: Εντοπίζοντας τις κλήσεις ουράς}
+\label{sec:control-flow-el}
+
+Για μια γλώσσα προγραμματισμού με αυστηρή σημασιολογία, αυτό το βήμα είναι ακριβώς ό,τι χρειάζεται: φανερώνει τις κλήσεις ουράς, οι οποίες είναι όλες βελτιστοποιήσιμες. 
+Αντίθετα, σε μια γλώσσα με πολλαπλά είδη αποτιμήσεων, και ειδικά με την παρουσία οκνηρής αποτίμησης, αυτό δεν είναι αρκετό, καθώς η αποτίμηση των οκνηρών όρων δε γνωρίζουμε πότε θα 
+αποτιμηθεί, με αποτέλεσμα να δραπετεύουν από τη στατική τους εμβέλεια.  
+
+Πρόκειται για μια τοπική ανάλυση, η οπία πραγματοποιείται στο σώμα μιας συνάρτησης. Η ανάλυση συνοψίζεται στους παρακάτω κανόνες:
+\begin{itemize}
+  \item Το σώμα μιας συνάρτησης είναι κλήση ουράς.
+  \item Όταν μια if/case έκφραση είναι κλήση ουράς, τότε οι διακλαδώσεις τους είναι επίσης κλήσεις ουράς.
+  Στην περίπτωση ενός `if' για παράδειγμα, τα then/else είναι σε θέσεις κλήσεων ουράς.
+  \item Τίποτα άλλο δεν είναι σε θέση κλήσεων ουράς.
+\end{itemize}
+
+Για να γίνει πιο σαφές το παραπάνω, χρησιμοποιούμε το εξής παράδειγμα:
+\begin{minted}{haskell}
+  foo n = 
+    if n > 0  
+      then n * foo (n-1) 
+      else 1
+\end{minted}
+
+Το σώμα της συνάρτησης `foo' είναι tail call. Αυτό σημαίνει ότι το `if', που είναι η πιο πάνω έκφραση στο σώμα της συνάρτησης, είναι σε θέση κλήσης ουράς.
+Έτσι, τα then/else είναι κλήσεις ουράς. Στη `then' πρόταση όμως, όπου πραγματοποιείται ένας πολλαπλασιασμός, η κλήση στη `foo' δεν είναι σε θέση κλ'ησης ουράς, 
+σύμφωνα με τον τρίτο κανόνα.
+
+Αλλά αν είχαμε το επόμενο πρόγραμμα:
+\begin{minted}{haskell}
+  foo n res = 
+    if n > 0 
+      then foo (n - 1) (n * res)
+      else res
+\end{minted}
+τότε η κλήση της συνάρτησης στη then πρόταση είναι σε θέση κλήσης ουράς, καθώς το then ειναι σε θέση κλήσης ουράς.
+
+\subsection{Ανάλυση οδηγούμενη από τα δεδομένα: Βελτιστοποιήσιμες κλήσεις ουράς}
+\label{sec:data-driven-analysis-el}
+
+
+Μετά την αποκάλυψη των θέσεων κλήσης ουράς, που προκύπτει από τη ροή ελέγχου του προγράμματος, η οποία παρουσιάζεται στην προηγούμενη ενότητα, 
+τώρα εφαρμόζουμε ορισμένους κανόνες για να αποκαλυφθούν οι πραγματικά βελτιστοποιήσιμες κλήσεις ουράς, ανάλογα με το είδος αποτίμησης 
+που έχουν οι όροι στην καλούσα και καλόυμενη συνάρτηση αντίστοιχα. 
+Μετά από όλα, βελτιστοποίηση κλήσης ουράς πρόκειται για το πέρασμα του ελέγχου από τον καλούντα στον καλούμενο. 
+Αυτό το βήμα παραλείπεται στις γλώσσες που χρησιμοποιούν την κλήση κατ' αξία, όπου υπάρχει
+μόνο ένα είδος αποτίμησης, το οπίο επιτρέπει τη βελτιστοποίηση εντελώς απροβλημάτιστα.
+
+Παρόλο που φαίνεται ότι οι κανόνες εφαρμόζονται σε ένα δεύτερο πέρασμα ανάλυσης, αυτό γίνεται για λόγους σαφήνειας
+στο κείμενο. Στην πραγματικότητα μπορούμε να το κάνουμε αυτό σε ένα πέρασμα, σε μια ενιαία ανάλυση, ακριβώς μόλις η 
+ανάλυση ροής ελέγχου αποφασίσει, αν η κλήση που μελετάται είναι κλήση ουράς.
+
+
+Οι κανόνες για ένα πιθανό tail-call, που αποκαλύφθηκε από την ανάλυση της προηγούμενης υποενότητας, 
+για να είναι βελτιστοποιήσιμο tail-call είναι:
+\begin{itemize}
+  \item Οι πραγματικές παράμετροι στην κλήση δεν εξαρτώνται από τις τυπικές παραμέτρους του της καλούσας συνάρτησης. 
+  Για παράδειγμα, αυτές οι πραγματικές παράμετροι μπορεί να είναι σταθερές. 
+  \item Οι πραγματικές παράμετροι στην κλήση είναι μεταβλητές. Εάν είναι μεταβλητές μπορούμε
+  προβλέψουμε στατικά αν και πότε θα είναι δυνατή η μετάλλαξη του πλαισίου κατά τη διάρκεια εκτέλεσης. 
+  Ο αναγνώστης μπορεί επίσης να αναφερθεί στο σχήμα~\ref{fig:mutate-el} για τις πιθανές περιπτώσεις. 
+  Πραγματοποιούμε τη βελτιστοποίηση σχεδόν σε όλες τις περιπτώσεις, εκτός από δυο υποπεριπτώσεις.
+  \item Η πραγματική παράμετρος είναι μια έκφραση, αλλά είναι σε θέση κλήσης κατ' αξία. Σε αυτή την περίπτωση, υπάρχουν
+  δύο υποπεριπτώσεις:
+    \begin{itemize}
+      \item Η έκφραση έχει βασικό τύπο (π.χ. ακέραιο). Αυτή είναι η ευκολότερη υποπερίπτωση, καθώς αυτές οι εκφράσεις,
+      όταν αποτιμώνται, αποτιμώνται απευθείας σε τιμή βασικού τύπου, χωρίς να αφήνουν thunks που δεν έχουν αποτιμηθεί.
+      Σε αυτήν την περίπτωση, θα μπορούσαμε επίσης να έχουμε δεδομένα όπως οι λίστες της ML, τα οποία 
+      επίσης αποτιμώνται σε βάθος.
+      \item Η έκφραση είναι κατασκευασμένα δεδομένα. Σε αυτή την περίπτωση, βρίσκουμε όλες τις μεταβλητές μέσα στην
+      έκφραση. Εάν αυτές οι μεταβλητές αποτιμώνται απευθείας σε τιμή, χωρίς να αφήνουν thunks, (τιμές με τύπο βάσης ή βαθιά αποτιμημένα
+      δεδομένα), τότε αυτή η κλήση συνάρτησης είναι βελτιστοποιήσιμη κλήση ουράς.
+      \item Οι κλήσεις ουράς που δεν υπόκεινται στους παραπάνω κανόνες δεν είναι βελτιστοποιήσιμες.
+    \end{itemize}
+\end{itemize}
+
+
+
+%
+\chapter {Υλοποίηση βελτιστοποίησης κλήσεων ουράς στο χρόνο εκτέλεσης}
+
+In this chapter, we will present how the optimisations are implemented in the interpreter.
+More specifically there will be presented:
+\[ \mathit{eval \hfill\ (e, s) = (e', s')} \]
+where:
+
+\begin{figure}[h]
+  \begin{align*}
+    & \mathit{e = TailCall \hfill\ callee \hfill\ actuals} 
+  \end{align*}
+\caption{Επισημειωμένες εκφράσεις\label{fig:annos-el}}
+\end{figure}
+
+
+\section {Λειτουργία για την κλασική βελτιστοποίηση κλήσεων ουράς}
+
+Classic tail call evaluation contains one major \textit{operation}, which makes the optimisation 
+feasible: this is \textit{frame mutation}. This operation includes the replacement of the current frame's arguments 
+with the arguments necessary for the construction of the frame for the next function call. For this operation,
+it is mandatory that the caller's arguments do not escape and for those that escape we correctly passed them 
+to the new frame. 
+
+The \textit{eval} for the \textit{TailCall} follows in figure~\ref{fig:tco-el}; we remind that this is actually optimisable as the analysis 
+revealed, although we make few, inexpensive extra checks for some cases.
+The functionality of \textit{checkMutate} will be explained later on in this section. The other variables 
+, shown in figure~\ref{fig:tco-el} are:
+\begin{itemize}
+  \item \textit{formals} are the formal parameters of the function definition of the callee function,
+  \item \textit{actuals} are the actual parameter of this tail-call optimisable function call,
+  \item \textit{funArgs} are the arguments inside the current frame, 
+  \item and \textit{s} is the current state of the interpreter.
+\end{itemize}
+
+
+\begin{figure}[h]
+  \begin{align*}
+    & \mathit{eval \hfill\ (TailCall \hfill\ callee \hfill\ actuals, s) = (e', s'),} \\
+    \mathit{where} \\
+    & \mathit{(formals, funBody) = lookup \hfill\ FunctionsMap \hfill\ callee} \\
+    & \mathit{e' = eval \hfill\ (funBody, s')} \\
+    & \mathit{s' = checkMutate \hfill\ formals \hfill\ actuals \hfill\ funArgs \hfill\ s} 
+  \end{align*}
+\caption{Λειτουργική σημασιολογία για βελτιστοποίηση κλήσεων ουράς\label{fig:tco-el}}
+\end{figure}
+
+
+At this point, we are ready to provide the definition for \textit{checkMutate}, which 
+is a function that given the current interpreter's state performs the runtime mutation 
+of the frame and produces the next state of the interpreter. Its declaration is given in 
+the figure~\ref{fig:checkdecl-el} and the operational meaning of the function in the 
+figure~\ref{fig:checkMutate-el}.
+
+\begin{figure}[h]
+  \begin{align*}
+    \mathit{checkMutate :: [Actual] \times [Formal] \times [FrameArg] \times State \rightarrow State} 
+  \end{align*}
+\caption{Δήλωση της λειτουργίας $\mathit{checkMutate}$\label{fig:checkdecl-el}}
+\end{figure}
+
+ 
+
+\begin{figure}[h]
+  \begin{align*}
+    & \mathit{checkMutate \hfill\ (actuals, formals, funArgs, s) = s', } \\
+    \mathit{where } \\
+    & \mathit{(mem, frameId, nr\_frames) = s} \\
+    & \mathit{(callerFormals, \_) = lookup \hfill\ callee \hfill\ FunctionsMap} \\
+    & \mathit{(funArgs', s'') = mutate \hfill\ callerFormals \hfill\ formals \hfill\ funArgs \hfill\ actuals \hfill\ s } \\
+    & \mathit{(mem', frameId', nr\_frames') = s''} \\
+    & \mathit{frame'' = Frame \hfill\ callee \hfill\ funArgs' \hfill\ [] \hfill\ prevFrameId} \\
+    & \mathit{s' = (updFrame \hfill\ mem' \hfill\ frameId \hfill\ frame'', frameId, nr\_frames')}
+  \end{align*}
+\caption{Λειτουργική σημασιολογία για τη λειτουργία \textit{checkMutate}\label{fig:checkMutate-el}}
+\end{figure}
+
+Now, we are going to describe an auxiliary function used in order to constructor 
+the function's arguments of the mutated frame; specifically in the definition of 
+\textit{funArgs'} the function called \textit{mutate}.
+The operational semantics for \textit{mutate} operation is shown in figure~\ref{fig:mutate-el}.
+From the figure, we have that \textit{mutate} is a function that takes as input:
+\begin{itemize}
+  \item The formal parameters of the caller function,
+  \item the formal parameters of the callee function,
+  \item the frame arguments that exist in the current frame (the one we want to mutate),
+  \item the actual parameter of the function call, which is tail-call optimisable,
+  \item the current state of the interpreter, 
+\end{itemize}
+and produces:
+\begin{itemize}
+  \item The frame arguments for the new frame. We note here that we want to turn the actual parameters 
+  of the function call into the appropriate frame arguments, using the function signatures of the caller and the callee.
+  Specifically, we are interested in the format of the arguments, and thus we need to know the evaluation 
+  order of the functions.
+  \item The next state for the interpreter. Because evaluation \textit{may} take place, while this function is executing 
+  (for example we need to turn a lazy frame argument into a strict and thus we perform the evaluation before 
+  we jump into the callee function's body), we need to change the memory state and count the frames correctly
+  for our evaluation that follows in the next chapter.
+\end{itemize}
+
+As the language is first-order, it doesn't support partial applications, and thus the number of arguments 
+in the actual parameters list is equal to the number of formals of the callee function. The \textit{mutate} function 
+terminates when these two lists are empty at the same iteration, or else it throws an exception. Its execution starts 
+and continues until it terminates by processing each and every actual parameter of the function call. The result is 
+a list that accumulates the result of every iteration. 
+
+
+\begin{figure}[h]
+  $\mathit{getIndex :: VN \times EvaluationOrder \times Type \times [Formal] \rightarrow Index}$ \\
+  $\mathit{getIndex~(vn,~eo,~type)~fs=elemIndex~(vn,(eo,type))~fs}$ \\
+  \\
+  $\mathit{getEvaluationOrder :: Formal \rightarrow EvaluationOrder} $ \\
+  $\mathit{getEvaluationOrder :: (\_, (eo, \_)) = eo}$ \\
+  \\%
+  $\mathit{signOfVar :: [Formal] \times VN \rightarrow EvalutionOrder \times Type } $ \\
+  $\mathit{signOfVar~formals~vn = lookup~vn~formals}$ \\
+  \\%
+  $\mathit{transform :: CallerEO \times CalleeEO \times FrameArg \times 
+            State \rightarrow FrameArg \times State}$ \\
+  $\mathit{transform~(CBV, CBV, arg, s) = (arg, s)}$ \\
+  $\mathit{transform~(CBN, CBN, arg, s) = (arg, s)}$ \\
+  $\mathit{transform~(Lazy, Lazy, arg, s) = (arg, s)}$ \\
+  $\mathit{transform~(CBV, CBN, ByNameArg~e, s) = (StrictArg~v, s'),}$ \\
+  $\mathit{\hfill\ \hfill\ where~(v, s') = eval~(e, s)}$ \\
+  $\mathit{transform~(CBV, Lazy, LazyArg~e~b~v, s) = 
+              if~b~then~(StrictArg~v, s)~else~(val, s'),}$ \\
+  $\mathit{\hfill\ \hfill\ where~(val, s') = eval~(e, s)} $ \\
+  $\mathit{transform~(CBN, CBV, StrictArg~(VI~v),s)=(ByNameArg~(EInt~v),s)}$ \\
+  $\mathit{transform~(CBN, CBV, StrictArg~(VC~c),s)=error}$ \\
+  $\mathit{transform~(CBN, Lazy, LazyArg~e~true~(VI~v), s) = (ByNameArg~(EInt~v), s)}$ \\
+  $\mathit{transform~(CBN, Lazy, LazyArg~e~true~(VC~c), s) = error}$ \\
+  $\mathit{transform~(CBN, Lazy, LazyArg~e~false~v, s) = (ByNameArg~e, s)}$ \\
+  $\mathit{transform~(Lazy, CBV, StrictArg~v, s) = (LazyArg~e~true~v, s)}$ \\
+  $\mathit{transform~(Lazy, CBN, ByNameArg~e, s) = (LazyArg~e~false~null, s)}$ \\
+  \\%
+  $\mathit{mutate :: [Formal] \times [Formal] \times [FrameArg]
+            \times [Actual] \times Index \times State \rightarrow [FrameArg] \times State} $ \\
+  $\mathit{mutate~(\_,~[],\_,[],\_,~acc,~s)=(acc,~s)}$ \\
+  $\mathit{mutate~(callerfs,~calleefs,~args,~(EVar~v~:~as),~ix,~acc,~s)}$ \\
+  $\mathit{\hfill\ =~mutate~(callerfs,~calleefs,~args,~as,~(ix+1),(arg'~:~acc), ~s')}$ \\
+  $\mathit{\hfill\ \hfill\ where~calleeEO=getEvaluationOrder~calleefs[ix]}$ \\
+  $\mathit{\hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ 
+            sign@(callerEO, callerType) = signOfVar~(vn, callerfs)}$ \\
+  $\mathit{\hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ 
+            callerIx = getIndex~(vn, sign)~callerfs}$ \\
+  $\mathit{\hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ 
+            arg = args[callerIx]}$ \\
+  $\mathit{\hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ 
+            (arg', s') = mutate~(calleeEO, callerEO, arg, s)}$ \\
+  $\mathit{mutate~(callerfs,~calleefs,~args,~(a@(EInt~n)~:~as),~ix,~acc,~s)}$ \\
+  $\mathit{\hfill\ =~mutate~(callerfs,~calleefs,~args,~as,~(ix+1),(arg~:~acc), ~s)}$ \\
+  $\mathit{\hfill\ \hfill\ where~calleeEO=getEvaluationOrder~calleefs[ix]}$ \\
+  $\mathit{\hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ 
+      if~calleeEO=CBV~then~StrictArg~(VI~n)~else~if~calleeEO=CBN~then~ByNameArg~a~}$ \\
+  $\mathit{\hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ 
+           \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ 
+           \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ 
+           \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\
+    else~LazyArg~a~false~null}$ \\
+  $\mathit{mutate~(callerfs,~calleefs,~args,~(a~:~as),~ix,~acc,~s)}$ \\ 
+  $\mathit{\hfill\ =if~calleeEO=CBV~then~mutate~(callerfs,~calleefs,~args,~as,~(ix+1),(arg'~:~acc), ~s')}$ \\
+  $\mathit{\hfill\ \hfill\ where~calleeEO=getEvaluationOrder~calleefs[ix]}$ \\  
+  $\mathit{\hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ 
+            (v, s') = eval~(a, s)}$ \\
+  $\mathit{\hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ \hfill\ 
+            arg'=StrictArg~v}$ \\
+\caption{Λειτουργική σημασιολογία για τη λειτουργία $\mathit{mutate}$\label{fig:mutate-el}}
+\end{figure}
+
+
+
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \englishtext
@@ -2587,6 +2876,7 @@ More specifically a branch for a pattern matching is:
 \caption{Evaluation of the scrutinee\label{fig:scrueval}}
 \end{figure} ~
 \begin{figure}[htp]
+  \setlength{\jot}{-3pt}%
   \begin{align*}
     & \mathit{eval \hfill\ (caseExpr, s) = (eval \hfill\ e'' \hfill\ s', s'),} \\
     \mathit{where} \\
@@ -2991,7 +3281,7 @@ a list that accumulates the result of every iteration.
   $\mathit{transform~(CBN, CBN, arg, s) = (arg, s)}$ \\
   $\mathit{transform~(Lazy, Lazy, arg, s) = (arg, s)}$ \\
   $\mathit{transform~(CBV, CBN, ByNameArg~e, s) = (StrictArg~v, s'),}$ \\
-  $\mathit{\hfill\ \hfill\ where~(v, s') = eval~(e, s)}$ \\
+  $\mathit{\hspace*{1em} where~(v, s') = eval~(e, s)}$ \\
   $\mathit{transform~(CBV, Lazy, LazyArg~e~b~v, s) = 
               if~b~then~(StrictArg~v, s)~else~(val, s'),}$ \\
   $\mathit{\hfill\ \hfill\ where~(val, s') = eval~(e, s)} $ \\
