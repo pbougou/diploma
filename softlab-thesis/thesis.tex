@@ -1362,7 +1362,29 @@ to the new frame.
 %
 \chapter{Επίλογος}
 
-Μπλα μπλα μπλα.
+This thesis shows how to extend classic tail-call optimization to lazy
+languages supporting alternative evaluation order choices (such as
+call-by-value and call-by-name). Our prototype implementation is an
+interpreter that uses information from a local static analysis, in
+order to detect opportunities for tail-call optimization at tail-call
+positions.
+
+Αυτή η εργασία δείχνει πώς να επεκτείνουμε την κλασική βελτιστοποίηση κλήσης ουράς σε 
+γλώσσες με οκνηρή αποτίμηση που υποστηρίζουν πολλαπλά είδη αποτίμησης (όπως π.χ.
+κλήση κατ' αξία και κλήση κατ' όνομα). Η εφαρμογή μας είναι ένας
+διερμηνέα που χρησιμοποιεί πληροφορίες από μια τοπική στατική ανάλυση, 
+προκειμένου να ανιχνευθούν ευκαιρίες βελτιστοποίησης στις θέσεις κλήσεων ουράς.
+
+Η τεχνική μας μπορεί επίσης να υλοποιηθεί σε ενα μεταγλωττιστή για οκνηρές 
+γλώσσες που χρησιμοποιεί defunctionalization, όπως ο GIC~\cite{Fourtounis14} ή ο
+GRIN~\cite{Boquist96,Podlovics19}.  Αυτή η ενσωμάτωση χρειάζεται ένα μικρό
+γεννήτορα κώδικα για μετάλλαξη των πλαισίων για τις τις κλήσεις ουράς,
+οδηγούμενη από τις αποφάσεις του διερμηνέα μας. Ένα τέτοιο βήμα είναι 
+το προφανές για την υλοποίηση μας. 
+
+Ενσωμάτωση με ένα πιο σύνθετο μεταγλωττιστή θα μπορούσε επίσης να βοηθήσει για να 
+αξιολογήσουμε την τεχνική μας με πιο ρεαλιστικά προγράμματα ως αναφορά (benchmarks),
+όπως η \emph{nofib} benchmark σουίτα~\cite{nofib}.
 
 
 
