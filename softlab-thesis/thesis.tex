@@ -372,7 +372,7 @@ John Reynolds.
 
 
 \begin{itemize}
-\item \textbf{Άλφα-μετονομασία:} Αυτός ο μετασχηματισμός μετονομάζει όλες τις μεταβλητές που δεσμεύονται από την αντιστοίχιση προτύπων.
+\item \textbf{Άλφα-μετονομασία:} Αυτός ο μετασχηματισμός (\emph{alpha-renaming} ή \emph{alpha-conversion}~\cite{Barendregt:1993:LCT:162552.162561}) μετονομάζει όλες τις μεταβλητές που δεσμεύονται από την αντιστοίχιση προτύπων.
 Κάθε έκφραση `case' ανοίγει ένα νέο πεδίο εφαρμογής και τα ονόματα μεταβλητών σε αυτό το πεδίο δεσμεύονται στο πλησιέστερο
 «περίπτωση». Αυτή η μεταμόρφωση επίσης χειρίζεται τη σκίαση ονόματος.
 \item \textbf{Μετατροπή του if σε case:} Όταν η γλώσσα υποστηρίζει αντιστοίχιση προτύπων στα δεδομένα
@@ -2263,7 +2263,7 @@ language to reach the final form, which is the input of the analysis, presented 
 
 
 \begin{itemize}
-  \item \textbf{Alpha-renaming:}  This transformation renames all variables bound by pattern matching.
+  \item \textbf{Alpha-renaming:}  This transformation (also known as \emph{alpha-conversion}~\cite{Barendregt:1993:LCT:162552.162561}) renames all variables bound by pattern matching.
   Every `case' expression opens a new scope and variable names in this scope are bound to the closest 
   `case' pattern. This transformation also handles name shadowing. 
   \item \textbf{If-to-case transform:}  When the language supports pattern matching on data 
