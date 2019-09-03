@@ -99,7 +99,7 @@
   functional programming languages with multiple evaluation order choices (call-by-value, call-by-name and
   call-by-need). Specifically in the presence of call-by-need semantics, the program values under this 
   semantics "escape" their context more easily than in call-by-value, making tail-calls much more 
-  difficult to reveal.
+  difficult to reveal. 
   
 
 \begin{keywordsen}
@@ -758,7 +758,7 @@ $
 κλήση συναρήσεων.
 
 Σε κάθε βήμα εκτέλεσης η \textit{eval} αναζητά την τρέχουσα κατάσταση. Όπως έχουμε ήδη αναφέρει το state είναι
-ένα πεδίο με~\cite{Abel13}:
+ένα πεδίο με:
 
 \begin{minted}{haskell}
   State = (Mem, FrameId, NRFrames) 
@@ -1392,11 +1392,17 @@ GRIN~\cite{Boquist96,Podlovics19}.  Αυτή η ενσωμάτωση χρειά�
 \section {Purpose of the thesis}
 
 The purpose of the thesis is to integrate tail-call optimisation to functional programming languages 
-in the presence of multiple evaluation order choices (call-by-value, call-by-name, call-by-need). Our optimisation can be combined with the 
-defunctionalization transformation~\cite{Reynolds72definitionalinterpreters}, so that the resulting performance optimisation also supports
-higher-order functional languages. 
+in the presence of multiple evaluation order choices (call-by-value, call-by-name, call-by-need). 
+Our optimisation can be combined with the defunctionalization transformation~\cite{Reynolds72definitionalinterpreters}, 
+so that the resulting performance optimisation also supports higher-order functional languages. 
 
 \section {Motivation}
+
+While programs in imperative programming lanaguages can run in constant space using ``loops'', 
+this does not happen in functional programming languages (which favour recursion over ``loops''), because of the memory overhead due to recursion.
+On the one side, functional programming offers programmers and software engineers features that other 
+programming styles do not~\cite{Hughes89}, and on the other side, memory overhead due to recursion can 
+be eliminated using tail-call optimisation.
 
 Tail-call optimisation for strict functional languages is a well-studied topic, but it fails in the 
 presence of laziness: the computation of a lazy argument can happen arbitrarily during the execution 
@@ -1498,14 +1504,47 @@ main idea of this thesis.
 \section{Tail-call optimisation}
 \label{sec:tco}
 
-The main optimisation this thesis discusses is the tail-call optimisation. This optimisation, first found in Scheme~\cite{Sussman:1975:IEL:889230,Steele:1976:LUI:889232} and
+The main optimisation this thesis discusses is the tail-call optimisation. This optimisation, first found 
+in Scheme~\cite{Sussman:1975:IEL:889230,Steele:1976:LUI:889232} and
 generally usually found in strict functional languages, 
 allows functional programming languages to have constant space 
 similar to `for' loops from imperative programming languages~\cite{Clinger:1998:PTR:277650.277719}. 
 Without this, recursion would require \textit{linear} memory space; 
-i.e. one frame allocation for each function call. More recent works perform tail-call optimisation 
-for non-functional languages, such as C/C++~\cite{Probst01} 
-and Java~\cite{Madsen:2018:TCE:3178372.3179499}.
+i.e. one frame allocation for each function call.
+
+Implementations of programming languages use a stack for function calls, 
+where stack frames (or \emph{activation records}) are pushed for every function invocation: this permits recursion 
+and has good performance. Stack allocation for function calls has been an old technique, 
+dating back at least to ALGOL~\cite{Dijkstra60,Naur78} and LISP~\cite{McCarthy60,Stoyan79}.
+
+Tail calls are function calls that happen last inside a function and
+they can be implemented with a ``go to'' instruction. In the special
+case that the caller's frame will not be needed again, \emph{tail-call
+  optimization} can reuse it to construct the frame of the callee,
+saving space, and making some programs run in constant
+space. Tail calls can be further optimized by the
+instruction-scheduling stage of a compiler~\cite[\S12.4.3]{Torczon12}.
+Tail calls have been used to transform recursive functions to
+iterative (tail-recursive)
+ones~\cite[\S{9}]{McCarthy62}\cite{Barron68}.  Tail-call optimization
+is an old idea~\cite[p.~7]{Gill65}\cite[p.~21]{Knuth74}, which is an
+established part of modern compilers.
+
+Some languages and implementations often offer features that are not
+easy to compose with tail-call optimization. Frames may
+not be resized in-place for languages that support
+coroutines~\cite[p.~60]{Waite84}. Languages that support first-class
+continuations~\cite{Sperber10}, higher-order return
+values~\cite[p.~103]{Appel92}\cite{Steele78},
+backtracking~\cite{Bobrow73}, or non-strict evaluation, and
+implementations in continuation-passing style~\cite[p.~103]{Appel92},
+may allocate frames on the heap. 
+
+Tail-call optimization is also important for implementations of logic languages~\cite{Bigot99},
+functional programming languages running on the Java virtual machine~\cite{Madsen:2018:TCE:3178372.3179499},
+imperative languages such as C~\cite{baueran:mthesis:2003,Probst01}, or even low-level compiler-targeted languages such as
+LLVM~\cite{Pandey:2015:LC:2842773}.
+
 
 What exactly is \textit{tail call optimisation}? Tail calls are function calls in specific locations;
 specifically they are function calls performed as the final action of a function. Tail-call optimisation is actually passing 
@@ -1952,7 +1991,7 @@ More specifically, in section~\ref{sec:classic-tco-examples} we provide examples
 for almost all the cases of handling lists (`lazy' data constructors): 
 consuming (`sum'), constructing (`makelist'), consuming and constructing (`map'). 
 In section~\ref{sec:modulo-cons-example}, an example for tail recursion modulo cons is presented. It is an extension of classic 
-tail-call optimisation, first appeared in Prolog implementations.
+tail-call optimisation, first appeared in an implementation of Prolog.
 
 
 \section {Classic tail-call optimisation}
@@ -3347,46 +3386,37 @@ How it counts the frames.
 
 Give graph results from the microbenchmarks.
 
+\begin{figure}[h]
+\begin{tabular}{|l|l|l|}
+  \hline  
+    Programs/Mode & Without TCO & With TCO \\
+  \hline 
+    fact          & 1002        & 1        \\
+  \hline
+    sum           & 1001        & 1        \\
+  \hline
+    makelist      & 10001       & 1        \\
+  \hline
+    fast reverse  & 3007        & 2004     \\
+  \hline
+    average       & 2002        & 1        \\
+  \hline    
+    getNthFib     & 2003        & 1002     \\
+  \hline 
+\end{tabular}
+\caption{Evaluation on microbenchmarks\label{fig:measures}}
+\end{figure}
+
 \chapter{Related work}
 \label{ch:related}
-
-Implementations of programming languages use a stack for function calls, 
-where stack frames (or \emph{activation records}) are pushed for every function invocation: this permits recursion 
-and has good performance. Stack allocation for function calls has been an old technique, 
-dating back at least to ALGOL~\cite{Dijkstra60,Naur78} and LISP~\cite{McCarthy60,Stoyan79}.
-
-Tail calls are function calls that happen last inside a function and
-they can be implemented with a ``go to'' instruction. In the special
-case that the caller's frame will not be needed again, \emph{tail-call
-  optimization} can reuse it to construct the frame of the callee,
-saving space, and making some programs run in constant
-space. Tail calls can be further optimized by the
-instruction-scheduling stage of a compiler~\cite[\S12.4.3]{Torczon12}.
-Tail calls have been used to transform recursive functions to
-iterative (tail-recursive)
-ones~\cite[\S{9}]{McCarthy62}\cite{Barron68}.  Tail-call optimization
-is an old idea~\cite[p.~7]{Gill65}\cite[p.~21]{Knuth74}, which is an
-established part of modern compilers.
-
-Some languages and implementations often offer features that are not
-easy to compose with tail-call optimization. Frames may
-not be resized in-place for languages that support
-coroutines~\cite[p.~60]{Waite84}. Languages that support first-class
-continuations~\cite{Sperber10}, higher-order return
-values~\cite[p.~103]{Appel92}\cite{Steele78},
-backtracking~\cite{Bobrow73}, or non-strict evaluation, and
-implementations in continuation-passing style~\cite[p.~103]{Appel92},
-may allocate frames on the heap. 
-
-Tail-call optimization is also important for implementations of logic languages~\cite{Bigot99},
-functional programming languages running on the Java virtual machine~\cite{Madsen:2018:TCE:3178372.3179499},
-imperative languages such as C~\cite{baueran:mthesis:2003,Probst01}, or even low-level compiler-targeted languages such as
-LLVM~\cite{Pandey:2015:LC:2842773}.
 
 Find something Haskell-ish for classic tail-calls. GHC used Cmm and 
 later LLVM to support tail calls~\cite{Terei:2010:LBG:1863523.1863538}.
 
-Fusion vs. tail recursion modulo cons: functional programming \emph{short cut fusion}~\cite{Gill:1993:SCD:165180.165214,Pardo16} is based on work initially started with the listlessness optimization~\cite{Wadler84}. Listlessness is closely related to tail recursion modulo cons: ``programs for the listless machine are related to programs compiled using an optimization called tail recursion, particularly tail recursion modulo cons''~\cite{Wadler84}.
+Fusion vs. tail recursion modulo cons: functional programming \emph{short cut fusion}~\cite{Gill:1993:SCD:165180.165214,Pardo16} is based 
+on work initially started with the listlessness optimization~\cite{Wadler84}. Listlessness is closely related to tail recursion modulo cons: 
+``programs for the listless machine are related to programs compiled using an optimization called tail recursion, particularly tail recursion 
+modulo cons''~\cite{Wadler84}.
 
 
 \chapter{Conclusion}
@@ -3409,8 +3439,7 @@ code generator for stack frame mutation for tail calls, driven by the
 decisions currently made by our interpreter. Such an extension should
 be an obvious next step for our implementation.
 
-%% can be used for Haskell? Simply sketch something.
-%% benchmarks.
+
 
 Integration with a more complex compiler should also help with
 evaluating our technique with more realistic benchmarks, such as the
@@ -3446,8 +3475,11 @@ for evaluation order choices.
 
 \backmatter
 
-% \appendix
+\appendix
 
-% \chapter{General}
+\chapter{Benchmarks}
+
+
+
 
 \end{document}
