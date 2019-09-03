@@ -3398,11 +3398,9 @@ mpla mpla mpla
 \chapter {Evaluation of the optimisations}
 \label{ch:evaluation}
 
-Write about the interpreter again for each case.
+In figure~\ref{fig:measures}, we have the results from the evaluation on microbenchmarks in our 
+interpreter. The code of the microbenchmarks is given in appendix~\ref{appendix:bench}.
 
-How it counts the frames. 
-
-Give graph results from the microbenchmarks.
 
 \begin{figure}[h]
 \begin{tabular}{|l|l|l|}
@@ -3425,6 +3423,8 @@ Give graph results from the microbenchmarks.
 \caption{Evaluation on microbenchmarks\label{fig:measures}}
 \end{figure}
 
+
+% 
 \chapter{Related work}
 \label{ch:related}
 
@@ -3432,9 +3432,12 @@ GHC, Haskell's de facto implementation,
 used Cmm and later LLVM to support tail calls~\cite{Terei:2010:LBG:1863523.1863538}.
  
 
-Fusion vs. tail recursion modulo cons: functional programming \emph{short cut fusion}~\cite{Gill:1993:SCD:165180.165214,Pardo16} is based 
-on work initially started with the listlessness optimization~\cite{Wadler84}. Listlessness is closely related to tail recursion modulo cons: 
-``programs for the listless machine are related to programs compiled using an optimization called tail recursion, particularly tail recursion 
+Fusion vs. tail recursion modulo cons: functional programming 
+\emph{short cut fusion}~\cite{Gill:1993:SCD:165180.165214,Pardo16} is based 
+on work initially started with the listlessness optimization~\cite{Wadler84}. 
+Listlessness is closely related to tail recursion modulo cons: 
+``programs for the listless machine are related to programs compiled using 
+an optimization called tail recursion, particularly tail recursion 
 modulo cons''~\cite{Wadler84}.
 
 
@@ -3497,7 +3500,9 @@ for evaluation order choices.
 \appendix
 
 \chapter{Benchmarks}
+\label{appendix:bench}
 
+mpla mpla mpla
 
 
 
