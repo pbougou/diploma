@@ -328,9 +328,10 @@ John Reynolds.
 αυστηρές γλώσσες προγραμματισμού. H αξιολόγηση μπορεί να συμβεί
 αυθαίρετα και ως εκ τούτου οι οκνηροι όροι μπορούν να ξεφύγουν από το περιβάλλον τους.
 
-Αλλά ο Mycroft παρατήρησε ότι ορισμένοι οκνηροί όροι είναι στην πραγματικότητα αυστηροί υπό τις 
-κατάλληλες συνθήκες. Για παράδειγμα, το `case' αποτιμά τον όρο που εξετάζεται (scrutinee),
-προκαλώντας τον έτσι να γίνει αυστηρός, παρόμοια με την αυστηρότητα των BangPatterns.
+Αλλά ο Mycroft παρατήρησε ότι ορισμένοι οκνηροί όροι είναι στην
+πραγματικότητα αυστηροί υπό τις κατάλληλες συνθήκες. Για παράδειγμα,
+το `case' αποτιμά κάποιον όρο (\emph{scrutinee}~\cite{PeytonJones94}),
+κάνοντάς τον αυστηρό, παρόμοια με την αυστηρότητα των BangPatterns.
 
 Και είναι κάτι παραπάνω από αυτό. Ας δούμε ξανά το πρόγραμμα sum:
 \begin{minted}{haskell}
@@ -339,13 +340,15 @@ John Reynolds.
   sum (x: xs) acc = sum xs (x + acc)
 \end{minted}
 
-Εδώ, ο οκνηρός όρος `acc', το οποίο είναι ένα thunk σε κάθε κλήση λειτουργίας αποτιμάται μία φορά,
-όταν το πρόγραμμα κατά τη ροή εκτέλεσης του φτάνει στη βασική περίπτωση. Αυτή η αυθαίρετη αποτίμηση 
-των οκνηρών όρων φαίνεται να μην είναι τόσο αυθαίρετη. Γνωρίζουμε πότε πρόκειται να αξιολογηθεί το 
-'acc'.
+Εδώ, ο οκνηρός όρος `acc', ο οποίος είναι σε μορφή που δεν έχει
+υπολογιστεί ακόμα (\emph{thunk}~\cite{Bloss1988}), σε κάθε κλήση
+λειτουργίας αποτιμάται μία φορά, όταν το πρόγραμμα κατά τη ροή
+εκτέλεσης του φτάνει στη βασική περίπτωση. Αυτή η αυθαίρετη αποτίμηση
+των οκνηρών όρων φαίνεται να μην είναι τόσο αυθαίρετη. Γνωρίζουμε πότε
+πρόκειται να αξιολογηθεί το 'acc'.
 
 Λοιπόν, το ερώτημα είναι, τι είναι αυτό που κάνει το `acc 'τόσο προβλέψιμο;
-Από το παραπάνω παράδειγμα, έχουμε τις ακόλουθες πληροφορίες για το `acc' :
+Από το παραπάνω παράδειγμα, έχουμε τις ακόλουθες πληροφορίες για το `acc':
 \begin{itemize}
   \item `acc' είναι ένας ακέραιος αριθμός, που πάντα προστίθεται σε έναν άλλο ακέραιο αριθμό.
   \item `acc' είναι το αποτέλεσμα της συνάρτησης.
@@ -991,7 +994,7 @@ $
 Η σύνταξη της έκφρασης `case' φαίνεται στο σχήμα~\ref{fig:case-el}. Για την αποτίμηση της έκφρασης αυτής,
 ο διερμηνέας κάνει τα επόμενα βήματα:~
 \begin{itemize}
-  \item Πρώτα, αποτιμά τον όρο που εξετάζεται (scrutinee), η αποτίμηση του οποίου φαίνεται στο σχήαμα~\ref{fig:scrueval-el}.
+  \item Πρώτα, αποτιμά τον όρο που εξετάζεται (scrutinee), η αποτίμηση του οποίου φαίνεται στο σχήμα~\ref{fig:scrueval-el}.
   \item Στη συνέχεια, στο σχήμα~\ref{fig:intPattMatch-el}, φαίνεται πώς συμπεριφέρεται ο διερμηνέας για pattern matching πάνω σε ακεραίους.
   \item Τέλος, το pattern matching πάνω σε κατασκευαστές δεδομένων φαίνεται στο σχήμα~\ref{fig:consPattMatch-el}.
 \end{itemize}
@@ -1672,7 +1675,7 @@ Call-by-name evaluation is occasionally preferable to call-by-value evaluation. 
 argument is not used in the function, call by name will save time by not evaluating the argument, 
 whereas call by value will evaluate it regardless. If the argument is a non-terminating computation, 
 the advantage is enormous. However, when the function argument is used, call by name is often slower, 
-requiring a mechanism such as a thunk, first appeared in ALGOL60~\cite{Naur78}. More recent works 
+requiring a mechanism called a \emph{thunk}, first appeared in ALGOL60~\cite{Naur78}. More recent works 
 works prove a relation between call-by-name and call-by-value~\cite{Wadler03}, supporting our interest 
 to investigate call-by-name as an evaluation order present in our core language.
 
@@ -1753,7 +1756,7 @@ but now in the presence of laziness:
 
 When we call `head' with [42, loop 42] the following happens:
 \begin {itemize}
-  \item Allocates a frame with an unevaluated \textit{thunk}, which is [42, loop 42], for the function call to head.
+  \item Allocates a frame with an unevaluated \textit{thunk}~\cite{Bloss1988}, which is [42, loop 42], for the function call to head.
   This means that `l' formal parameter contains a pointer to the memory cell, which contains the aforementioned actual parameter. 
   \item Then, `head' is evaluated. Imagine `case' as an operation that "opens" the data, i.e. it forces evaluation \textit{one} 
   more step. The first expression to be evaluated is the list `l', which is \textit{needed} in order to pick a branch. More 
@@ -2222,7 +2225,7 @@ arbitrarily and thus lazy arguments can escape their context.
 
 But Mycroft
 noticed that some lazy terms are actually strict under the right circumstances~\cite{Mycroft:1980:TPT:647324.721526}. For instance, the `case' 
-construct forces the evaluation of the scrutinee, causing the scrutinee to actually become strict, 
+construct forces the evaluation of an expression, called the \emph{scrutinee}~\cite{PeytonJones94}, causing the scrutinee to actually become strict, 
 similar to strictness presented in section~\ref{sec:bangpatterns} about BangPatterns. 
 
 And it's more than that. Let's look again the sum program of section~\ref{sec:example1}:
