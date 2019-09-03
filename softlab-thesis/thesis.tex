@@ -3421,6 +3421,14 @@ Integration with a more complex compiler should also help with
 evaluating our technique with more realistic benchmarks, such as the
 \emph{nofib} benchmark suite~\cite{nofib}.
 
+Finally, Kerneis and Chroboczek proved that tail calls and lambda
+lifting are compatible in a call-by-value
+setting~\cite{Kerneis2011}. Since our technique can be optionally
+combined with a lambda lifter (section~\ref{sec:syntax}), another
+future step in the context of this thesis would be to formalize the
+interaction between lambda lifting, tail calls, and our richer support
+for evaluation order choices.
+
 %% > gfour: the tco described in this thesis is a superset of standard
 %% > tco for strict languages, so there is no future work here.
 %% extension of the tail-call optimisation for strict
