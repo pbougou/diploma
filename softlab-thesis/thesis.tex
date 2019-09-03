@@ -359,8 +359,7 @@ John Reynolds.
 το `acc 'είναι ένας ακέραιος αριθμός (πρώτη παρατήρηση), οπότε και μπορούν να αποτιμώνται κάθε φορά.
 
 Αν και σε αυτή τη διατριβή χρησιμοποιήσαμε ακέραιους αριθμούς και λίστες, η ανάλυση αυστηρότητας 
-μπορεί να εφαρμοστεί εκτός από ακεραίους και σε οποιοδήποτε άλλες τιμές βασικού τύπου, 
-χρησιμοποιώντας αφηρημένη ερμηνεία(abstract interpretation).
+μπορεί να εφαρμοστεί εκτός από ακεραίους και σε οποιοδήποτε άλλες τιμές βασικού τύπου.
 Η ανάλυση αυστηρότητας εκτελείται στη γλώσσα της ανώτερης τάξης μετά το defunctionalization για να 
 εντοπίσει τούς αυστηρούς όρους.
 
@@ -1899,12 +1898,6 @@ In Chapter~\ref{ch:analysis}, we will also give our own static
 analysis that will be able to detect the program points where
 tail-call optimization can be applied.
 
-%% \subsection{Abstract interpretation}
-
-%% Use case for strictness analysis, an instance of 
-%% abstract interpretation. Explanation and citations
-%% for that.
-
 \section{Abstract machines and Interpreters}
 \label{sec:abstract-machines}
 
@@ -2249,8 +2242,7 @@ From these observations we can deduct that `acc' is going to be evaluated (secon
 all intermediate values are needed for its evaluation, as `acc' is an integer (first observation).
 
 Although in this thesis we used integers and lists, strictness
-analysis can be applied except for integer domain to any other domain,
-using abstract interpretation. In practice, strictness analysis is a
+analysis can be applied except for integer domain to any other domain. In practice, strictness analysis is a
 core analysis of Haskell
 implementations~\cite{PeytonJones:1991:UVF:645420.652528,burn:lemetayer:1996,Holdermans:2010:MSM:2088270.2088274}.
 
