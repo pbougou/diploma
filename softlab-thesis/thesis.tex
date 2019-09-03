@@ -1986,6 +1986,15 @@ Write about G-Machine, STG's predecessor. Compare it with G-Machine.
 \label{sec:stg}
 Overview of STG~\cite{Jo92} and its latest version~\cite{Ma06}.
 
+In all other the abstract machines mentioned above, the abstract machine code for a
+program consists of a sequence of abstract machine instructions. Each instruction is
+given a precise operational semantics using a state transition system.
+This machine is itself a small functional language 
+% We take a different approach: the abstract machine language is itself a very small functional language,
+% which has the usual denotational semantics. In addition, though, each
+% language construct has a direct operational interpretation, and we give an operational
+% semantics for the same language using a state transition system.
+
 \subsection{Push/enter vs. eval/apply}
 \label{sec:push-enter}
 Push-enter vs. eval-apply~\cite{Ma06}, marlow and jones. Our model is push-enter, since it is first-order.
@@ -3207,7 +3216,8 @@ The additional rule for tail recursion modulo cons is that if you have a tail ca
 \end{minted}
 then \textit{`x'} must not contain any recursive calls and \textit{`y'} must be a function call that is subject to the 
 rules presented in section~\ref{sec:data-driven-analysis}; in this way frame mutation will become possible. If the last rule is applied, 
-then we can have \textit{x `:' tail recursive call to the function}. Details on that will be presented later, in section~\ref{sec:tco-modulo-cons-eval}.
+then we can have \textit{x `:' tail recursive call to the function}. 
+% Details on that will be presented later, in section~\ref{sec:tco-modulo-cons-eval}.
 
 
 % \section {Intermediate list node removal}
@@ -3219,40 +3229,34 @@ then we can have \textit{x `:' tail recursive call to the function}. Details on 
 \label{ch:evaluator}
 
 In this chapter, we will present how the optimisations are implemented in the interpreter.
-More specifically there will be presented:
-\[ \mathit{eval \hfill\ (e, s) = (e', s')} \]
-where:
-\begin{itemize}
-\item in section~\ref{sec:classic-tco-eval} we have the evaluation of tail-call optimisation, first expression 
-      shown in figure~\ref{fig:annos},
-\item and in section~\ref{sec:tco-modulo-cons-eval} we have the evaluation of tail recursion modulo cons shown
-      also in figure~\ref{fig:annos}.
+More specifically,
+in section~\ref{sec:classic-tco-eval} we have the evaluation of tail-call optimisation, the expression 
+shown in figure~\ref{fig:annos}.
 \begin{figure}[h]
-  \begin{align*}
-    & \mathit{e = TailCall \hfill\ callee \hfill\ actuals} \\
-    & \mathit{e = TRMC \hfill\ tag \hfill\ exprs} 
-  \end{align*}
+$\mathit{eval \hfill\ (e, s) = (e', s'), where}$ \\
+$\mathit{e = TailCall \hfill\ callee \hfill\ actuals}$ \\
+% & \mathit{e = TRMC \hfill\ tag \hfill\ exprs} 
 \caption{Annotated expressions\label{fig:annos}}
 \end{figure}
 
-\end{itemize}
-The first is the classic tail-call optimisation, while the latter is the tail-recursion 
-modulo cons. There will be a comprehensive explanation of how we mutated the frames and how we counted them for 
+% \end{itemize}
+It is the classic tail-call optimisation. There will be a comprehensive explanation of how 
+we mutated the frames and how we counted them for 
 our evaluation, that follows in the next chapter.
 
 \section {Evaluator for classic tail-call optimisation}
 \label{sec:classic-tco-eval}
 
 Classic tail call evaluation contains one major \textit{operation}, which makes the optimisation 
-feasible: this is \textit{frame mutation}. This operation includes the replacement of the current frame's arguments 
-with the arguments necessary for the construction of the frame for the next function call. For this operation,
-it is mandatory that the caller's arguments do not escape and for those that escape we correctly passed them 
-to the new frame. 
+feasible: this is \textit{frame mutation}. This operation includes the replacement of the current 
+frame's arguments with the arguments necessary for the construction of the frame for the next 
+function call. For this operation, it is mandatory that the caller's arguments do not escape and 
+for those that escape we correctly passed them to the new frame. 
 
 The \textit{eval} for the \textit{TailCall} follows in figure~\ref{fig:tco}; we remind that this is actually optimisable as the analysis 
 revealed, although we make few, inexpensive extra checks for some cases.
-The functionality of \textit{checkMutate} will be explained later on in this section. The other variables 
-, shown in figure~\ref{fig:tco} are:
+The functionality of \textit{checkMutate} will be explained later on in this section. 
+The other variables, shown in figure~\ref{fig:tco} are:
 \begin{itemize}
   \item \textit{formals} are the formal parameters of the function definition of the callee function,
   \item \textit{actuals} are the actual parameter of this tail-call optimisable function call,
@@ -3390,10 +3394,10 @@ a list that accumulates the result of every iteration.
 \caption{Operational semantics for $\mathit{mutate}$ operation\label{fig:mutate}}
 \end{figure}
 
-\section {Evaluator for tail recursion modulo cons}
-\label{sec:tco-modulo-cons-eval}
+% \section {Evaluator for tail recursion modulo cons}
+% \label{sec:tco-modulo-cons-eval}
 
-mpla mpla mpla 
+% mpla mpla mpla 
 
 \chapter {Evaluation of the optimisations}
 \label{ch:evaluation}
@@ -3401,6 +3405,22 @@ mpla mpla mpla
 In figure~\ref{fig:measures}, we have the results from the evaluation on microbenchmarks in our 
 interpreter. The code of the microbenchmarks is given in appendix~\ref{appendix:bench}.
 
+\begin{itemize}
+  \item Our first example, `fact' is an example that uses integers with strictness annotations. 
+  We note here that if `fact' is not annotated, when strictness analysis is applied is 
+  transformed in the form presented in the appendix, and thus it is tail call optimisable.
+  \item The example `sum' is an example presented also in the overview chapter, and we were able to 
+  optimise it, in the same way as in a strict functional language. The same stands also for `length'.
+  \item The example `average' is an example that traverses the list twice, but because of laziness it computes it 
+  once. Here as well, we observe a significant optimisation.
+  \item The example `makelist' is also one of the examples presented in the thesis, and showcases 
+  how tail call optimisation works when the function produces data.
+  \item The example `getNthFib' contains a function that potentially produces an infinite list. 
+  This example produces the n-th fibonacci number. The optimisation shows how we can have infinite data 
+  structures, while tail call optimisation can also work here, reducing memory overhead associated 
+  with recursion. The example `ones' also works with infinite lists and with a much better optimisation 
+  than the `fibs' example.
+\end{itemize}
 
 \begin{figure}[h]
 \begin{tabular}{|l|l|l|}
@@ -3409,19 +3429,25 @@ interpreter. The code of the microbenchmarks is given in appendix~\ref{appendix:
   \hline 
     fact          & 1002        & 1        \\
   \hline
-    sum           & 1001        & 1        \\
+    sum           & 2003        & 1002     \\
   \hline
     makelist      & 10001       & 1        \\
   \hline
-    fast reverse  & 3007        & 2004     \\
-  \hline
-    average       & 2002        & 1        \\
+    average       & 9605        & 4804     \\
   \hline    
-    getNthFib     & 2003        & 1002     \\
+    getNthFib     & 439204      & 439178   \\
   \hline 
+    ones          & 2003        & 1002     \\
+  \hline
 \end{tabular}
 \caption{Evaluation on microbenchmarks\label{fig:measures}}
 \end{figure}
+
+
+From the results of the evaluation presented in this section, we saw that our runtime 
+in some cases approaches the tail call optimisation in strict functional languages and also in none of 
+the cases it did not get worse. This makes us optimistic in order to embed our technique into 
+a compiler for a lazy language.
 
 
 % 
@@ -3430,10 +3456,16 @@ interpreter. The code of the microbenchmarks is given in appendix~\ref{appendix:
 
 GHC, Haskell's de facto implementation, 
 used Cmm and later LLVM to support tail calls~\cite{Terei:2010:LBG:1863523.1863538}.
- 
+When GHC is targeting C--, it uses an optimisation called loopification~\cite{Wos10}, which 
+turns recursive calls into loops in the code generator, exploiting Haskell Core' s join points. 
+Our approach bridges the gap between implementations for non-strict functional languages and 
+the frame-based approaches for strict functional languages, with some differences though that 
+have described in section about the interpreter~\ref{sec:execution-model-overview}. Having 
+explicitely control flow inside our core language is not something that could improve our 
+approach, as it is based on data-driven analysis of the arguments of the caller and the callee.
 
-Fusion vs. tail recursion modulo cons: functional programming 
-\emph{short cut fusion}~\cite{Gill:1993:SCD:165180.165214,Pardo16} is based 
+\emph{Short cut fusion}~\cite{Gill:1993:SCD:165180.165214,Pardo16}, an 
+optimisation for functional programming languages, is based 
 on work initially started with the listlessness optimization~\cite{Wadler84}. 
 Listlessness is closely related to tail recursion modulo cons: 
 ``programs for the listless machine are related to programs compiled using 
@@ -3467,13 +3499,17 @@ Integration with a more complex compiler should also help with
 evaluating our technique with more realistic benchmarks, such as the
 \emph{nofib} benchmark suite~\cite{nofib}.
 
-Finally, Kerneis and Chroboczek proved that tail calls and lambda
+Moreover, Kerneis and Chroboczek proved that tail calls and lambda
 lifting are compatible in a call-by-value
 setting~\cite{Kerneis2011}. Since our technique can be optionally
 combined with a lambda lifter (section~\ref{sec:syntax}), another
 future step in the context of this thesis would be to formalize the
 interaction between lambda lifting, tail calls, and our richer support
 for evaluation order choices.
+
+Finally, although we described the analysis that spots optimisable 
+tail recursion modulo cons positions, we leave the implementation of the 
+runtime system for this optimisation for later work.
 
 %% > gfour: the tco described in this thesis is a superset of standard
 %% > tco for strict languages, so there is no future work here.
@@ -3502,8 +3538,70 @@ for evaluation order choices.
 \chapter{Benchmarks}
 \label{appendix:bench}
 
-mpla mpla mpla
+\section{fact}
 
+\begin{minted}{haskell}
+  fact n acc = if n > 0 then fact (n-1) (n*acc) else acc
 
+  main = fact 1000 1
+\end{minted}
+
+\section{average}
+
+\begin{minted}{haskell}
+
+fun sum l1 !acc  =
+    case l1 of 
+      h : t -> sum t (h + acc)
+      Nil   -> acc
+
+fun length l !acc  =
+    case l of 
+      h : t -> length t (acc + 1)
+      []    -> acc
+
+makeList n  = if n > 0 then n : (makeList (n - 1)) else []
+
+average l  = (sum l 0) / (length l 0)
+
+main  = average (makeList 2400)
+\end{minted}
+
+\section{fibs}
+
+\begin{minted}{haskell}
+  fun next !l = 
+      case l of
+          [] -> []
+          a : t -> 
+            case t of
+              [] -> []
+              b : d -> (a + b) : (next t)
+  
+  fun fibs = 0 : 1 : next fibs
+  
+  fun main = idx 25 fibs
+
+  fun idx !n !l =
+      case l of 
+          [] -> -2
+          a : b -> 
+              if n > 0 then idx (n-1) b else a
+\end{minted}
+
+\section{ones}
+
+\begin{minted}{haskell}
+
+ones = 1 : ones
+
+fun main = take 1000 ones
+
+fun take !n !l = 
+    case l of 
+        [] -> -2 
+        a : b -> 
+            if n > 0 then take (n-1) b else a
+\end{minted}
 
 \end{document}
