@@ -64,6 +64,15 @@
 κλήση κατ' ανάγκη). Συγκεκριμένα στην  περίπτωση της κλήσης κατ' ανάγκης, οι τιμές που υπακούουν σε αυτή τη
 σημασιολογία "δραπετεύουν" από τη εμβέλεια του ονόματος τους πιο εύκολα απ' ότι στην 
 κλήση κατ' αξία, με αποτέλεσμα να είναι αρκετά πιο δύσκολο να βρεθούν οι κλήσεις ουράς.
+Προσθέτοντας επισημειώσεις αυστηρότητας
+στη γλώσσα, μπλέκοντας δηλαδή την αυστηρή με την οκνηρή σημασιολογία, με παρόμοιο τρόπο όπως τα 
+BangPatterns της Haskell, πραγματοποιούμε μια στατική ανάλυση η οποία εντοπίζει τις βελτιστοποιήσιμες 
+κλήσεις ουράς σε μια τέτοια γλώσσα. Στη συνέχεια, υλοποιούμε τη βελτιστοποιήση κατά το χρόνο εκτέλεσης.
+, μετασχηματίζοντας με κατάλληλο τρόπο το πλαίσιο που αντιπροσωπεύει την αντίστοιχη 
+κλήση συνάρτησης. Με την υλοποίηση αυτή, από την εκτέλεση προγραμμάτων ως αναφορά, παρατηρούμε ότι η 
+βελτιστοποίηση μας είτε βελτιώνει το χρόνο εκτέλεσης είτε δεν τον αλλάζει, με αρκετές περιπτώσεις 
+να προσεγγίζουν το σταθερό χώρο μνήμης που προσφέρει η βελτιστοποίηση κλήσης ουράς στις συναρτησιακές 
+γλώσσες προγραμματισμού με αυστηρή σημασιολογία.
 
 
 \begin{keywordsgr}
@@ -99,7 +108,15 @@
   functional programming languages with multiple evaluation order choices (call-by-value, call-by-name and
   call-by-need). Specifically in the presence of call-by-need semantics, the program values under this 
   semantics "escape" their context more easily than in call-by-value, making tail-calls much more 
-  difficult to reveal. 
+  difficult to reveal. By adding strictness to the language, in the form of strictness annotations 
+  similar to Haskell's BangPatterns, we are able to confront with the problem. We perform a static 
+  analysis, which spots the tail calls that are actually optimisable in such a language. Next, we 
+  optimise the tail calls retrieved by the analysis into the runtime system, 
+  in the form of an interpreter which allocates and measures frames, 
+  where we mutate the frame that represents the optimisable function call.
+  Our results from the evaluation of microbenchmarks show that our technique either improves 
+  the runtime, or does not change it. Some microbenchmarks, though, approach the constant 
+  memory space in the same way as in strict functional programming languages.
   
 
 \begin{keywordsen}
@@ -126,7 +143,7 @@ Tail-call optimisation, lazy evaluation, static analysis, interpreter.
 %%%  Various tables
 
 \tableofcontents
-\listoftables
+% \listoftables
 \listoffigures
 %\listofalgorithms
 
@@ -169,7 +186,8 @@ Tail-call optimisation, lazy evaluation, static analysis, interpreter.
 να είναι πολύ οκνηρά ούτε πολύ αυστηρά. Χρησιμοποιώντας επισημειώσεις σειράς αποτίμησης, υποστηρίζουμε τη 
 βελτιστοποίηση κλήσεων ουράς σε οκνηρές
 συναρτησιακές γλώσσες προγραμματισμού, εξαλείφοντας έτσι την δέσμευση επιπλέον μνήμης που σχετίζεται 
-με την αναδρομή, όπως και στις αυστηρές συναρτησιακές γλώσσες.
+με την αναδρομή, όπως και στις αυστηρές συναρτησιακές γλώσσες.  
+
 
 \section{Σύνοψη της διπλωματικής}
 
@@ -3412,7 +3430,7 @@ Give graph results from the microbenchmarks.
 
 GHC, Haskell's de facto implementation, 
 used Cmm and later LLVM to support tail calls~\cite{Terei:2010:LBG:1863523.1863538}.
-In a later work, 
+ 
 
 Fusion vs. tail recursion modulo cons: functional programming \emph{short cut fusion}~\cite{Gill:1993:SCD:165180.165214,Pardo16} is based 
 on work initially started with the listlessness optimization~\cite{Wadler84}. Listlessness is closely related to tail recursion modulo cons: 
