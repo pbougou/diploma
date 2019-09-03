@@ -3410,8 +3410,9 @@ Give graph results from the microbenchmarks.
 \chapter{Related work}
 \label{ch:related}
 
-Find something Haskell-ish for classic tail-calls. GHC used Cmm and 
-later LLVM to support tail calls~\cite{Terei:2010:LBG:1863523.1863538}.
+GHC, Haskell's de facto implementation, 
+used Cmm and later LLVM to support tail calls~\cite{Terei:2010:LBG:1863523.1863538}.
+In a later work, 
 
 Fusion vs. tail recursion modulo cons: functional programming \emph{short cut fusion}~\cite{Gill:1993:SCD:165180.165214,Pardo16} is based 
 on work initially started with the listlessness optimization~\cite{Wadler84}. Listlessness is closely related to tail recursion modulo cons: 
