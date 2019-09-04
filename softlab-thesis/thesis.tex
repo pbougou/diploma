@@ -1578,14 +1578,15 @@ In the example below, we define a `factorial' function in OCaml:
       else 1
 \end{minted}
 
-Inside the function body, there is a function call to `fact'. This is not a tail-call, because this call is not 
-the last call performed in the function body. In this example, `*' is the last operation performed, just before the function returns.
+\noindent Inside the function body, there is a function call to \texttt{fact}. This is not a tail-call, because this call is not 
+the last call performed in the function body. In this example, the multiplication is the last operation performed, just before the function returns.
+
 Let's assume that we have a call to the function:
 \begin{minted}{OCaml}
  let main = fact 3
 \end{minted}
 
-The calling stack in this execution is:
+\noindent The calling stack in this execution follows:
 \begin{minted}{OCaml}
 fact 3 = 3 * fact 2
 fact 2 = 2 * fact 1
@@ -1593,11 +1594,11 @@ fact 1 = 1 * fact 0
 fact 0 = 1
 \end{minted}
 
-From the calling stack above, it seems that `fact 3' requires the result of `fact 2', which requires the result of `fact 1', which 
-requires the result of `fact 0', in order to produce the final result. A stack frame is allocated for each function call and it is finally 
+From the calling stack above, it seems that \texttt{fact 3} requires the result of \texttt{fact 2}, which requires the result of \texttt{fact 1}, which 
+requires the result of \texttt{fact 0}, in order to produce the final result. A stack frame is allocated for each function call and it is finally 
 free, when the result is returned to the caller. The last operation that happens in every call is the multiplication.
 
-Let's take a look at a second example, again for the `factorial'.
+Let's take a look at a second example, again for the `factorial' function:
 \begin{minted}{OCaml}
   let rec fact' n acc = 
     if n > 0 
@@ -1605,13 +1606,12 @@ Let's take a look at a second example, again for the `factorial'.
       else acc 
 \end{minted}
 
-These two examples have absolutely the same result. The \textit{path} they follow in order to produce it though, is totally different.
+These two examples have the same result. The \textit{path} they follow in order to produce it though, is totally different.
 At this point, let's imagine a call to the function of the second example:
 \begin{minted}{OCaml}
   let main = fact' 3 1
 \end{minted}
-
-Here is calling stack for ` fact' ':
+\noindent The calling stack for \texttt{fact'} is the following:
 \begin{minted}{OCaml}
   fact' 3 1 = fact' 2 3
   fact' 2 3 = fact' 1 6
@@ -1619,25 +1619,25 @@ Here is calling stack for ` fact' ':
   fact' 0 6 = 6
 \end{minted}
 
-As we observe, the call to fact' is the last call the function does before it returns. Also, the return result `acc' of the function is 
-evaluated at every function call. This is the reason why fact' can run using only one stack frame, and thus we have \textit{constant} stack 
-space for the execution. Constant space is also what happens if we wrote `factorial' with a `for' loop, imperative 
+As we observe, the call to \texttt{fact'} is the last call the function does before it returns. Also, the return result `acc' of the function is 
+evaluated at every function call. This is the reason why \texttt{fact'} can run using only one stack frame, and thus we have \textit{constant} stack 
+space for the execution. Constant space is also what happens if we wrote the `factorial' function with a `for' loop, in imperative 
 programming style. 
 
 Tail-call optimisation is great for both having functional programming, and thus recursion and more clear code, and also not the 
-memory overhead recursion \textit{usually} requires.
+memory overhead often required by recursion.
 
 \section{Evaluation order choices}
 \label{sec:evaluation-order}
 
-In this section, we will describe the evaluation order choices we used in this thesis. In the setting of our first-order language, evaluation order is closely tied to how parameters passed and evaluated at a function call. Evaluation order controls \textit{how} the caller and the callee function will interact, 
+In this section, we will describe the evaluation order\footnote{Also known as \emph{evaluation strategy}.} choices we used in this thesis. In the setting of our first-order language, evaluation order is closely tied to how parameters passed and evaluated at a function call. Evaluation order controls \textit{how} the caller and the callee function will interact, 
 when the former calls the latter. 
 
 The evaluation order choices we studied are: 
 \begin{itemize}
-  \item call-by-value or \textit{strict} arguments (e.g. OCaml, Scheme), 
-  \item call-by-name arguments, and
-  \item call-by-need or \textit{lazy} arguments (e.g. Haskell).
+  \item call-by-value or \textit{strict} arguments (e.g. OCaml, Scala, Scheme), 
+  \item call-by-name arguments (e.g. $\lambda$-calculus, Scala), and
+  \item call-by-need or \textit{lazy} arguments (e.g. Haskell, Scala).
 \end{itemize}
 
 Call-by-name and call-by-need semantics is similar to each other; they always produce the same result.
@@ -1645,14 +1645,14 @@ Their key difference is that call-by-need computes a value when it needs it, mem
 and does not evaluate it again, while call-by-name re-evaluates the value, in case it's needed again for a computation.
 This makes call-by-name less practical. Call-by-need can also be considered as a \textit{practical} implementation 
 of call-by-name, first appeared as a real-world implementation in the \textit{Miranda} programming 
-language, later in \textit{Clean} and have become more popular
-with Haskell's programming language implementation: the Glasgow Haskell Compiler (GHC).
+language~\cite{Turner:1985:MNF:5280.5281}, later in \textit{Clean}~\cite{Plasmeijer:1999:KCU:606666.606670}, and has become more popular
+with implementations of the Haskell programming language such as the Glasgow Haskell Compiler (GHC).
 
 \subsection {Call-by-value (CBV) or \textit{strict} evaluation}
 \label{sec:cbv}
 
 Call by value is the most commonly used technique for parameter passing. It' s used in the most functional 
-programming languages (e.g. Scheme, OCaml etc) and also in imperative and object oriented programming 
+programming languages (such as Scheme and OCaml) and also in imperative and object oriented programming 
 languages (C/C++, Java etc).
 
 \par Call by value principles briefly are:
@@ -1702,7 +1702,7 @@ It will become obvious in later section, when we will talk about laziness (secti
   main = makelist 3 []
 \end{minted}
 
-The calling stack of this program is:
+The calling stack of this program follows
 \begin{minted}{haskell}
   makelist 3 []      = makelist 2 [3] 
   -- Again, `acc' is evaluated before 
@@ -3432,8 +3432,8 @@ In figure~\ref{fig:measures}, we have the results from the evaluation on microbe
 interpreter. The code of the microbenchmarks is given in appendix~\ref{appendix:bench}.
 
 \begin{itemize}
-  \item Our first example, `fact' is an example that uses integers with strictness annotations. 
-  We note here that if `fact' is not annotated, when strictness analysis is applied is 
+  \item Our first example, \texttt{fact} is an example that uses integers with strictness annotations. 
+  We note here that if \texttt{fact} is not annotated, when strictness analysis is applied is 
   transformed in the form presented in the appendix, and thus it is tail call optimisable.
   \item The example `sum' is an example presented also in the overview chapter, and we were able to 
   optimise it, in the same way as in a strict functional language. The same stands also for `length'.
@@ -3546,8 +3546,8 @@ interaction between lambda lifting, tail calls, and our richer support
 for evaluation order choices.
 
 In addition to Haskell, our approach can also be used in other
-languages that combine laziness and strictness in the same language,
-such as PLT Scheme~\cite{Barzilay2005} and Scala~\cite{Odersky:199046}.
+languages that combine strictness and non-strictness in the same language,
+such as PLT Scheme~\cite{Barzilay2005} and Scala~\cite{Wampler:2009:PSS:1734084}.
 
 Finally, although we described the analysis that spots optimisable 
 tail recursion modulo cons positions, we leave the implementation of the 
