@@ -221,24 +221,24 @@ Tail-call optimisation, lazy evaluation, static analysis, interpreter.
 
 Οι σημαντικότερες συνεισφορές μας, που παρουσιάζονται σε αυτή τη διατριβή, είναι:
 
-
-Παρουσιάζουμε πώς η βελτιστοποίηση της κλήσης ουράς μπορεί να εφαρμοστεί σε μια συναρτησιακή 
+\begin{itemize}
+\item Παρουσιάζουμε πώς η βελτιστοποίηση της κλήσης ουράς μπορεί να εφαρμοστεί σε μια συναρτησιακή 
 γλώσσα με μεικτή σειρά αποτίμησης. Βασική συνεισφορά μας είναι πώς μπορεί να εφαρμοστεί
-την παρουσία της οκνηρής αποτίμησης, μετατρέποντας έτσι αυτή τη βελτιστοποίηση σε επέκταση της 
+υπό την παρουσία της οκνηρής αποτίμησης, μετατρέποντας έτσι αυτή τη βελτιστοποίηση σε επέκταση της 
 βελτιστοποίησης κλήσεων ουράς για γλώσσες με κλήση κατ' αξία.
 
-Μια πρωτότυπη υλοποίηση ενός διερμηνέα με ρητή δέσμευση πλαισίων, καθώς και μηχανισμό μέτρησης 
+\item Μια πρωτότυπη υλοποίηση ενός διερμηνέα με ρητή δέσμευση πλαισίων, καθώς και μηχανισμό μέτρησης 
 πλαισίων, για μια συναρτησιακή γλώσσα με κλήση κατ' αξία, κλήση κατ' όνομα και κλήση κατ' ανάγκη, οκνηρούς 
 κατασκευαστές δεδομένων και pattern matching.
 
-Ένας αλγόριθμος στατικής ανάλυσης για την εύρεση πραγματικών θέσεων κλήσης ουράς 
+\item Ένας αλγόριθμος στατικής ανάλυσης για την εύρεση πραγματικών θέσεων κλήσης ουράς 
 και την υλοποίηση του συστήματος χρόνου εκτέλεσης για αυτές τις βελτιστοποιήσεις που είναι 
 ενσωματωμένες στον διερμηνέα.
 
-Η αξιολόγηση αυτής της βελτιστοποίησης σε προγράμματα αναφοράς δείχνει ότι είτε βελτιώνει 
+\item Η αξιολόγηση αυτής της βελτιστοποίησης σε προγράμματα αναφοράς δείχνει ότι είτε βελτιώνει 
 τη μνήμη ή δεν την αλλάζει. Η αξιολόγηση φαίνεται να προσεγγίζει σε πολλές περιπτώσεις τον αριθμό της
 δέσμευσης πλαισίων σε γλώσσες ανά κλήση ανά αξία, που είναι το καλύτερο αποτέλεσμα που μπορούμε να έχουμε.
-
+\end{itemize}
 %
 
 \chapter{Η γλώσσα}
@@ -1501,7 +1501,7 @@ An overview of the contents of each chapter follows:
         are later handled by the interpreter.
 
   \item In \textit{Chapter~\ref{ch:evaluator}}, how we operationally treat inside the interpreter the 
-        tail call optimisable function calls and tail recursion modulo cons.
+        tail call optimisable function calls.
 
   \item In \textit{Chapter~\ref{ch:evaluation}}, we give an evaluation of our optimisations on microbenchmarks.
 
@@ -1958,6 +1958,12 @@ tail-call optimization can be applied.
 \section{Abstract machines and Interpreters}
 \label{sec:abstract-machines}
 
+In this section, we provide some background about abstract machines used for 
+functional programming languages implementations.
+We do not dive deep into every abstract machine; our purpose is to basically 
+provide keywords and references to the reader and, where it seems appropriate, 
+to compare with our approach.
+
 \subsection {Stack Environment Control Dump machine (SECD)}
 \label{sec:secd}
 
@@ -1973,31 +1979,51 @@ realisation of) an associative array.
 \subsection{Three-instruction machine (TIM)}
 \label{sec:tim}
 
-TIM~\cite{Argo89}.
+The Three Instruction Machine (TIM)~\cite{Argo89} represents a closure by a pair of a code pointer and
+a pointer to a heap-allocated frame~\cite{Fairbairn87}. The frame, which is a vector
+of code-pointer/frame-pointer pairs, gives the values of the free variables of the closure, and
+may be shared between many closures. These pairs of code pointer and frame pointer need to be
+handled very carefully in a lazy system, because they cannot be duplicated without the risk of
+duplicating work, and thus violating the single evaluation property.
 
-provide background for abstract machines and Interpreters
-secd, tim, stg etc etc
+In our approach, we also use heap allocated frames, but we have a uniform representation 
+of our runtime structs. Our interpreter allocates frames both for function and constructor 
+applications, and updates the frames appropriately when the evaluation of a lazy argument is 
+forced.
 
-\subsection{G-Machine}
-\label{sec:g-machine}
-Write about G-Machine, STG's predecessor. Compare it with G-Machine.
+% \subsection{G-Machine}
+% \label{sec:g-machine}
 
-\subsection{Spineless Tagless G-Machine (STG)}
+\subsection{Abstract machines for Haskell}
 \label{sec:stg}
-Overview of STG~\cite{Jo92} and its latest version~\cite{Ma06}.
+Write about G-Machine, STG's predecessor. Compare it with G-Machine~\cite{Jo90}.
 
+Overview of STG~\cite{Jo92} and its latest version~\cite{Ma06}.
 In all other the abstract machines mentioned above, the abstract machine code for a
 program consists of a sequence of abstract machine instructions. Each instruction is
 given a precise operational semantics using a state transition system.
 This machine is itself a small functional language 
-% We take a different approach: the abstract machine language is itself a very small functional language,
-% which has the usual denotational semantics. In addition, though, each
-% language construct has a direct operational interpretation, and we give an operational
-% semantics for the same language using a state transition system.
 
 \subsection{Push/enter vs. eval/apply}
 \label{sec:push-enter}
-Push-enter vs. eval-apply~\cite{Ma06}, marlow and jones. Our model is push-enter, since it is first-order.
+
+In the functional programming world there are two basic approaches for evaluation of function calls:
+push/enter and eval/apply. 
+\begin{itemize}
+\item The push/enter model, briefly proceeds as following: 
+the function (callee), which statically knows its own arity, 
+examines the stack to figure out how many arguments it has been passed, and where they are. This 
+is also our own approach, where at a function we lookup the signature of the function, evaluate 
+its arguments and jump to the function's body.
+\item The eval/apply model briefly proceeds as following: the caller, which statically knows 
+what the arguments are, examines the function closure, extracts its arity, and makes an exact 
+call to the function.
+\end{itemize}
+
+While, as Marlow \& Jones claim~\cite{Ma06}, eval/apply is better than push/enter, we implement an 
+interpreter for a first order functional language, where no partial applications take place.
+In this specific case, we know in advance how many are the arguments and we are able to construct 
+the appropriate runtime data structure from the callee's point of view.
 
 % \section {Boxed vs. Unboxed values}
 % μπλα μπαλα.
@@ -2481,7 +2507,7 @@ includes the following high-level properties:
   to the semantics. 
   \item Our model supports pattern matching (constructors and base type values) similar to Haskell. 
   This is the most complicated feature in a lazy functional language, if we consider that initial 
-  abstract machine did not provide support for that (section~\ref{sec:g-machine}).
+  abstract machine did not provide support for that (section~\ref{sec:stg}).
 \end{itemize}
 
 \section {Runtime system}
@@ -3420,29 +3446,41 @@ interpreter. The code of the microbenchmarks is given in appendix~\ref{appendix:
   structures, while tail call optimisation can also work here, reducing memory overhead associated 
   with recursion. The example `ones' also works with infinite lists and with a much better optimisation 
   than the `fibs' example.
+  \item The example `last' is the most classic example of a program, that forces the evaluation of 
+  the input deeply; it pattern matches on every element of the list, causing its evaluation to 
+  finally find the last element. The use of tail call optimisation, as it seems in the figure,
+  can make such pathological programs to run with much more efficient.
 \end{itemize}
 
-\begin{figure}[h]
-\begin{tabular}{|l|l|l|}
-  \hline  
-    Programs/Mode & Without TCO & With TCO \\
-  \hline 
-    fact          & 1002        & 1        \\
-  \hline
-    sum           & 2003        & 1002     \\
-  \hline
-    makelist      & 10001       & 1        \\
-  \hline
-    average       & 9605        & 4804     \\
-  \hline    
-    getNthFib     & 439204      & 439178   \\
-  \hline 
-    ones          & 2003        & 1002     \\
-  \hline
-\end{tabular}
-\caption{Evaluation on microbenchmarks\label{fig:measures}}
-\end{figure}
 
+
+
+\begin{center}
+  \begin{figure}[h]
+  \begin{tabular}{|l|l|l|}
+    \hline  
+      Programs/Mode & Without TCO & With TCO \\
+    \hline 
+      fact          & 1002        & 1        \\
+    \hline
+      sum           & 2003        & 1002     \\
+    % \hline
+    %   makelist      & 10001       & 1        \\
+    \hline
+      average       & 9605        & 4804     \\
+    \hline    
+      getNthFib     & 439204      & 439178   \\
+    \hline 
+      ones          & 2003        & 1002     \\
+    \hline
+      fast-reverse  & 3007        & 3004     \\
+    \hline
+      last          & 3001        & 2001     \\
+    \hline
+  \end{tabular}
+  \caption{Evaluation on microbenchmarks\label{fig:measures}}
+  \end{figure}
+\end{center}
 
 From the results of the evaluation presented in this section, we saw that our runtime 
 in some cases approaches the tail call optimisation in strict functional languages and also in none of 
@@ -3602,6 +3640,24 @@ fun take !n !l =
         [] -> -2 
         a : b -> 
             if n > 0 then take (n-1) b else a
+\end{minted}
+
+\section{last}
+
+\begin{minted}{haskell}
+
+fun last !l  =
+    case l of 
+      [] ->  -1
+      x : xs -> 
+        case xs of 
+          [] -> x 
+          y : ys -> last xs
+
+fun createCons !n = if n > 0 then n : (createCons (n - 1)) else []
+
+fun main  = last (createCons 1000)
+
 \end{minted}
 
 \end{document}
