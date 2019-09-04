@@ -1776,7 +1776,7 @@ In this example, the successive order of calls would be:
 \end{minted}
 
 
-\subsection {Call-by-need or \textit{lazy} evaluation }
+\subsection {Call-by-need or \textit{lazy} evaluation}
 \label{sec:lazy}
 
 Call by need is a memoized variant of call by name where, if the function argument is evaluated, 
@@ -1789,15 +1789,17 @@ unexpected behavior from variables whose values change prior to their delayed ev
 
 Lazy evaluation is roughly guarded by two major priciples:
 \begin{itemize}
-  \item \textit{Call-by-name} semantics, and
-  \item \textit{single-evaluation} property, which makes the memoization compulsory.
+  \item \textit{call-by-name} semantics, and
+  \item \textit{single-evaluation} property, which requires some form of memoization in the case of reused values.
 \end{itemize}
 
-At this point, let's take a closer look at this program, also presented in the previous section about CBN,
+At this point, let's take a closer look at this program, also presented in the previous section about CBN evaluation,
 but now in the presence of laziness:
 
 \subsection{Lazy data constructors}
 \label{sec:lazy-data-cons}
+
+Assume the following program:
 
 \begin{minted}{haskell}
   loop x = loop x -- function that diverges
@@ -1810,20 +1812,20 @@ but now in the presence of laziness:
   main = head [42, loop 42]
 \end{minted}
 
-When we call `head' with [42, loop 42] the following happens:
+When we call \texttt{head} with argument \texttt{[42, loop 42]}, the following happens:
 \begin {itemize}
-  \item Allocates a frame with an unevaluated \textit{thunk}~\cite{Bloss1988}, which is [42, loop 42], for the function call to head.
-  This means that `l' formal parameter contains a pointer to the memory cell, which contains the aforementioned actual parameter. 
-  \item Then, `head' is evaluated. Imagine `case' as an operation that "opens" the data, i.e. it forces evaluation \textit{one} 
-  more step. The first expression to be evaluated is the list `l', which is \textit{needed} in order to pick a branch. More 
-  specifically `eval l' produces `x1:x2', where `x1' contains a pointer to `42' and `x2' contains a pointer to `loop 42'.
-  It also binds `x', `xs' to `x1', `x2' successively.
-  \item At this point, `case' knows which branch to pick from the previous step. As `l' is not an empty list, it picks the 
+  \item The program allocates a frame with an unevaluated \textit{thunk}~\cite{Bloss1988}, which is the expression \texttt{[42, loop 42]}, for the function call to \texttt{head}.
+  This means that the formal parameter \texttt{l} contains a pointer to the memory cell, which contains the aforementioned actual parameter.
+  \item Then, \texttt{head} is evaluated. Imagine \texttt{case} as an operation that "opens" the data, i.e. it forces evaluation \textit{one} 
+  more step, until it finds which constructor is used. The first expression to be evaluated is the list \texttt{l}, which is \textit{needed} in order to pick a branch. More 
+  specifically the evaluation of \texttt{l} produces \texttt{x1:x2}, where \texttt{x1} contains a pointer to \texttt{42} and \texttt{x2} contains a pointer to \texttt{loop 42}.
+  It also binds \texttt{x}, \texttt{xs} to \texttt{x1}, \texttt{x2} respectively.
+  \item At this point, \texttt{case} knows which branch to pick from the previous step. As \texttt{l} is not an empty list, it picks the 
   second branch. 
-  \item On the right-hand side of the second branch, there is variable `x'. Now, the value of `x' is needed, and thus 
-  it evaluates `x1', that is evaluates the content of the pointer and finally it returns 42.
-  \item An important notice is that because pattern matching variable `xs' does not exist on the right hand side 
-  of the branch, it does not evaluate `xs' and thus the program does not diverge.
+  \item On the right-hand side of the second branch, there is variable \texttt{x}. Now, the value of \texttt{x} is needed, and thus 
+  it evaluates \texttt{x1}, that is evaluates the content of the pointer and finally it returns 42.
+  \item An important notice is that because pattern matching variable \texttt{xs} does not exist on the right-hand side 
+  of the branch, it does not evaluate \texttt{xs} and thus the program does not diverge.
 \end{itemize}
 
 \subsection{BangPatterns: Haskell with strictness}
@@ -1839,7 +1841,7 @@ and also in the compiler as a flag, or as a language extension annotation inside
 \begin{minted}{haskell}
   {-# LANGUAGE BangPatterns #-}
 \end{minted}
-which allow the explicit use of strictness in Haskell. We should also mention the existence of `seq', a function found
+which allow the explicit use of strictness in Haskell. We should also mention the existence of \texttt{seq}, a function found
 in Haskell's Prelude:
 \begin{minted}{haskell}
   seq :: a -> b -> b
@@ -1863,17 +1865,17 @@ The example below showcases the use:
 
 The same annotation in our language's source files is used; it will be explained in detail in later section of 
 Chapter~\ref{ch:language}. For now, we provide some explanation about how the above program will run, in order to highlight 
-the difference with `head' with the lazy parameter, Haskell's builtin, which was given earlier. 
+the difference with \texttt{head} with the lazy parameter, Haskell's builtin, which was given earlier. 
 
 The program above has the following behaviour when executed:
 \begin{itemize}
-  \item Again, `head' is called. But now the frame for `head' has an evaluated \textit{thunk}, because `!' moves the 
-  evaluation one more step. So, in contrast to the earlier example, `l' has a pointer to (x1:x2), where x1 contains a pointer to 
-  `42' and x2 contains a pointer to `loop 42'. The \textit{thunk} is also marked as \textit{evaluated}.
-  \item Then, `head' is evaluated. At this point, when `case' needs to evaluate `l', which is marked as evaluated, `case' knows 
+  \item Again, \texttt{head} is called. But now the frame for \texttt{head} has an evaluated \textit{thunk}, because \texttt{!} moves the 
+  evaluation one more step. So, in contrast to the earlier example, \texttt{l} has a pointer to \texttt{x1:x2}, where \texttt{x1} contains a pointer to 
+  \texttt{42} and \texttt{x2} contains a pointer to \texttt{loop 42}. The \textit{thunk} is also marked as \textit{evaluated}.
+  \item Then, \texttt{head} is evaluated. At this point, when \texttt{case} needs to evaluate \texttt{l}, which is marked as evaluated, \texttt{case} knows 
   which branch to follow, which is the same as earlier, and does not do anything else.
-  \item After the branch is picked, again the right hand side of the branch is evaluated and `42' is returned as a result.
-  \item An important notice here is that `!' does not force \textit{deep} evaluation of the data structure. It just moves the 
+  \item After the branch is picked, again the right-hand side of the branch is evaluated and \texttt{42} is returned as a result.
+  \item An important notice here is that \texttt{!} does not force \textit{deep} evaluation of the data structure. It just moves the 
   value from weak-head normal form to head normal form. For data, this means that the outermost value is evaluated.
 \end{itemize}
 
@@ -1890,20 +1892,19 @@ The above functionality of `BangPatterns' shows that even with these strictness 
 example) are not the same as ML lists. But Haskell also has the `deepseq' module, which cause deep evaluation of the data, 
 and in this way we can \textit{head normal data}. 
 
-It follows an explanation of `deepseq' functionality. 
-BangPatterns are used in data constructors definitions.
+An explanation of `deepseq' functionality follows. BangPatterns are used in data constructor definitions.
 
 \begin{minted}{haskell}
   data List a = Empty | Cons !a !(List a)
 \end{minted}
 
-In the above data definition, `Cons' contains:
+\noindent In the above data definition, \texttt{Cons} contains:
 \begin{itemize}
   \item A strict head, annotated with a `!'.
   \item A strict tail, annotated also with a `!'.
 \end{itemize}
 
-In case that this list was used for `head', we finally have ML lists and the program 
+In case that this list was used for \texttt{head}, we finally have ML lists and the program 
 will diverge as it happens in a strict functional language like OCaml. `Deepseq' automatically can turn a data structure
 defined in Haskell into a ML-like data structure, by automatic instance derivation.
 
@@ -1928,8 +1929,8 @@ The definitions below are also used in this thesis' language.
 
 Static program analysis attempts to predict all possible runtime
 behaviour of a program~\cite{Nielson:2010:PPA:1965094}. This analysis
-happens without running the program, using just the program text (or
-equivalent intermediate representation). This permits the analysis to
+happens without running the program, using just the program text or
+some other equivalent intermediate representation. This permits the analysis to
 run before the program runs and can thus be used to guide decisions
 such as compile-time optimizations.
 
@@ -1960,8 +1961,8 @@ tail-call optimization can be applied.
 
 In this section, we provide some background about abstract machines used for 
 functional programming languages implementations.
-We do not dive deep into every abstract machine; our purpose is to basically 
-provide keywords and references to the reader and, where it seems appropriate, 
+We do not dive deep into every abstract machine; our purpose is to
+provide keywords and references to the reader and, where appropriate, 
 to compare with our approach.
 
 \subsection {Stack Environment Control Dump machine (SECD)}
@@ -1969,8 +1970,8 @@ to compare with our approach.
 
 The SECD machine is a highly influential virtual machine and abstract 
 machine intended as a target for functional programming 
-language compilers, introduced in 1964~\cite{La64}, and later explained
-in detail~\cite{Danvy:2004:RDL:2154439.2154443}. The letters stand for Stack, Environment, 
+language compilers, introduced in 1964~\cite{La64}, and explained
+in detail by Danvy~\cite{Danvy:2004:RDL:2154439.2154443}. The letters stand for Stack, Environment, 
 Control, Dump, the internal registers of the machine. 
 The registers Stack, Control, and Dump point to (some 
 realisations of) stacks, and Environment points to (some 
@@ -2457,7 +2458,7 @@ differences from the one shown in the figure:
   In a constructor projection, the first argument `CaseID' shows the position of case where the argument belongs
   and the second argument the position of the variable in the left hand side of a constructor pattern in a `case' branch.
   
-  The purpose of constructor projections is to bind the variables on the right hand side of the branch with the variables 
+  The purpose of constructor projections is to bind the variables on the right-hand side of the branch with the variables 
   on the left hand side of the branch. In this way, these variables are distinguished from the top level variables, i.e.
   the formal parameters in the function definition and they offer the possibility to know the position in the frame, 
   a reason that will become more clear in the next chapter, where we are going to give the details of the 
@@ -3151,7 +3152,7 @@ they escape their context.
 This is a local analysis, performed locally in a function body. The analysis is summarized in the following rules:
 \begin{itemize}
   \item The body of a lambda (or a function) is a tail call.
-  \item When an if/case expression is in tail call position, then the right hand side of the branches is in tail-call position. 
+  \item When an if/case expression is in tail call position, then the right-hand side of the branches is in tail-call position. 
   In the case of an `if' expression, this means that then/else clause is in tail call position.
   \item Nothing else is in tail call position.
 \end{itemize}
@@ -3228,8 +3229,8 @@ modulo cons have the following form:
 \begin{itemize} 
   \item The body of a lambda (or a function) is a tail call and it is also a lazy constructor application
   (instead of a function application).
-  \item When an if/case expression is in tail call position, then the right hand side of the branches is in tail-call position. 
-  In the case of an `if' expression, this means that then/else clause is in tail call position. The right hand side 
+  \item When an if/case expression is in tail call position, then the right-hand side of the branches is in tail-call position. 
+  In the case of an `if' expression, this means that then/else clause is in tail call position. The right-hand side 
   of a branch must also be a lazy constructor application.
   \item Nothing else is in tail recursion modulo cons position.
 \end{itemize}
