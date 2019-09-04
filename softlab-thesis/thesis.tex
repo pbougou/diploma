@@ -1876,7 +1876,7 @@ The program above has the following behaviour when executed:
   which branch to follow, which is the same as earlier, and does not do anything else.
   \item After the branch is picked, again the right-hand side of the branch is evaluated and \texttt{42} is returned as a result.
   \item An important notice here is that \texttt{!} does not force \textit{deep} evaluation of the data structure. It just moves the 
-  value from weak-head normal form to head normal form. For data, this means that the outermost value is evaluated.
+  value from weak-head normal form (WHNF) to head normal form. For data, this means that the outermost value is evaluated.
 \end{itemize}
 
 The idea about extending Haskell with strictness was used in StrictCore, an intermediate language 
