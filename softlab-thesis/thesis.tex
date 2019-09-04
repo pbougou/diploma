@@ -1959,11 +1959,13 @@ tail-call optimization can be applied.
 \section{Abstract machines and Interpreters}
 \label{sec:abstract-machines}
 
-In this section, we provide some background about abstract machines used for 
-functional programming languages implementations.
-We do not dive deep into every abstract machine; our purpose is to
-provide keywords and references to the reader and, where appropriate, 
-to compare with our approach.
+In this section, we provide some background about abstract machines
+used for functional programming languages implementations.  We do not
+dive deep into every abstract machine; our purpose is to provide
+keywords and references to the reader and, where appropriate, to
+compare with our approach. For more details on how our model differs
+from other non-strict models, consult the work of
+Fourtounis~\emph{et al.}~\cite{Fourtounis:2013:GIT:2769663.2769674,Fourtounis14}.
 
 \subsection {Stack Environment Control Dump machine (SECD)}
 \label{sec:secd}
@@ -2220,12 +2222,13 @@ to a first-order functional language with the evaluation-order annotations will 
 \section {Overview of the language }
 \label{sec:language-overview}
 
-The language we studied is a functional language 
-with multiple evaluation orders (call-by-need or 
-\textit{lazy}, call-by-name and call-by-value or \textit{strict}).
-We consider laziness as something that happens naturally in the language, while 
-the other two evaluation orders are used as language extensions,
-using proper annotations.
+The language we studied is a functional language with multiple
+evaluation orders (call-by-need or \textit{lazy}, call-by-name and
+call-by-value or \textit{strict}).  We consider laziness as something
+that happens naturally in the language, while the other two evaluation
+orders are used as language extensions, using proper annotations. Our
+language is based on the language used by
+Fourtounis~\emph{et al.}~\cite{Fourtounis:2013:GIT:2769663.2769674,Fourtounis14}.
 
 The annotations can appear syntactically (i.e. the programmer can annotate 
 the formal parameters in the function definition) or 
@@ -2250,12 +2253,10 @@ abstraction are passed as extra arguments to apply. In addition, if closures are
 it becomes necessary to represent these captured bindings by creating data structures.
 
 The defunctionalization transformation was used in MLton, an optimising compiler for ML. The first-order
-core language created oportunities for whole-program analysis and led to great performance~\cite{mlton}.
+core language created oportunities for whole-program analysis and led to great performance~\cite{mlton}. Defunctionalization has also been used in implementations of lazy programming languages, such as GRIN~\cite{Boquist96,Podlovics19} and GIC~\cite{Fourtounis14,Fourtounis14a}.
 
 As an example of defunctionalization, Prelude's \texttt{map} follows. The transformation leads to 
 the non tail-recursive version of \texttt{map}.
-
-Prelude's \texttt{map}:
 
 \begin{minted}{haskell}
   map :: (a -> b) -> [a] -> [b]
@@ -2292,14 +2293,14 @@ After performing defunctionalization \texttt{map} is (instantiated for integers)
 
 The differences between the two versions are:
 \begin{itemize}
-  \item Higher-order function, the first argument of \texttt{map}, (\texttt{f}, having type \texttt{(a -> b)}), is 
+  \item The higher-order function, which is the first argument of \texttt{map}, (\texttt{f}, having type \texttt{(a -> b)}), is 
   transformed to a \textit{unique} identifier, which is the data constructor \texttt{Inc}.
-  \item For the application inside the body of \texttt{result} function, we have the first order \textit{apply}
-  function, which patterns matches on the unique identifiers that are applied to \texttt{map}.
+  \item For the application inside the body of \texttt{result} function, we define the first-order \texttt{apply}
+  function, which pattern-matches on the unique identifiers that are applied to \texttt{map}.
 \end{itemize}
 
 Further details and formalization of defunctionalization transformation are not given here. 
-The reader can refer to Reynolds' paper for more information about this transformation.
+The reader can refer to paper by Reynolds~\cite{Reynolds72definitionalinterpreters} for more information about this transformation.
 
 \section {Strictness analysis}
 \label{sec:strictness-analysis}
@@ -2360,8 +2361,8 @@ language to reach the final form, which is the input of the analysis, presented 
   Every `case' expression opens a new scope and variable names in this scope are bound to the closest 
   `case' pattern. This transformation also handles name shadowing. 
   \item \textbf{If-to-case transform:}  When the language supports pattern matching on data 
-  (constructors), `if' expression is useless. It can be transformed to pattern matching on 
-  the nullary boolean constructor. Haskell does not have `if' expression as builtin; it only allows
+  (constructors), `if' expression is not needed. It can be transformed to pattern matching on 
+  the nullary boolean constructor (\texttt{True} vs. \texttt{False}). Haskell does not have an `if' expression as builtin; it only allows
   syntactic use (as syntactic sugar for boolean patterns).
   \item \textbf{Constructor projections:}  Every variable bound by a `case' pattern has to be 
   transformed to a special syntactic node in the core language, which contains the case unique identifier
@@ -2389,7 +2390,7 @@ We need to highlight the following points, before we dive deeper into the langua
   \begin{minted}{haskell}
     if cond then e1 else e2 => case cond of { True -> e1; False -> e2 }
   \end{minted}
-  \item There are not any partial applications, neither in function nor in constructor applications.
+  \item There are no partial applications, neither in function nor in constructor applications.
   This means that the arguments in a function call are the same in number as in the function definition.
   \item There is no `let' expression in the core language. Instead we assume that our language 
   fully depends upon a lambda lifter; a Johnson-style \textit{full laziness} lambda lifter~\cite{Johnsson:1985:LLT:5280.5292}
