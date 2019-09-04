@@ -3240,9 +3240,9 @@ The additional rule for tail recursion modulo cons is that if you have a tail ca
 \begin{minted}{haskell}
   x : y
 \end{minted}
-then \textit{`x'} must not contain any recursive calls and \textit{`y'} must be a function call that is subject to the 
+then \texttt{x} must not contain any recursive calls and \texttt{y} must be a function call that is subject to the 
 rules presented in section~\ref{sec:data-driven-analysis}; in this way frame mutation will become possible. If the last rule is applied, 
-then we can have \textit{x `:' tail recursive call to the function}. 
+then we can have (\texttt{x~:~}\emph{tail recursive call to the function}). 
 % Details on that will be presented later, in section~\ref{sec:tco-modulo-cons-eval}.
 
 
