@@ -2001,13 +2001,36 @@ forced.
 
 \subsection{Abstract machines for Haskell}
 \label{sec:stg}
-Write about G-Machine, STG's predecessor. Compare it with G-Machine~\cite{Jo90}.
 
-Overview of STG~\cite{Jo92} and its latest version~\cite{Ma06}.
-In all other the abstract machines mentioned above, the abstract machine code for a
-program consists of a sequence of abstract machine instructions. Each instruction is
-given a precise operational semantics using a state transition system.
-This machine is itself a small functional language 
+The G-Machine was an abstract machine originally designed 
+for Lazy ML (also known as LML), 
+a version of ML with lazy evaluation. It is based on compiling supercombinators, functions 
+with no free variables (or top level functions); the lambda lifter transforms lambda calculus 
+into supercombinators. Then, the supercombinators are compiled into G-Code, the abstract machine code, 
+whose execution model is graph reduction~\cite{Turner79}. G-Machine handled tail calls 
+in a similar way to ours (by replacing the arguments of the caller's frame with the arguments 
+of the callee function, but it suffered from space leaks~\cite{Jo90}. Our technique's uniform 
+representation of runtime structurs and full function and constructors applications
+(as it is first order), prevents these space leaks. Although G-Machine is not built for Haskell, 
+it is the predecessor of Spineless Tagless G-Machine, Haskell' s abstract machine until today. 
+
+% and its latest version~\cite{Ma06}.
+Spineless Tagless G-Machine (or STG)~\cite{Jo92}, in contrast to 
+all other the abstract machines mentioned above, for which the abstract machine code for a
+program consists of a sequence of abstract machine instructions, is itself a small functional language. 
+The machine is built for Haskell, a non-strict higher-order functional programming language 
+with lazy evaluation. Each instruction is given a precise operational semantics using a state 
+transition system. This machine is dealing updates following the self-updating model; instead 
+of leaving the responsibility for frame updating to the code that updates the thunk, it passes 
+the responsibility to the thunk itself. This can be useful if the machine is used for a language that 
+supports distributed or parallel computations, where the thunk that needs to updated is not 
+accessible from the code that updates it, at least in an affordable way.
+STG also has a uniform representation for heap allocated objects (a head normal form or a thunk);
+by a code pointer together with zero or more fields which give the values of the free variables of 
+the code. It also supports ``let'' bindings natively, while the function's arguments are either 
+variables or constants. This means that all actual parameters are transformed to ``let'' bindings, 
+where ``let'' is a heap builder operationally.
+
 
 \subsection{Push/enter vs. eval/apply}
 \label{sec:push-enter}
