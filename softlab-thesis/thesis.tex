@@ -3513,7 +3513,6 @@ Listlessness is closely related to tail recursion modulo cons:
 an optimization called tail recursion, particularly tail recursion 
 modulo cons''~\cite{Wadler84}.
 
-
 \chapter{Conclusion}
 \label{ch:conclusion}
 
@@ -3534,8 +3533,6 @@ code generator for stack frame mutation for tail calls, driven by the
 decisions currently made by our interpreter. Such an extension should
 be an obvious next step for our implementation.
 
-
-
 Integration with a more complex compiler should also help with
 evaluating our technique with more realistic benchmarks, such as the
 \emph{nofib} benchmark suite~\cite{nofib}.
@@ -3547,6 +3544,10 @@ combined with a lambda lifter (section~\ref{sec:syntax}), another
 future step in the context of this thesis would be to formalize the
 interaction between lambda lifting, tail calls, and our richer support
 for evaluation order choices.
+
+In addition to Haskell, our approach can also be used in other
+languages that combine laziness and strictness in the same language,
+such as PLT Scheme~\cite{Barzilay2005} and Scala~\cite{Odersky:199046}.
 
 Finally, although we described the analysis that spots optimisable 
 tail recursion modulo cons positions, we leave the implementation of the 
