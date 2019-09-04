@@ -1409,7 +1409,7 @@ GRIN~\cite{Boquist96,Podlovics19}.  Αυτή η ενσωμάτωση χρειά�
 
 \section {Purpose of the thesis}
 
-The purpose of the thesis is to integrate tail-call optimisation to functional programming languages 
+The purpose of the thesis is to integrate tail-call optimisation in functional programming languages 
 in the presence of multiple evaluation order choices (call-by-value, call-by-name, call-by-need). 
 Our optimisation can be combined with the defunctionalization transformation~\cite{Reynolds72definitionalinterpreters}, 
 so that the resulting performance optimisation also supports higher-order functional languages. 
@@ -1522,7 +1522,7 @@ main idea of this thesis.
 \section{Tail-call optimisation}
 \label{sec:tco}
 
-The main optimisation this thesis discusses is the tail-call optimisation. This optimisation, first found 
+The main optimisation this thesis discusses is tail-call optimisation (TCO). This optimisation, first found 
 in Scheme~\cite{Sussman:1975:IEL:889230,Steele:1976:LUI:889232} and
 generally usually found in strict functional languages, 
 allows functional programming languages to have constant space 
@@ -1556,13 +1556,13 @@ continuations~\cite{Sperber10}, higher-order return
 values~\cite[p.~103]{Appel92}\cite{Steele78},
 backtracking~\cite{Bobrow73}, or non-strict evaluation, and
 implementations in continuation-passing style~\cite[p.~103]{Appel92},
-may allocate frames on the heap. 
+may allocate frames on the heap, because the lifetime of a frames does
+not follow a simple stack (push/pop) usage.
 
 Tail-call optimization is also important for implementations of logic languages~\cite{Bigot99},
 functional programming languages running on the Java virtual machine~\cite{Madsen:2018:TCE:3178372.3179499},
 imperative languages such as C~\cite{baueran:mthesis:2003,Probst01}, or even low-level compiler-targeted languages such as
 LLVM~\cite{Pandey:2015:LC:2842773}.
-
 
 What exactly is \textit{tail call optimisation}? Tail calls are function calls in specific locations;
 specifically they are function calls performed as the final action of a function. Tail-call optimisation is actually passing 
@@ -1570,7 +1570,7 @@ the control from the caller to the callee; the runtime does not allocate a new f
 callee function. Instead, it reuses the current frame from the caller function. This leads to 
 a constant memory usage for the whole procedure. 
 
-In the example below, we have a `factorial' in OCaml:
+In the example below, we define a `factorial' function in OCaml:
 \begin{minted}{OCaml}
   let rec fact n = 
     if n > 0 
@@ -1578,8 +1578,8 @@ In the example below, we have a `factorial' in OCaml:
       else 1
 \end{minted}
 
-Inside the function's body, there is a function call to `fact'. This is not a tail-call, because this call is not 
-the last call performed in the function's body. In this example, `*' is the last operation performed, just before the function returns.
+Inside the function body, there is a function call to `fact'. This is not a tail-call, because this call is not 
+the last call performed in the function body. In this example, `*' is the last operation performed, just before the function returns.
 Let's assume that we have a call to the function:
 \begin{minted}{OCaml}
  let main = fact 3
@@ -1657,7 +1657,7 @@ languages (C/C++, Java etc).
 
 \par Call by value principles briefly are:
 \begin{itemize}
-  \item Evaluate \textit{fully} the actual parameters at the call inside the caller function's body.
+  \item Evaluate \textit{fully} the actual parameters at the call inside the caller function body.
   \item \textit{Bind} the \textit{fully evaluated} values with callee's formal parameters \textit{locally} inside the callee.
 \end{itemize}
 
@@ -2014,7 +2014,7 @@ push/enter and eval/apply.
 the function (callee), which statically knows its own arity, 
 examines the stack to figure out how many arguments it has been passed, and where they are. This 
 is also our own approach, where at a function we lookup the signature of the function, evaluate 
-its arguments and jump to the function's body.
+its arguments and jump to the function body.
 \item The eval/apply model briefly proceeds as following: the caller, which statically knows 
 what the arguments are, examines the function closure, extracts its arity, and makes an exact 
 call to the function.
@@ -2503,7 +2503,7 @@ includes the following high-level properties:
   \item Our data are lazy data constructors, but we can also support ML-lists (data with deep evaluation
   presented in section~\ref{sec:deepseq}).
   \item At function calls we follow the push/enter function call policy. Before jumping into 
-  the function's body, we allocate the frame and evaluate all the actual parameters, with the respect
+  the function body, we allocate the frame and evaluate all the actual parameters, with the respect
   to the semantics. 
   \item Our model supports pattern matching (constructors and base type values) similar to Haskell. 
   This is the most complicated feature in a lazy functional language, if we consider that initial 
@@ -2763,7 +2763,7 @@ presented in section~\ref{sec:syntax}. Minor implementation details are omitted 
 while later there will be an overview of how the interpreter runs in the presence of ML-lists.
 
 We finally begin our pattern matching on the expressions. The \textit{FunctionsMap} structure is also omitted as 
-eval's argument; we assume that we lookup this for formals and we want to jump to a function's body, e.g. in the function  
+eval's argument; we assume that we lookup this for formals and we want to jump to a function body, e.g. in the function  
 call expression.
 
 In every execution step our \textit{eval} is looking up the current state. As we have already mentioned the state is 
@@ -3148,7 +3148,7 @@ For a call-by-value language, this step reveals each and every true tail-call po
 with call-by-need semantics this is not enough, as it has been already sketched in section~\ref{sec:example2}, as lazy arguments are arbitrarily evaluated and thus 
 they escape their context. 
 
-This is a local analysis, performed locally in a function's body. The analysis is summarized in the following rules:
+This is a local analysis, performed locally in a function body. The analysis is summarized in the following rules:
 \begin{itemize}
   \item The body of a lambda (or a function) is a tail call.
   \item When an if/case expression is in tail call position, then the right hand side of the branches is in tail-call position. 
@@ -3352,7 +3352,7 @@ and produces:
   order of the functions.
   \item The next state for the interpreter. Because evaluation \textit{may} take place, while this function is executing 
   (for example we need to turn a lazy frame argument into a strict and thus we perform the evaluation before 
-  we jump into the callee function's body), we need to change the memory state and count the frames correctly
+  we jump into the callee function body), we need to change the memory state and count the frames correctly
   for our evaluation that follows in the next chapter.
 \end{itemize}
 
