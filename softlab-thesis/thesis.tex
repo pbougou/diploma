@@ -1891,7 +1891,7 @@ inspired by~\cite{Bol09}.
 
 The above functionality of `BangPatterns' shows that even with these strictness annotations, data constructors (lists in our
 example) are not the same as ML lists. But Haskell also has the `deepseq' module, which cause deep evaluation of the data, 
-and in this way we can the option for \textit{head normal data}, which are the same the data that 
+and in this way we can have the option for \textit{head normal data}, which are the same as the data that 
 exist in languages like ML. 
 
 An explanation of `deepseq' functionality follows. BangPatterns are used in data constructor definitions.
@@ -2002,20 +2002,20 @@ forced.
 \subsection{Abstract machines for Haskell}
 \label{sec:stg}
 
-The G-Machine was an abstract machine originally designed 
-for Lazy ML (also known as LML), 
+The G-machine was an abstract machine originally designed 
+for Lazy ML~\cite{Augustsson:1984:CLM:800055.802038}, 
 a version of ML with lazy evaluation. It is based on compiling supercombinators, functions 
 with no free variables (or top level functions); the lambda lifter transforms lambda calculus 
-into supercombinators. Then, the supercombinators are compiled into G-Code, the abstract machine code, 
-whose execution model is graph reduction~\cite{Turner79}. G-Machine handled tail calls 
+into supercombinators. Then, the supercombinators are compiled into G-code, the abstract machine code, 
+whose execution model is graph reduction~\cite{Turner79}. The G-machine handled tail calls 
 in a similar way to ours (by replacing the arguments of the caller's frame with the arguments 
-of the callee function, but it suffered from space leaks~\cite{Jo90}. Our technique's uniform 
-representation of runtime structurs and full function and constructors applications
-(as it is first order), prevents these space leaks. Although G-Machine is not built for Haskell, 
-it is the predecessor of Spineless Tagless G-Machine, Haskell' s abstract machine until today. 
+of the callee function), but it suffered from space leaks~\cite{Jo90}. Our technique's uniform 
+representation of runtime structures and full function and constructors applications
+(as it is first order), prevents these space leaks. Although the G-machine is not built for Haskell, 
+it is the predecessor of the Spineless Tagless G-machine, Haskell's abstract machine until today. 
 
 % and its latest version~\cite{Ma06}.
-Spineless Tagless G-Machine (or STG)~\cite{Jo92}, in contrast to 
+The Spineless Tagless G-machine (or STG)~\cite{Jo92}, in contrast to 
 all other the abstract machines mentioned above, for which the abstract machine code for a
 program consists of a sequence of abstract machine instructions, is itself a small functional language. 
 The machine is built for Haskell, a non-strict higher-order functional programming language 
@@ -2041,17 +2041,21 @@ push/enter and eval/apply.
 \item The push/enter model, briefly proceeds as following: 
 the function (callee), which statically knows its own arity, 
 examines the stack to figure out how many arguments it has been passed, and where they are. This 
-is also our own approach, where at a function we lookup the signature of the function, evaluate 
+is also our own approach, where at a function we look up the signature of the function, evaluate 
 its arguments and jump to the function body.
 \item The eval/apply model briefly proceeds as following: the caller, which statically knows 
 what the arguments are, examines the function closure, extracts its arity, and makes an exact 
 call to the function.
 \end{itemize}
 
-While, as Marlow \& Jones claim~\cite{Ma06}, eval/apply is better than push/enter, we implement an 
-interpreter for a first order functional language, where no partial applications take place.
-In this specific case, we know in advance how many are the arguments and we are able to construct 
-the appropriate runtime data structure from the callee's point of view.
+Marlow \& Jones find that eval/apply is better than push/enter for
+higher-order implementations of lazy evaluation~\cite{Ma06}. However,
+we implement an interpreter for a first-order functional language,
+where no partial applications take place and thus the first approach
+(eval/apply) is not directly applicable. We follow a push/enter
+approach, since we know in advance how many are the arguments and we
+are able to construct the appropriate runtime data structure from the
+callee's point of view.
 
 % \section {Boxed vs. Unboxed values}
 % μπλα μπαλα.
