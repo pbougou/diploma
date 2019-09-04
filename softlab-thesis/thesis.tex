@@ -2476,7 +2476,7 @@ language we studied in this thesis as well as the technical details about the im
 the interpreter, on which we evaluate our technique for the tail-call optimisation and
 tail recursion modulo cons.
 
-In section~\ref{sec:execution-model-overview} there is a high-level description of the machine; 
+Section~\ref{sec:execution-model-overview} gives a high-level description of the machine; 
 then in section~\ref{sec:runtime-structs} the runtime 
 data structures and the design decisions will become clear to the reader.
 
@@ -2488,14 +2488,14 @@ In this section, we present a high-level description for the execution model; th
 to follow the technical details from the next sections. Also, it will be easier to compare to other existing 
 abstract machines and interpreters that exist for a lazy functional language.
 
-Our model, based on GIC~\cite{Fourtounis14}, 
+Our model, based on GIC~\cite{Fourtounis14,Theofilopoulos13}, 
 includes the following high-level properties:
 \begin{itemize}
-  \item We implement a first-order lazy abstract machine. First-order as we do not support
+  \item We implement a first-order lazy abstract machine. It is first-order as we do not support
   function arguments cannot be functions and partial evaluation. Laziness is the default semantics
   for our model.
   \item We have a frame-based execution model for our language, but the frames are 
-  \textit{heap-allocated frames}, instead of stack. The reason for this is that lazy evaluation 
+  \textit{heap-allocated frames}, instead of stack-allocated. The reason for this is that lazy evaluation 
   breaks the sequential order of execution, because of frame updates, and thus we are not able 
   to allocate and deallocate frames with push/pop operations.
   \item Our interpreter supports explicit frame allocation, needed for frame mutation and evaluation 
@@ -2587,7 +2587,7 @@ This aforementioned data structure is accompanied with three operations in order
 \end{figure}
 
 
-Later on, we will use the terms \textit{push}, \textit{getFrame} and \textit{updFrame} in order to refer to 
+Later on, we will use the terms \textit{push}, \textit{getFrame}, and \textit{updFrame} in order to refer to 
 operations performed in memory.
 
 \subsection{Suspended execution of constructed data}
@@ -2620,8 +2620,8 @@ A value can either an integer value or a suspension.
 
 From the above definition, we have that a value can be either an integer (or generally a base type 
 value) or a suspension of constructed data (see section~\ref{sec:suspended}). While the former is obvious, especially 
-for most programmers who use strict languages, the latter is something that happens in lazy evaluated 
-programming languages. Computations may not be deeply evaluated and thus they can create thunks or 
+for most programmers who use strict languages, the latter is something that happens in
+programming languages using lazy evaluation. Computations may not be deeply evaluated and thus they can create thunks or 
 leave unevaluated thunks that can be evaluated later.
 
 \subsection{Frames}
@@ -2734,13 +2734,10 @@ This function is a special case of a function and is assumed not to have any arg
 % \newline
 
 The \textit{initial state} for the interpreter's execution to start with, is:
-\begin{figure}[h]
 \[ 
   \mathit{State0 = (mem0, frameId0, nr\_frames0) }
 \]
-\caption{Initial state of the interpreter\label{fig:state0}}
-\end{figure}
-, where:
+where:
 \begin{itemize}
   \item The initial state of memory, called \textit{mem0}, is:
     \begin{minted}{haskell}
@@ -2883,22 +2880,22 @@ In this section, we describe the interpreter for a function call. The call is of
 where we have the information about \textit{callee}'s name and the actual parameters from the function call. 
 
 \begin{figure}[htp]
-  \[ \mathit{makeArgs :: [Actual] \times [Formal] \times State \rightarrow [FrameArg] \times State}, \]
+  \[ \mathit{makeArgs :: [Actual] \times [Formal] \times State \rightarrow [FrameArg] \times State} \]
 \caption{Construction of frame arguments\label{fig:makeArgs}}
-\end{figure} ~
+\end{figure}
 \begin{figure}[htp]
   \begin{align*}
     \mathit{(v, state') = eval \hfill\ actual \hfill\ state} \\
     \mathit{frameArg = StrictArg \hfill\ v}
   \end{align*}
 \caption{Construction of call-by-value frame argument\label{fig:makeCBVArg}}
-\end{figure} ~
+\end{figure}
 \begin{figure}[htp]
   \[ 
     \mathit{frameArg = ByNameArg \hfill\ actual} 
   \] 
 \caption{Construction of call-by-name argument\label{fig:makeCBNArg}}
-\end{figure} ~
+\end{figure}
 \begin{figure}[htp]
   \[
     \mathit{frameArg = LazyArg \hfill\ actual \hfill\ false \hfill\ empty} 
@@ -2907,7 +2904,8 @@ where we have the information about \textit{callee}'s name and the actual parame
 \end{figure} ~
 \begin{figure}[htp]
   \begin{align*}
-    & \mathit{eval \hfill\ (Call \hfill\ callee \hfill\ actuals, s) = (val, s'''),} \\ \mathit{where} \\
+    & \mathit{eval \hfill\ (Call \hfill\ callee \hfill\ actuals, s) = (val, s''')} \\
+    \mathit{where} & \\
     & \mathit{(formals, funBody) = lookup \hfill\ callee \hfill\ FunctionsMap} \\
     & \mathit{(frameArgs, (mem', \_, nr\_frames')) = makeArgs \hfill\ actuals \hfill\ formals  \hfill\ state} \\
     & \mathit{newFrame = Frame \hfill\ callee \hfill\ frameArgs \hfill\ [] \hfill\ frameId} \\
