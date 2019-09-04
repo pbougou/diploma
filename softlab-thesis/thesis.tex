@@ -2080,13 +2080,13 @@ sum (x:xs) acc = sum xs (x + acc)
 
 In \textit{strict} languages like SML/NJ or Scheme,
 this is subject to tail-call optimisation. As we know from section~\ref{sec:cbv},
-`acc' is \textit{fully} evaluated in every execution step, while in the
-presence of laziness `acc' is evaluated \textit{once}, when the input 
+\texttt{acc} is \textit{fully} evaluated in every execution step, while in the
+presence of laziness \texttt{acc} is evaluated \textit{once}, when the input 
 list is empty and the function \textit{needs} it as a result.
 
-The intuition here is that lazy argument `acc' has to be strict, as in the example below,
-because it is a variable that has always a value (in the case the value of the variable `x') added to it,
-and finally it is returned as a result. This is known in the world from strictness analysis [1], as we 
+The intuition here is that lazy argument \texttt{acc} has to be strict, as in the example below,
+because it is a variable that has always a value (in the case the value of the variable \texttt{x}) added to it,
+and finally it is returned as a result. This is known in the world from strictness analysis, as we 
 will describe later in section~\ref{sec:strictness-analysis}.
 
 \begin{minted}{haskell}
@@ -2097,9 +2097,9 @@ will describe later in section~\ref{sec:strictness-analysis}.
       x : xs -> sum xs (x + acc) 
 \end{minted}
 
-At the latter example, `acc' (an integer or WHNF) is strict. This means that `acc' is 
+At the latter example, \texttt{acc} (an integer or WHNF) is strict. This means that \texttt{acc} is 
 fully evaluated in each execution step, and thus it can be tail-call optimised. This, of course,
-is not possible if `acc' was, for example, a list, as we will illustrate with the following examples.
+is not possible if \texttt{acc} was, for example, a list, as we will illustrate with the following examples.
 
 
 \subsection {Example 2: Constructing lists}
@@ -2107,7 +2107,7 @@ is not possible if `acc' was, for example, a list, as we will illustrate with th
 
 In this example, we have a function that constructs a list with successive 
 integers up to the input number `n' (`0' excluded, `n' included). The function contains 
-a tail-recursive call in its body to itself (`makelist (n-1) (n : acc)'). 
+a tail-recursive call in its body to itself (\texttt{makelist (n-1) (n : acc)}). 
 
 \begin{minted}{haskell}
 makelist :: Int -> [Int] -> [Int]
@@ -2119,10 +2119,10 @@ makelist !n !acc =
 
 Although the example above seems a perfect candidate for tail-call optimisation, it is not, 
 at least in the traditional point of view of tail-call optimisation. Here, lists are 
-lazy data constructors and are not fully evaluated in every execution step. The bang (`!') does not 
+lazy data constructors and are not fully evaluated in every execution step. The bang (\texttt{!}) does not 
 force deep evaluation of the data, but it forces the evaluation one more step. That means that the strict 
-`acc' constructs its \textit{backbone} (a memory thunk) in memory, along with a \textit{recipe} 
-(`n-1' and `n:acc' cells) for further evaluation. 
+\texttt{acc} constructs its \textit{backbone} (a memory thunk) in memory, along with a \textit{recipe} 
+(\texttt{n-1} and \texttt{n:acc} cells) for further evaluation. 
 
 With a more case-aware analysis and additional work in the evaluator, 
 we were actually able to tail-call optimise the example
@@ -2132,8 +2132,8 @@ and the evaluator respectively.
 \subsection {Example 3: Constructing and consuming lists}
 \label{sec:example3}
 
-An example of constructing and consuming, or better \textit{processing}, lists is `map' or `foldl'/`foldr'.
-In the example below, we present a defunctionalized version of `map', similar to Prelude's `map', instantiated for
+An example of constructing and consuming, or better \textit{processing}, lists is \texttt{map} or \texttt{foldl}/\texttt{foldr}.
+In the example below, we present a defunctionalized version of \texttt{map}, similar to Prelude's \texttt{map}, instantiated for
 the integer domain.
 
 \begin{minted}{haskell}
@@ -2152,10 +2152,10 @@ inc a = a + 1
 
 result = map (Add 1) [1, 2, 3] []
 \end{minted}
-In the example presented above, 
-the tail-recursive call to `map' can be subject to tail-call optimisation, 
-following the same principles as in the examples like `sum' and `makelist'. The classic non tail-recursive 
-version of `map' (`apply f x : map f xs') is actually subject to tail recursion modulo cons, which is presented 
+\noindent In the example presented above, 
+the tail-recursive call to \texttt{map} can be subject to tail-call optimisation, 
+following the same principles as in the examples like \texttt{sum} and \texttt{makelist}. The classic non tail-recursive 
+version of \texttt{map} (\texttt{apply f x : map f xs}) is actually subject to tail recursion modulo cons, which is presented 
 in the following section.
 
 \section{Tail recursion modulo cons}
@@ -2172,7 +2172,7 @@ described in section~\ref{sec:lazy}, which use a mechanism called \textit{thunk}
 Let's illustrate this idea with a simple example presented in the next section.
 
 \subsection {Motivating example}
-In Example 3 (section~\ref{sec:example3}), `makelist' was in the tail-recursive 
+In Example 3 (section~\ref{sec:example3}), \texttt{makelist} was in the tail-recursive 
 form. In this section, we have a different version of the function. 
 Programmers who constantly use strict functional programming languages like OCaml 
 will argue that the program below is bad. 
@@ -2192,20 +2192,20 @@ makelist x =
     else []
 \end{minted}
 
-In the example above, the \textbf{\textit{then}} clause contains a constructor 
+In the example above, the \texttt{then} clause contains a constructor 
 application: 
 \begin{center}
   @ (@ (:) x) (@ makelist (x-1))
 \end{center}
 
-This recursive call is guarded by the constructor (:).
+This recursive call is guarded by the constructor \texttt{(:)}.
 From section~\ref{sec:lazy-data-cons}, where we described lazy data constructors,
 we know that this constructor application will be suspended when 
 the program is running. This means that it will create a memory 
-thunk with two cells, which will contain `x' and `makelist (x-1)'.
+thunk with two cells, which will contain \texttt{x} and \texttt{makelist (x-1)}.
 The function call to makelist is actually a call that can be transformed 
-to a tail-recursive call to `makelist', if the `cons' thunk is \textit{updated} 
-with the value of the variable `x'. 
+to a tail-recursive call to \texttt{makelist}, if the \texttt{(:)} thunk is \textit{updated} 
+with the value of the variable \texttt{x}. 
 
 \chapter {The language}
 \label{ch:language}
@@ -2252,10 +2252,10 @@ it becomes necessary to represent these captured bindings by creating data struc
 The defunctionalization transformation was used in MLton, an optimising compiler for ML. The first-order
 core language created oportunities for whole-program analysis and led to great performance~\cite{mlton}.
 
-As an example of defunctionalization, Prelude's `map' follows. The transformation leads to 
-the non tail-recursive version of `map'.
+As an example of defunctionalization, Prelude's \texttt{map} follows. The transformation leads to 
+the non tail-recursive version of \texttt{map}.
 
-Prelude's `map':
+Prelude's \texttt{map}:
 
 \begin{minted}{haskell}
   map :: (a -> b) -> [a] -> [b]
@@ -2268,7 +2268,7 @@ Prelude's `map':
   result = map inc [1,2,3]
 \end{minted}
 
-After performing defunctionalization `map' is (instantiated for integers):
+After performing defunctionalization \texttt{map} is (instantiated for integers):
 \begin{minted}{haskell}
   data Func = Inc 
 
@@ -2292,10 +2292,10 @@ After performing defunctionalization `map' is (instantiated for integers):
 
 The differences between the two versions are:
 \begin{itemize}
-  \item Higher-order function, the first argument of `map' (f :: a -> b) is 
-  transformed to a \textit{unique} identifier, which is the data constructor `Inc'.
-  \item For the application inside the body of `result' function, we have the first order \textit{apply}
-  function, which patterns matches on the unique identifiers that are applied to `map'.
+  \item Higher-order function, the first argument of \texttt{map}, (\texttt{f}, having type \texttt{(a -> b)}), is 
+  transformed to a \textit{unique} identifier, which is the data constructor \texttt{Inc}.
+  \item For the application inside the body of \texttt{result} function, we have the first order \textit{apply}
+  function, which patterns matches on the unique identifiers that are applied to \texttt{map}.
 \end{itemize}
 
 Further details and formalization of defunctionalization transformation are not given here. 
@@ -2310,7 +2310,7 @@ strict programming languages. But everything comes at a cost: evaluation can hap
 arbitrarily and thus lazy arguments can escape their context.
 
 But Mycroft
-noticed that some lazy terms are actually strict under the right circumstances~\cite{Mycroft:1980:TPT:647324.721526}. For instance, the `case' 
+noticed that some lazy terms are actually strict under the right circumstances~\cite{Mycroft:1980:TPT:647324.721526}. For instance, the \texttt{case} 
 construct forces the evaluation of an expression, called the \emph{scrutinee}~\cite{PeytonJones94}, causing the scrutinee to actually become strict, 
 similar to strictness presented in section~\ref{sec:bangpatterns} about BangPatterns. 
 
@@ -2321,18 +2321,18 @@ And it's more than that. Let's look again the sum program of section~\ref{sec:ex
   sum (x:xs) acc = sum xs (x + acc)
 \end{minted}
 
-Here, lazy argument `acc', which is a thunk in each function call is evaluated once, when the program's 
+Here, lazy argument \texttt{acc}, which is a thunk in each function call is evaluated once, when the program's 
 execution flow reaches the base case. This \textit{arbitrary} evaluation of lazy arguments seems not to 
-be so arbitrary after all. We do know when `acc' is going to be evaluated.
+be so arbitrary after all. We do know when \texttt{acc} is going to be evaluated.
 
-The question is: what makes `acc' so predictable? From the example above, we have the following information for `acc':
+The question is: what makes \texttt{acc} so predictable? From the example above, we have the following information for \texttt{acc}:
 \begin{itemize}
-  \item `acc' is an integer, always added to another integer.
-  \item `acc' is the result of the function.
+  \item \texttt{acc} is an integer, always added to another integer.
+  \item \texttt{acc} is the result of the function.
 \end{itemize}
 
-From these observations we can deduct that `acc' is going to be evaluated (second observation) and 
-all intermediate values are needed for its evaluation, as `acc' is an integer (first observation).
+From these observations we can deduct that \texttt{acc} is going to be evaluated (second observation) and 
+all intermediate values are needed for its evaluation, as \texttt{acc} is an integer (first observation).
 
 Although in this thesis we used integers and lists, strictness
 analysis can be applied except for integer domain to any other domain. In practice, strictness analysis is a
