@@ -1397,7 +1397,7 @@ GRIN~\cite{Boquist96,Podlovics19}.  Αυτή η ενσωμάτωση χρειά�
 
 Ενσωμάτωση με ένα πιο σύνθετο μεταγλωττιστή θα μπορούσε επίσης να βοηθήσει για να 
 αξιολογήσουμε την τεχνική μας με πιο ρεαλιστικά προγράμματα ως αναφορά (benchmarks),
-όπως η \emph{nofib} benchmark σουίτα~\cite{nofib}.
+όπως η σουίτα δοκιμαστικών προγραμμάτων \emph{nofib}~\cite{nofib}.
 
 
 
@@ -3492,15 +3492,18 @@ a compiler for a lazy language.
 \chapter{Related work}
 \label{ch:related}
 
-GHC, Haskell's de facto implementation, 
-used Cmm and later LLVM to support tail calls~\cite{Terei:2010:LBG:1863523.1863538}.
-When GHC is targeting C--, it uses an optimisation called loopification~\cite{Wos10}, which 
-turns recursive calls into loops in the code generator, exploiting Haskell Core' s join points. 
-Our approach bridges the gap between implementations for non-strict functional languages and 
-the frame-based approaches for strict functional languages, with some differences though that 
-have described in section about the interpreter~\ref{sec:execution-model-overview}. Having 
-explicitely control flow inside our core language is not something that could improve our 
-approach, as it is based on data-driven analysis of the arguments of the caller and the callee.
+GHC, Haskell's de facto implementation, used Cmm and later LLVM to
+support tail calls~\cite{Terei:2010:LBG:1863523.1863538}.  When GHC is
+targeting Cmm, it uses an optimisation called
+loopification~\cite{Wos10}, which turns recursive calls into loops in
+the code generator, exploiting Haskell Core' s join points.  Our
+approach bridges the gap between implementations for non-strict
+functional languages and the frame-based approaches for strict
+functional languages, with some differences our interpreter
+(section~\ref{sec:execution-model-overview}). Having explicitely
+control flow inside our core language is not something that could
+improve our approach, as it is based on data-driven analysis of the
+arguments of the caller and the callee.
 
 \emph{Short cut fusion}~\cite{Gill:1993:SCD:165180.165214,Pardo16}, an 
 optimisation for functional programming languages, is based 
